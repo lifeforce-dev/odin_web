@@ -1,8 +1,0 @@
-README.md
-previewer_manifest.py
-pyproject.toml
-design_previewer.egg-info/PKG-INFO
-design_previewer.egg-info/SOURCES.txt
-design_previewer.egg-info/dependency_links.txt
-design_previewer.egg-info/requires.txt
-design_previewer.egg-info/top_level.txt
