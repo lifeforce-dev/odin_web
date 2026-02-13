@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 09 - Core Discipline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Kanit:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #0a0b12;
+      --bg-accent: rgba(255, 146, 112, 0.14);
+      --surface-0: rgba(16, 16, 24, 0.96);
+      --surface-1: rgba(19, 18, 29, 0.96);
+      --surface-2: rgba(13, 14, 22, 0.98);
+      --text-main: #f4f4ff;
+      --text-dim: rgba(244, 244, 255, 0.72);
+      --line: rgba(188, 179, 230, 0.28);
+      --line-strong: rgba(206, 198, 243, 0.48);
+      --accent: #ff9270;
+      --accent-2: #ffcf86;
+      --accent-text: #2a0f06;
+      --radius: 0px;
+      --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+      --font-display: "Kanit", sans-serif;
+      --focus: 0 0 0 3px rgba(255, 146, 112, 0.28);
+    }
+
+    body {
+      background:
+        radial-gradient(850px 560px at 100% 0%, rgba(255, 146, 112, 0.16), transparent 62%),
+        linear-gradient(180deg, #0a0b12 0%, #08090f 100%);
+    }
+
+    .metrics {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Core Discipline",
+      pageTitle: "Core Discipline",
+      pageSubtitle: "Arena-combat inspired structure with restrained tone and explicit action flow.",
+      genre: "Arena Combat",
+      narrative: "Technique Chain",
+      narrativeTitle: "Narrative",
+      narrativeSummary: "Each exercise is a technique chain. Complete all phases before transitioning.",
+      designPrinciples: [
+        "High contrast text on stable dark planes.",
+        "Reduced stylistic noise to lower decision fatigue.",
+        "One primary action per screen to minimize friction."
+      ],
+      labels: {
+        rank: "Discipline Tier",
+        streak: "Composure",
+        currency: "Merit",
+        objective: "Technique",
+        objectiveDone: "All chains mastered.",
+        points: "Mastery XP"
+      },
+      initial: { rank: 7, rankXp: 22, streak: 5, currency: 176 },
+      rewards: { setPoints: 11, setCurrency: 4, exercisePoints: 28, exerciseCurrency: 12 },
+      globalRestSeconds: 3,
+      notificationTitle: "Core Discipline Timer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

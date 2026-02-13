@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ODIN // ATELIER</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Montserrat:wght@200;400&display=swap');
+
+        :root {
+            --c-bg: #f9f8f6;
+            --c-text: #1a1a1a;
+            --c-accent: #b08d55; /* Gold/Bronze */
+            --f-serif: 'Cormorant Garamond', serif;
+            --f-sans: 'Montserrat', sans-serif;
+        }
+
+        body {
+            background-color: var(--c-bg);
+            color: var(--c-text);
+            font-family: var(--f-sans);
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+        }
+
+        h1, h2 {
+            font-family: var(--f-serif);
+            font-weight: 300;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 { font-size: 2.5rem; }
+        h2 { font-size: 2rem; border-bottom: 1px solid #ddd; padding-bottom: 20px; }
+
+        /* Buttons */
+        .btn-minimal {
+            background: transparent;
+            border: 1px solid var(--c-text);
+            color: var(--c-text);
+            padding: 15px 30px;
+            font-family: var(--f-sans);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.8rem;
+            transition: 0.4s ease;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+            width: fit-content;
+        }
+
+        .btn-minimal:hover {
+            background: var(--c-text);
+            color: var(--c-bg);
+        }
+
+        /* List */
+        .item-row {
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            transition: 0.3s;
+        }
+
+        .item-row:hover {
+            padding-left: 10px;
+        }
+
+        .item-name {
+            font-family: var(--f-serif);
+            font-size: 1.5rem;
+        }
+
+        .item-meta {
+            font-size: 0.7rem;
+            color: #888;
+            letter-spacing: 1px;
+        }
+        
+        .item-row.complete {
+            opacity: 0.3;
+        }
+
+        /* Displays */
+        .stat-display {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .stat-val {
+            font-family: var(--f-serif);
+            font-size: 5rem;
+            line-height: 1;
+            font-style: italic;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        /* Inputs */
+        .input-line {
+            border: none;
+            border-bottom: 1px solid var(--c-text);
+            font-family: var(--f-serif);
+            font-size: 3rem;
+            text-align: center;
+            width: 100%;
+            margin: 20px 0;
+            color: var(--c-text);
+            background: transparent;
+        }
+
+        .input-line::placeholder {
+            color: #ddd;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Main -->
+        <div id="page-main" class="page hidden full-screen flex-center" style="flex-direction: column;">
+            <div style="font-size: 0.8rem; letter-spacing: 5px; margin-bottom: 10px;">COLLECTION 01</div>
+            <h1>The Odin Protocol</h1>
+            <div style="width: 50px; height: 1px; background: var(--c-text); margin: 20px 0;"></div>
+            <button class="btn-minimal" onclick="app.startWorkout()">Begin Session</button>
+        </div>
+
+        <!-- Circuit -->
+        <div id="page-circuit" class="page hidden">
+            <h2 style="margin-top: 20px;">Programme</h2>
+            <div id="circuit-list"></div>
+        </div>
+
+        <!-- Progress -->
+        <div id="page-progress" class="page hidden full-screen flex-center" style="flex-direction: column;">
+            <div class="stat-label">Current Configuration</div>
+            <h1 id="prog-name" style="margin-bottom: 0;">Exercise</h1>
+            
+            <div class="stat-display">
+                <div class="stat-val" id="prog-target">8-12</div>
+                <div class="stat-label">Repetition Target</div>
+            </div>
+
+            <div style="font-family: var(--f-serif); font-size: 1.2rem; font-style: italic; color: #666; margin-bottom: 40px;">
+                Set <span id="prog-set">1</span> of <span id="prog-total">3</span>
+            </div>
+
+            <button class="btn-minimal" onclick="app.enterResultData()">Record Performance</button>
+        </div>
+
+        <!-- Result -->
+        <div id="page-result-input" class="page hidden full-screen flex-center" style="flex-direction: column; padding: 40px;">
+            <h2 style="border:none;">Performance Log</h2>
+            
+            <input type="number" id="input-reps" class="input-line" placeholder="Reps">
+            <input type="number" id="input-weight" class="input-line" placeholder="Weight (kg)">
+            
+            <button class="btn-minimal" onclick="submitForm()">Complete</button>
+        </div>
+
+        <!-- Rest -->
+        <div id="page-rest" class="page hidden full-screen flex-center" style="flex-direction: column;">
+             <div class="stat-val" id="rest-timer">00:00</div>
+             <div class="stat-label">Intermission</div>
+        </div>
+
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        const app = new WorkoutFlow({
+            renderPage: (pageId, state) => {
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+                
+                if (pageId === 'page-circuit') renderCircuit(state.workout);
+                if (pageId === 'page-progress') {
+                    document.getElementById('prog-name').innerText = state.activeExercise.name;
+                    document.getElementById('prog-set').innerText = state.activeExercise.completedSets + 1;
+                    document.getElementById('prog-total').innerText = state.activeExercise.sets;
+                    document.getElementById('prog-target').innerText = state.activeExercise.reps;
+                }
+            },
+            updateTimer: (seconds) => {
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-timer').innerText = `${min}:${sec}`;
+            }
+        });
+
+        function renderCircuit(workout) {
+            const list = document.getElementById('circuit-list');
+            list.innerHTML = '';
+            workout.exercises.forEach(ex => {
+                const div = document.createElement('div');
+                div.className = `item-row ${ex.isComplete ? 'complete' : ''}`;
+                div.innerHTML = `
+                    <span class="item-name">${ex.name}</span>
+                    <span class="item-meta">${ex.completedSets} / ${ex.sets}</span>
+                `;
+                div.onclick = () => app.selectExercise(ex.id);
+                list.appendChild(div);
+            });
+        }
+
+        function submitForm() {
+            const reps = document.getElementById('input-reps').value;
+            const weight = document.getElementById('input-weight').value;
+            app.submitResult(reps, weight);
+            document.getElementById('input-reps').value = '';
+        }
+    </script>
+</body>
+</html>

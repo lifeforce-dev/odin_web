@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ODIN // OBSIDIAN</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        :root {
+            --c-bg: #111111;
+            --c-surface: #1e1e1e;
+            --c-text: #ffffff;
+            --c-text-sec: #888888;
+            --c-accent: #ffffff;
+            --f-main: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--c-bg);
+            color: var(--c-text);
+            font-family: var(--f-main);
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            background: linear-gradient(to bottom, #111, #0a0a0a);
+        }
+
+        h1, h2, h3 {
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        /* Buttons */
+        .btn-stone {
+            background: var(--c-surface);
+            color: var(--c-text);
+            border: none;
+            padding: 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            width: 100%;
+            margin-top: auto;
+            box-shadow: 0 4px 0 #000;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn-stone:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #000;
+        }
+        
+        .btn-stone:focus {
+            outline: 2px solid #fff;
+        }
+
+        /* List */
+        .card-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .card-item {
+            background: var(--c-surface);
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .card-item:hover {
+            background: #2a2a2a;
+        }
+
+        .card-item.complete {
+            opacity: 0.4;
+            background: #111;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .card-meta {
+            color: var(--c-text-sec);
+            font-size: 0.9rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Progress View */
+        .huge-stat {
+            font-size: 6rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.05em;
+        }
+        
+        .stat-label {
+            color: var(--c-text-sec);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+
+        /* Input Page */
+        .input-block {
+            background: var(--c-surface);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .input-block label {
+            flex: 1;
+            font-weight: 600;
+        }
+        
+        .input-block input {
+            background: transparent;
+            color: #fff;
+            font-size: 2.5rem;
+            width: 100px;
+            text-align: right;
+            font-weight: 800;
+            border-bottom: 2px solid #333;
+        }
+        
+        .input-block input:focus {
+            border-bottom-color: #fff;
+        }
+
+        /* Rest */
+        .timer-circle {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: #fff;
+            color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 5rem;
+            font-weight: 800;
+            margin: auto;
+            font-variant-numeric: tabular-nums;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- Main -->
+        <div id="page-main" class="page hidden full-screen flex-center" style="flex-direction: column;">
+            <div style="width: 40px; height: 4px; background: #fff; margin-bottom: 24px;"></div>
+            <h1>Session 01</h1>
+            <p style="color: var(--c-text-sec); margin-bottom: 40px;">Ready to begin.</p>
+            <button class="btn-stone" onclick="app.startWorkout()">Start_</button>
+        </div>
+
+        <!-- Circuit -->
+        <div id="page-circuit" class="page hidden">
+            <h2 style="margin-bottom: 24px;">Circuit A</h2>
+            <div id="circuit-list" class="card-list"></div>
+        </div>
+
+        <!-- Progress -->
+        <div id="page-progress" class="page hidden full-screen" style="flex-direction: column; display: flex;">
+             <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <div class="stat-label">Current Exercise</div>
+                <h1 style="font-size: 2.5rem; margin-bottom: 40px;" id="prog-name">Lat Pulldown</h1>
+                
+                <div style="display: flex; gap: 40px;">
+                    <div>
+                        <div class="stat-label">Target Reps</div>
+                        <div class="huge-stat" id="prog-target">12</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Set</div>
+                        <div class="huge-stat"><span id="prog-set">1</span><span style="font-size: 2rem; color: #444;">/3</span></div>
+                    </div>
+                </div>
+             </div>
+
+             <button class="btn-stone" onclick="app.enterResultData()">Log Result</button>
+        </div>
+
+        <!-- Result -->
+        <div id="page-result-input" class="page hidden full-screen" style="flex-direction: column; display: flex;">
+            <h2 style="margin-bottom: 32px;">Log Set</h2>
+            
+            <div class="input-block">
+                <label>Reps Completed</label>
+                <input type="number" id="input-reps" placeholder="0" autofocus>
+            </div>
+            
+            <div class="input-block">
+                <label>Weight (kg)</label>
+                <input type="number" id="input-weight" placeholder="0">
+            </div>
+
+            <button class="btn-stone" onclick="submitForm()">Complete Set</button>
+        </div>
+
+        <!-- Rest -->
+        <div id="page-rest" class="page hidden full-screen flex-center" style="flex-direction: column;">
+            <div class="stat-label">Resting</div>
+            <div class="timer-circle" id="rest-timer">00:03</div>
+        </div>
+
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        const app = new WorkoutFlow({
+            renderPage: (pageId, state) => {
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+                document.getElementById(pageId).style.display = 'flex'; // Ensure flex layout for these pages
+                if(pageId === 'page-circuit') document.getElementById(pageId).style.display = 'block';
+
+                if (pageId === 'page-circuit') renderCircuit(state.workout);
+                if (pageId === 'page-progress') {
+                    document.getElementById('prog-name').innerText = state.activeExercise.name;
+                    document.getElementById('prog-set').innerText = state.activeExercise.completedSets + 1;
+                    document.getElementById('prog-target').innerText = state.activeExercise.reps;
+                }
+            },
+            updateTimer: (seconds) => {
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-timer').innerText = `${min}:${sec}`;
+            }
+        });
+
+        function renderCircuit(workout) {
+            const list = document.getElementById('circuit-list');
+            list.innerHTML = '';
+            workout.exercises.forEach(ex => {
+                const div = document.createElement('div');
+                div.className = `card-item ${ex.isComplete ? 'complete' : ''}`;
+                div.innerHTML = `
+                    <span class="card-title">${ex.name}</span>
+                    <span class="card-meta">${ex.completedSets} / ${ex.sets}</span>
+                `;
+                div.onclick = () => app.selectExercise(ex.id);
+                list.appendChild(div);
+            });
+        }
+
+        function submitForm() {
+            const reps = document.getElementById('input-reps').value;
+            const weight = document.getElementById('input-weight').value;
+            app.submitResult(reps, weight);
+            document.getElementById('input-reps').value = '';
+        }
+    </script>
+</body>
+</html>

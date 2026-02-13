@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ODIN Design Exploration - Claude Variants</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface-hover: #1a1a1a;
+      --border: #2a2a2a;
+      --text: #ffffff;
+      --text-dim: #888888;
+      --accent-1: #33ff33;
+      --accent-2: #b8954f;
+      --accent-3: #00d4ff;
+      --accent-4: #ff9f1c;
+      --accent-5: #ff0000;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "JetBrains Mono", monospace;
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 64px;
+    }
+
+    .logo {
+      font-family: "Syne", sans-serif;
+      font-size: clamp(48px, 10vw, 80px);
+      font-weight: 800;
+      letter-spacing: 8px;
+      background: linear-gradient(135deg, var(--accent-1), var(--accent-3), var(--accent-5));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-dim);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+
+    .description {
+      max-width: 700px;
+      margin: 24px auto 0;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-dim);
+    }
+
+    .flow-contract {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+      margin: 48px 0;
+    }
+
+    .flow-contract h2 {
+      font-family: "Syne", sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .flow-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .flow-step {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .flow-step::after {
+      content: "";
+      display: none;
+    }
+
+    .flow-arrow {
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .designs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    .design-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 28px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .design-card:hover {
+      background: var(--surface-hover);
+      border-color: var(--text-dim);
+      transform: translateY(-2px);
+    }
+
+    .design-card:focus-visible {
+      outline: 2px solid var(--text);
+      outline-offset: 2px;
+    }
+
+    .design-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .design-number {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    .design-title {
+      font-family: "Syne", sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .design-accent {
+      width: 12px;
+      height: 12px;
+      border-radius: 0;
+    }
+
+    .design-desc {
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text-dim);
+    }
+
+    .design-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: auto;
+    }
+
+    .design-tag {
+      padding: 4px 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .card-1 .design-accent { background: var(--accent-1); }
+    .card-1:hover { border-color: var(--accent-1); }
+    .card-1 .design-title { color: var(--accent-1); }
+
+    .card-2 .design-accent { background: var(--accent-2); }
+    .card-2:hover { border-color: var(--accent-2); }
+    .card-2 .design-title { color: var(--accent-2); }
+
+    .card-3 .design-accent { background: var(--accent-3); }
+    .card-3:hover { border-color: var(--accent-3); }
+    .card-3 .design-title { color: var(--accent-3); }
+
+    .card-4 .design-accent { background: var(--accent-4); }
+    .card-4:hover { border-color: var(--accent-4); }
+    .card-4 .design-title { color: var(--accent-4); }
+
+    .card-5 .design-accent { background: var(--accent-5); }
+    .card-5:hover { border-color: var(--accent-5); }
+    .card-5 .design-title { color: var(--accent-5); }
+
+    /* New batch - dark mode, readability-first game aesthetics */
+    --accent-6: #4fd1c5;
+    --accent-7: #ff2d95;
+    --accent-8: #3b82f6;
+    --accent-9: #39ff14;
+    --accent-10: #e63946;
+
+    .card-6 .design-accent { background: #4fd1c5; }
+    .card-6:hover { border-color: #4fd1c5; }
+    .card-6 .design-title { color: #4fd1c5; }
+
+    .card-7 .design-accent { background: #ff2d95; }
+    .card-7:hover { border-color: #ff2d95; }
+    .card-7 .design-title { color: #ff2d95; }
+
+    .card-8 .design-accent { background: #3b82f6; }
+    .card-8:hover { border-color: #3b82f6; }
+    .card-8 .design-title { color: #3b82f6; }
+
+    .card-9 .design-accent { background: #39ff14; }
+    .card-9:hover { border-color: #39ff14; }
+    .card-9 .design-title { color: #39ff14; }
+
+    .card-10 .design-accent { background: #e63946; }
+    .card-10:hover { border-color: #e63946; }
+    .card-10 .design-title { color: #e63946; }
+
+    .design-section-header {
+      grid-column: 1 / -1;
+      margin-top: 32px;
+      padding: 16px 0 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .design-section-header h3 {
+      font-family: "Syne", sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    footer {
+      margin-top: 64px;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .footer-link {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 12px;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      transition: all 0.15s;
+    }
+
+    .footer-link:hover {
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+
+    .checklist {
+      margin-top: 48px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+    }
+
+    .checklist h2 {
+      font-family: "Syne", sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .checklist ul {
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .checklist li {
+      font-size: 12px;
+      color: var(--text-dim);
+      padding-left: 24px;
+      position: relative;
+    }
+
+    .checklist li::before {
+      content: "[x]";
+      position: absolute;
+      left: 0;
+      color: var(--accent-1);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1 class="logo">ODIN</h1>
+      <p class="subtitle">Design Exploration - Claude Variants</p>
+      <p class="description">
+        Ten distinct design systems exploring workout flow interfaces. Each variant 
+        implements the exact same UX flow contract with radically different aesthetic 
+        directions. Designs 06-10 prioritize dark themes, readability, and low cognitive load.
+      </p>
+    </header>
+
+    <section class="flow-contract">
+      <h2>UX Flow Contract</h2>
+      <div class="flow-steps">
+        <span class="flow-step">Main Page</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Start Workout</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Select Exercise</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Progress Page</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Enter Result Data</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Timer Starts</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Input Reps/Weight</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Done</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Rest Countdown</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Auto-return</span>
+        <span class="flow-arrow">-></span>
+        <span class="flow-step">Loop until complete</span>
+      </div>
+    </section>
+
+    <section class="designs">
+      <a href="./design-01-brutalist-terminal.html" class="design-card card-1">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 01</span>
+            <h3 class="design-title">Brutalist Terminal</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          Raw command-line aesthetic inspired by retro computing. Green phosphor CRT glow, 
+          monospace typography, and ASCII-influenced borders. Scanline overlay and no 
+          rounded corners anywhere.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Monospace</span>
+          <span class="design-tag">CRT Effect</span>
+          <span class="design-tag">Green Phosphor</span>
+          <span class="design-tag">ASCII</span>
+        </div>
+      </a>
+
+      <a href="./design-02-luxury-editorial.html" class="design-card card-2">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 02</span>
+            <h3 class="design-title">Luxury Editorial</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          High-fashion magazine aesthetic meets fitness tracking. Refined serif typography, 
+          dramatic black and cream contrast with gold accents. Every interaction feels 
+          considered and premium.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Serif</span>
+          <span class="design-tag">Gold Accents</span>
+          <span class="design-tag">Editorial</span>
+          <span class="design-tag">Premium</span>
+        </div>
+      </a>
+
+      <a href="./design-03-industrial-blueprint.html" class="design-card card-3">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 03</span>
+            <h3 class="design-title">Industrial Blueprint</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          Technical drawing aesthetic inspired by engineering schematics. Grid paper 
+          background, corner brackets, measurement annotations. Precision meets 
+          interface design with cyan and orange accents.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Grid Paper</span>
+          <span class="design-tag">Technical</span>
+          <span class="design-tag">Cyan/Orange</span>
+          <span class="design-tag">Schematic</span>
+        </div>
+      </a>
+
+      <a href="./design-04-analog-cassette.html" class="design-card card-4">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 04</span>
+            <h3 class="design-title">Analog Cassette</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          Retro audio equipment aesthetic. VU meter progress bars, warm browns and ambers, 
+          tactile button shadows. Physical depth through inset shadows and raised elements 
+          with subtle noise texture.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">VU Meters</span>
+          <span class="design-tag">Warm Tones</span>
+          <span class="design-tag">Tactile</span>
+          <span class="design-tag">Audio</span>
+        </div>
+      </a>
+
+      <a href="./design-05-swiss-modernist.html" class="design-card card-5">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 05</span>
+            <h3 class="design-title">Swiss Modernist</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          Helvetica-era inspired design. Bold primary colors (red, blue, yellow), 
+          structured grids, asymmetric layouts. Maximum information clarity through 
+          systematic visual hierarchy. No decoration.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Primary Colors</span>
+          <span class="design-tag">Bold Borders</span>
+          <span class="design-tag">Condensed Type</span>
+          <span class="design-tag">Grid</span>
+        </div>
+      </a>
+
+      <!-- BATCH 2: Dark mode, readability-first, game-inspired -->
+      <div class="design-section-header">
+        <h3>BATCH 2: DARK + READABLE</h3>
+      </div>
+
+      <a href="./design-06-tactical-hud.html" class="design-card card-6">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 06</span>
+            <h3 class="design-title">Tactical HUD</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          Military sim inspired clean data readouts. Dark charcoal background with teal 
+          accent for high contrast. Rajdhani/Oxanium fonts for precision without harshness. 
+          Function over flash.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Dark Mode</span>
+          <span class="design-tag">High Contrast</span>
+          <span class="design-tag">Teal Accent</span>
+          <span class="design-tag">Clean</span>
+        </div>
+      </a>
+
+      <a href="./design-07-neon-arcade.html" class="design-card card-7">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 07</span>
+            <h3 class="design-title">Neon Arcade</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          Classic arcade cabinet aesthetic. Deep blacks with pink/cyan neon glow. 
+          Pixel font for headers, clean sans for data. Focused glow effects that 
+          don't overwhelm. Readability first.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Dark Mode</span>
+          <span class="design-tag">Neon Glow</span>
+          <span class="design-tag">Pink/Cyan</span>
+          <span class="design-tag">Arcade</span>
+        </div>
+      </a>
+
+      <a href="./design-08-mission-control.html" class="design-card card-8">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 08</span>
+            <h3 class="design-title">Mission Control</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          NASA/SpaceX inspired mission control aesthetic. Professional dark interface with 
+          blue accent hierarchy. Space Grotesk + Space Mono for precision data. Clean, 
+          organized, trustworthy.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Dark Mode</span>
+          <span class="design-tag">Blue Accent</span>
+          <span class="design-tag">Monospace Data</span>
+          <span class="design-tag">Professional</span>
+        </div>
+      </a>
+
+      <a href="./design-09-stealth-protocol.html" class="design-card card-9">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 09</span>
+            <h3 class="design-title">Stealth Protocol</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          Night vision / tactical ops aesthetic. Green phosphor on pure black, military 
+          precision. Splinter Cell meets gym. Status-driven feedback, minimal decoration, 
+          maximum clarity.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Dark Mode</span>
+          <span class="design-tag">Green Phosphor</span>
+          <span class="design-tag">Tactical</span>
+          <span class="design-tag">Minimal</span>
+        </div>
+      </a>
+
+      <a href="./design-10-racing-telemetry.html" class="design-card card-10">
+        <div class="design-header">
+          <div>
+            <span class="design-number">DESIGN 10</span>
+            <h3 class="design-title">Racing Telemetry</h3>
+          </div>
+          <div class="design-accent"></div>
+        </div>
+        <p class="design-desc">
+          F1/racing game inspired dashboard. Bold Orbitron display font, red/orange energy 
+          accents. Precision timing displays, dashboard-style data readouts. Fast and 
+          focused.
+        </p>
+        <div class="design-tags">
+          <span class="design-tag">Dark Mode</span>
+          <span class="design-tag">Red/Orange</span>
+          <span class="design-tag">Bold Type</span>
+          <span class="design-tag">Dashboard</span>
+        </div>
+      </a>
+    </section>
+
+    <section class="checklist">
+      <h2>Acceptance Checklist</h2>
+      <ul>
+        <li>UX flow exactly matches contract above</li>
+        <li>Timer starts at Enter Result Data click</li>
+        <li>Rest page auto-returns on timer completion</li>
+        <li>Exercise lock-in until all sets complete</li>
+        <li>10 distinct design systems (5 original + 5 dark/readable)</li>
+        <li>Designs 06-10: dark mode only, readability-first</li>
+        <li>All files open directly in browser without build tools</li>
+        <li>Mobile + desktop responsive</li>
+        <li>Keyboard/focus accessibility</li>
+        <li>Rest timer set to 3 seconds for testing</li>
+      </ul>
+    </section>
+
+    <footer>
+      <div class="footer-links">
+        <a href="../v2/index.html" class="footer-link">V2 Designs</a>
+        <a href="../index.html" class="footer-link">Original Designs</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

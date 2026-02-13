@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design 02 - Luxury Editorial</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./common.css">
+  <style>
+    :root {
+      --bg: #faf9f7;
+      --bg-dark: #0d0d0d;
+      --bg-cream: #f5f3ef;
+      --border: #d4cfc5;
+      --border-dark: #2a2a2a;
+      --text: #1a1a1a;
+      --text-light: #faf9f7;
+      --text-muted: #6b6560;
+      --gold: #b8954f;
+      --gold-light: #d4b66a;
+      --gold-dark: #8a6f3a;
+      --font-serif: "Cormorant Garamond", serif;
+      --font-body: "Libre Baskerville", serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 0;
+    }
+
+    .toast {
+      background: var(--bg-dark);
+      color: var(--text-light);
+      font-family: var(--font-body);
+      border-radius: 0;
+      border: 1px solid var(--gold);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    .app-header {
+      background: var(--bg-dark);
+      color: var(--text-light);
+      padding: 16px 24px;
+      border-bottom: 3px solid var(--gold);
+    }
+
+    .brand-name {
+      font-family: var(--font-serif);
+      font-size: 32px;
+      font-weight: 400;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .brand-tag {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-left: 16px;
+      border-left: 1px solid var(--gold-dark);
+      padding-left: 16px;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 16px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--text);
+      color: var(--bg);
+      border-color: var(--text);
+    }
+
+    .btn--small {
+      padding: 6px 12px;
+      font-size: 10px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      color: var(--text-light);
+    }
+
+    .btn--small:hover:not(:disabled) {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--bg-dark);
+    }
+
+    .btn--primary {
+      background: var(--bg-dark);
+      color: var(--text-light);
+      border: none;
+      position: relative;
+    }
+
+    .btn--primary::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 1px solid var(--gold);
+      transform: translate(4px, 4px);
+      pointer-events: none;
+      transition: transform 0.2s ease;
+    }
+
+    .btn--primary:hover:not(:disabled)::before {
+      transform: translate(2px, 2px);
+    }
+
+    .btn--ghost {
+      border: none;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 12px 0;
+      text-align: left;
+    }
+
+    .btn--ghost:hover:not(:disabled) {
+      background: transparent;
+      color: var(--text);
+      border-color: var(--gold);
+    }
+
+    .sidebar {
+      padding: 24px;
+    }
+
+    .design-info {
+      background: var(--bg-cream);
+      border: 1px solid var(--border);
+      padding: 32px 24px;
+    }
+
+    .design-info__title {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+    }
+
+    .design-info__desc {
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.8;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+
+    .design-info__principles {
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+    }
+
+    .design-info__principles li {
+      color: var(--text);
+      font-size: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.5px;
+    }
+
+    .design-info__principles li:last-child {
+      border-bottom: none;
+    }
+
+    .device-frame {
+      padding: 24px;
+    }
+
+    .device {
+      background: var(--bg-dark);
+      color: var(--text-light);
+      max-width: 380px;
+      border: none;
+      box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.2),
+        0 0 0 1px var(--gold);
+    }
+
+    .device__status {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+
+    .status-badge {
+      font-family: var(--font-serif);
+      font-size: 11px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .status-badge--screen {
+      color: var(--text-muted);
+      font-style: italic;
+      letter-spacing: 1px;
+    }
+
+    .gamification-bar {
+      background: linear-gradient(180deg, rgba(184, 149, 79, 0.1) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border-dark);
+      margin: 0;
+      padding: 20px 16px;
+    }
+
+    .level-display__label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .level-display__value {
+      font-family: var(--font-serif);
+      font-size: 36px;
+      font-weight: 400;
+      color: var(--gold);
+    }
+
+    .xp-bar {
+      background: var(--border-dark);
+      height: 4px;
+      border: none;
+    }
+
+    .xp-bar__fill {
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
+    }
+
+    .xp-bar__text {
+      color: var(--text-muted);
+      font-size: 9px;
+      letter-spacing: 1px;
+      top: -16px;
+      transform: none;
+    }
+
+    .metric__label {
+      font-size: 8px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .metric__value {
+      font-family: var(--font-serif);
+      font-size: 24px;
+      color: var(--text-light);
+    }
+
+    .objective-bar {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border-dark);
+      margin: 0;
+      padding: 16px;
+    }
+
+    .objective-bar__label {
+      font-size: 8px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 4px;
+    }
+
+    .objective-bar__text {
+      font-size: 14px;
+      color: var(--text-light);
+      font-style: italic;
+    }
+
+    .screen {
+      padding: 24px 16px;
+    }
+
+    .screen__title {
+      font-family: var(--font-serif);
+      font-size: 42px;
+      font-weight: 400;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 6px;
+      line-height: 1.1;
+    }
+
+    .screen__subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: 8px;
+    }
+
+    .action-stack {
+      margin-top: 40px;
+      gap: 0;
+    }
+
+    .action-stack .btn {
+      width: 100%;
+      padding: 16px 0;
+      border: none;
+      border-bottom: 1px solid var(--border-dark);
+      color: var(--text-light);
+      text-align: left;
+      font-size: 12px;
+      letter-spacing: 2px;
+    }
+
+    .action-stack .btn:hover:not(:disabled) {
+      background: transparent;
+      color: var(--gold);
+      padding-left: 12px;
+    }
+
+    .action-stack .btn--primary {
+      background: var(--gold);
+      color: var(--bg-dark);
+      margin-bottom: 24px;
+      padding: 18px 20px;
+    }
+
+    .action-stack .btn--primary::before {
+      display: none;
+    }
+
+    .action-stack .btn--primary:hover:not(:disabled) {
+      background: var(--gold-light);
+      padding-left: 0;
+    }
+
+    .exercise-grid {
+      gap: 1px;
+      background: var(--border-dark);
+    }
+
+    .exercise-tile {
+      background: var(--bg-dark);
+      padding: 16px 12px;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .exercise-tile:hover:not(:disabled) {
+      background: rgba(184, 149, 79, 0.1);
+    }
+
+    .exercise-tile--done {
+      opacity: 0.5;
+    }
+
+    .exercise-tile--done .exercise-tile__name::after {
+      content: " Complete";
+      font-style: italic;
+      color: var(--gold);
+      text-transform: none;
+      font-weight: 400;
+    }
+
+    .exercise-tile__name {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-light);
+      letter-spacing: 1px;
+    }
+
+    .exercise-tile__meta,
+    .exercise-tile__reps {
+      font-size: 10px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .progress-stats {
+      gap: 1px;
+      background: var(--border-dark);
+    }
+
+    .stat-block {
+      background: var(--bg-dark);
+      padding: 20px 16px;
+      text-align: center;
+    }
+
+    .stat-block__label {
+      font-size: 9px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .stat-block__value {
+      font-family: var(--font-serif);
+      font-size: 32px;
+      color: var(--text-light);
+      margin-top: 4px;
+    }
+
+    .set-indicators {
+      padding: 24px 0;
+      gap: 4px;
+    }
+
+    .set-dot {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border-dark);
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-serif);
+      font-size: 14px;
+    }
+
+    .set-dot--done {
+      background: var(--gold);
+      color: var(--bg-dark);
+      border-color: var(--gold);
+    }
+
+    .set-dot--current {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .timer-display {
+      background: transparent;
+      border: 1px solid var(--border-dark);
+      padding: 24px;
+      position: relative;
+    }
+
+    .timer-display::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: 20%;
+      right: 20%;
+      height: 3px;
+      background: var(--gold);
+    }
+
+    .timer-display__label {
+      font-size: 10px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .timer-display__value {
+      font-family: var(--font-serif);
+      font-size: 56px;
+      color: var(--text-light);
+      font-weight: 400;
+      letter-spacing: 4px;
+    }
+
+    .input-form {
+      margin-top: 24px;
+    }
+
+    .input-field label {
+      font-size: 10px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .input-field input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border-dark);
+      color: var(--text-light);
+      font-family: var(--font-serif);
+      font-size: 28px;
+      padding: 12px 0;
+      width: 100%;
+      text-align: center;
+    }
+
+    .input-field input:focus {
+      border-color: var(--gold);
+      outline: none;
+    }
+
+    .input-form .btn--primary {
+      margin-top: 24px;
+      width: 100%;
+      padding: 16px;
+    }
+
+    .rest-display {
+      background: linear-gradient(180deg, rgba(184, 149, 79, 0.15) 0%, transparent 50%);
+      margin: 0;
+      padding: 60px 16px;
+    }
+
+    .rest-display__label {
+      font-family: var(--font-serif);
+      font-size: 14px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 8px;
+    }
+
+    .rest-display__timer {
+      font-family: var(--font-serif);
+      font-size: 96px;
+      color: var(--text-light);
+      font-weight: 400;
+      letter-spacing: 8px;
+    }
+
+    .rest-display__meta {
+      font-size: 14px;
+      color: var(--text-light);
+      font-style: italic;
+      margin-top: 24px;
+    }
+
+    .rest-display__set {
+      font-size: 11px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .rest-display__hint {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: 32px;
+    }
+
+    .summary-list {
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+
+    .summary-item {
+      border-bottom: 1px solid var(--border-dark);
+      padding: 16px 0;
+      font-size: 13px;
+    }
+
+    .summary-item:last-child {
+      border-bottom: none;
+    }
+
+    .summary-item__name {
+      font-family: var(--font-serif);
+      font-size: 16px;
+      color: var(--text-light);
+    }
+
+    .summary-item__stats {
+      color: var(--text-muted);
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    .device__footer {
+      background: transparent;
+      border-top: 1px solid var(--border-dark);
+      padding: 16px;
+    }
+
+    .footer-stat__label {
+      font-size: 8px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .footer-stat__value {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      color: var(--text-light);
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      brandName: "ODIN",
+      brandTag: "Atelier",
+      shortName: "LUXE",
+      designTitle: "Luxury Editorial",
+      designDesc: "High-fashion magazine aesthetic meets fitness tracking. Refined serif typography, dramatic black and cream contrast with gold accents. Every interaction feels considered and premium.",
+      principles: [
+        "Serif typography throughout",
+        "Black/cream with gold accents",
+        "Generous whitespace and breathing room",
+        "Asymmetric gold detail lines",
+        "No borders, only color contrast"
+      ],
+      labels: {
+        rank: "Tier",
+        streak: "Discipline",
+        currency: "Prestige",
+        objective: "Focus",
+        objectiveDone: "Session complete. Excellence achieved.",
+        points: "Merit"
+      },
+      rewards: { setPoints: 10, setCurrency: 5, exercisePoints: 25, exerciseCurrency: 12 },
+      initial: { rank: 7, rankXp: 28, streak: 21, currency: 580 },
+      notificationTitle: "ODIN Atelier"
+    };
+  </script>
+  <script src="./common.js"></script>
+</body>
+</html>

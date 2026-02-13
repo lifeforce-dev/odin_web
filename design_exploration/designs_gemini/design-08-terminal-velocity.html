@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ODIN // VELOCITY</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Roboto:ital,wght@0,400;0,900;1,900&display=swap');
+
+        :root {
+            --c-asphalt: #2d3436;
+            --c-road: #1e1e1e;
+            --c-white: #dfe6e9;
+            --c-speed: #ff7675;
+            --c-go: #55efc4;
+            --f-display: 'Racing Sans One', cursive;
+            --f-ui: 'Roboto', sans-serif;
+        }
+
+        body {
+            background-color: var(--c-road);
+            color: var(--c-white);
+            font-family: var(--f-ui);
+            overflow: hidden;
+        }
+
+        .dash-container {
+            max-width: 480px;
+            margin: 0 auto;
+            position: relative;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #111;
+        }
+
+        .header-bar {
+            background: var(--c-asphalt);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--c-speed);
+            transform: skewX(-10deg);
+            margin: 10px -10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            font-family: var(--f-display);
+            text-transform: uppercase;
+            font-size: 1.5rem;
+            margin: 0;
+            transform: skewX(10deg); /* Counter skew */
+        }
+
+        /* Speedometer Style Stats */
+        .gauge-cluster {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+        }
+
+        .gauge {
+            text-align: center;
+        }
+
+        .gauge-val {
+            font-family: var(--f-display);
+            font-size: 4rem;
+            line-height: 0.9;
+            color: #fff;
+        }
+        
+        .gauge-label {
+            font-size: 0.8rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            color: var(--c-speed);
+            font-style: italic;
+        }
+
+        /* Action Button */
+        .ignition-btn {
+            background: var(--c-go);
+            color: #000;
+            font-family: var(--f-display);
+            font-size: 2rem;
+            text-transform: uppercase;
+            border: none;
+            padding: 20px;
+            width: 100%;
+            clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+            margin-top: auto;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .ignition-btn:active {
+            filter: brightness(0.8);
+            transform: scale(0.98);
+        }
+
+        /* List */
+        .track-list {
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .track-item {
+            background: var(--c-asphalt);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 5px solid #555;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transform: skewX(-10deg);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .track-item > * { transform: skewX(10deg); }
+
+        .track-item:hover {
+            border-left-color: var(--c-go);
+            padding-left: 25px;
+        }
+
+        .track-item.complete {
+            opacity: 0.4;
+            border-left-color: #000;
+            background: #111;
+        }
+
+        /* Inputs */
+        .input-row {
+            display: flex;
+            align-items: center;
+            background: #000;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        
+        .input-row label {
+            font-weight: 900;
+            text-transform: uppercase;
+            width: 80px;
+            color: #888;
+        }
+        
+        .input-row input {
+            font-family: var(--f-display);
+            font-size: 2.5rem;
+            color: #fff;
+            width: 100%;
+            text-align: right;
+        }
+
+        /* Rest */
+        .tachometer {
+            width: 300px;
+            height: 150px;
+            border-radius: 150px 150px 0 0;
+            border: 10px solid #333;
+            border-bottom: 0;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            margin: auto;
+            background: #111;
+        }
+        
+        .tacho-val {
+            font-family: var(--f-display);
+            font-size: 5rem;
+            color: var(--c-speed);
+            margin-bottom: 0px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="dash-container">
+        <div class="header-bar">
+            <h1>ODIN SPORT</h1>
+            <div style="font-weight:900; font-style:italic;">SPORT MODE</div>
+        </div>
+
+        <!-- Main -->
+        <div id="page-main" class="page hidden full-screen flex-center" style="flex-direction: column;">
+            <h1 style="font-size: 3rem; margin-bottom: 10px;">READY?</h1>
+            <p style="color: #888; margin-bottom: 30px;">TRACK CONDITIONS: OPTIMAL</p>
+            <button class="ignition-btn" onclick="app.startWorkout()">START ENGINE</button>
+        </div>
+
+        <!-- Circuit -->
+        <div id="page-circuit" class="page hidden">
+            <div style="padding: 20px;"><h2 style="font-style: italic;">Lap Plan</h2></div>
+            <div id="circuit-list" class="track-list"></div>
+        </div>
+
+        <!-- Progress -->
+        <div id="page-progress" class="page hidden full-screen" style="flex-direction: column; display: flex;">
+            <div style="padding: 20px; text-align: right;">
+                <h1 style="font-size: 2rem;" id="prog-name">EXERCISE</h1>
+            </div>
+
+            <div class="gauge-cluster">
+                <div class="gauge">
+                    <div class="gauge-val" id="prog-set">1</div>
+                    <div class="gauge-label">LAP</div>
+                </div>
+                <div class="gauge">
+                    <div class="gauge-val" id="prog-target">MAX</div>
+                    <div class="gauge-label">TARGET RPM</div>
+                </div>
+            </div>
+
+            <button class="ignition-btn" onclick="app.enterResultData()">PIT STOP (LOG)</button>
+        </div>
+
+        <!-- Result -->
+        <div id="page-result-input" class="page hidden full-screen" style="flex-direction: column; display: flex;">
+            <div style="padding: 20px;">
+                <h1 style="margin-bottom: 20px;">TELEMETRY</h1>
+                
+                <div class="input-row">
+                    <label>REPS</label>
+                    <input type="number" id="input-reps" placeholder="0">
+                </div>
+                
+                <div class="input-row">
+                    <label>KG</label>
+                    <input type="number" id="input-weight" placeholder="0">
+                </div>
+            </div>
+
+            <button class="ignition-btn" style="background: var(--c-speed); color: #fff;" onclick="submitForm()">CONFIRM</button>
+        </div>
+
+        <!-- Rest -->
+        <div id="page-rest" class="page hidden full-screen flex-center" style="flex-direction: column;">
+            <h2 style="margin-bottom: 20px; color: #888;">COOLING</h2>
+            <div class="tachometer">
+                <div class="tacho-val" id="rest-timer">00:03</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        const app = new WorkoutFlow({
+            renderPage: (pageId, state) => {
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+                document.getElementById(pageId).style.display = 'flex';
+                if(pageId === 'page-circuit') document.getElementById(pageId).style.display = 'block';
+
+                if (pageId === 'page-circuit') renderCircuit(state.workout);
+                if (pageId === 'page-progress') {
+                    document.getElementById('prog-name').innerText = state.activeExercise.name;
+                    document.getElementById('prog-set').innerText = state.activeExercise.completedSets + 1;
+                    document.getElementById('prog-target').innerText = state.activeExercise.reps;
+                }
+            },
+            updateTimer: (seconds) => {
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-timer').innerText = `${min}:${sec}`;
+            }
+        });
+
+        function renderCircuit(workout) {
+            const list = document.getElementById('circuit-list');
+            list.innerHTML = '';
+            workout.exercises.forEach(ex => {
+                const div = document.createElement('div');
+                div.className = `track-item ${ex.isComplete ? 'complete' : ''}`;
+                div.innerHTML = `
+                    <span style="font-weight:900; font-style:italic;">${ex.name}</span>
+                    <span style="font-family: var(--f-display);">${ex.completedSets}/${ex.sets}</span>
+                `;
+                div.onclick = () => app.selectExercise(ex.id);
+                list.appendChild(div);
+            });
+        }
+
+        function submitForm() {
+            const reps = document.getElementById('input-reps').value;
+            const weight = document.getElementById('input-weight').value;
+            app.submitResult(reps, weight);
+            document.getElementById('input-reps').value = '';
+        }
+    </script>
+</body>
+</html>

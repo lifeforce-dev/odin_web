@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 08 - Night Vector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Manrope:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #050b10;
+      --bg-accent: rgba(99, 241, 255, 0.18);
+      --surface-0: rgba(8, 16, 24, 0.96);
+      --surface-1: rgba(10, 20, 29, 0.96);
+      --surface-2: rgba(8, 17, 26, 0.98);
+      --text-main: #eaf9ff;
+      --text-dim: rgba(234, 249, 255, 0.74);
+      --line: rgba(148, 220, 235, 0.29);
+      --line-strong: rgba(168, 230, 245, 0.49);
+      --accent: #63f1ff;
+      --accent-2: #9ee6ff;
+      --accent-text: #042229;
+      --radius: 1px;
+      --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+      --font-display: "Manrope", sans-serif;
+      --focus: 0 0 0 3px rgba(99, 241, 255, 0.28);
+    }
+
+    body {
+      background:
+        radial-gradient(900px 620px at 15% -15%, rgba(99, 241, 255, 0.17), transparent 63%),
+        linear-gradient(180deg, #050b10 0%, #04080d 100%);
+    }
+
+    .top-meta h1,
+    .screen h3,
+    .narrative h2 {
+      letter-spacing: 0.03em;
+      text-transform: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Night Vector",
+      pageTitle: "Night Vector",
+      pageSubtitle: "Navigation-sim influence with a clear waypoint hierarchy and fast scan readability.",
+      genre: "Navigation Sim",
+      narrative: "Waypoint Route",
+      narrativeTitle: "Narrative",
+      narrativeSummary: "Exercise chains are waypoint routes. Stay on route until the sequence is complete.",
+      designPrinciples: [
+        "Soft-cyan contrast for low cognitive load.",
+        "Readable text first, decorative treatment second.",
+        "No card overload; state grouped into clear modules."
+      ],
+      labels: {
+        rank: "Route Tier",
+        streak: "Stable Route",
+        currency: "Markers",
+        objective: "Waypoint",
+        objectiveDone: "Route fully traversed.",
+        points: "Vector XP"
+      },
+      initial: { rank: 4, rankXp: 57, streak: 9, currency: 190 },
+      rewards: { setPoints: 8, setCurrency: 4, exercisePoints: 23, exerciseCurrency: 9 },
+      globalRestSeconds: 3,
+      notificationTitle: "Night Vector Timer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

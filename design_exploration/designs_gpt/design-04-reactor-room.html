@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 04 - Reactor Room</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Albert+Sans:wght@400;600;700&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --bg-accent: rgba(255, 186, 90, 0.16);
+      --surface-0: rgba(16, 14, 18, 0.92);
+      --surface-1: rgba(24, 18, 20, 0.92);
+      --surface-2: rgba(18, 14, 16, 0.96);
+      --text-main: #fff2e5;
+      --text-dim: rgba(255, 242, 229, 0.72);
+      --line: rgba(255, 210, 170, 0.22);
+      --line-strong: rgba(255, 210, 170, 0.42);
+      --accent: #ffba5a;
+      --accent-2: #ffd9a3;
+      --accent-text: #241000;
+      --warn: #ff8a65;
+      --success: #7bffbd;
+      --radius: 12px;
+      --shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+      --focus: 0 0 0 3px rgba(255, 186, 90, 0.22);
+      --font-body: "Albert Sans", system-ui, -apple-system, sans-serif;
+      --font-display: "Fraunces", serif;
+    }
+
+    body {
+      background:
+        radial-gradient(900px 600px at 18% -15%, rgba(255, 186, 90, 0.14), transparent 62%),
+        radial-gradient(900px 650px at 110% 5%, rgba(255, 217, 163, 0.12), transparent 62%),
+        linear-gradient(180deg, #0a0a0f 0%, #05050a 100%);
+    }
+
+    .top-meta {
+      border-radius: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .top-meta::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(120deg, rgba(255, 186, 90, 0.18), transparent 60%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05) 1px, transparent 1px, transparent 22px);
+      mix-blend-mode: soft-light;
+    }
+
+    .top-meta > * { position: relative; }
+
+    .badge {
+      font-family: "Spline Sans Mono", monospace;
+      letter-spacing: 0.08em;
+    }
+
+    .status-grid,
+    .objective,
+    .narrative {
+      border-radius: 18px;
+    }
+
+    .phone {
+      border-radius: 22px;
+      overflow: hidden;
+    }
+
+    .cta,
+    .ghost,
+    .exercise,
+    .card,
+    .timer-banner,
+    .rest-stage {
+      border-radius: 16px;
+    }
+
+    .xp-bar {
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .xp-fill {
+      filter: saturate(1.06);
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Reactor",
+      pageTitle: "Reactor Room",
+      pageSubtitle: "Energy routing framing: keep the interface calm, make the actions obvious.",
+      genre: "Systems Sim",
+      narrative: "Load Balancing",
+      narrativeTitle: "Control Notes",
+      narrativeSummary: "Each exercise is a power loop. Close it out (all sets) before opening another circuit.",
+      designPrinciples: [
+        "Warm contrast (no blue-on-black glare) for long sessions.",
+        "Large tap targets and minimal text to reduce cognitive friction.",
+        "Status readouts are consistent across screens."
+      ],
+      labels: {
+        rank: "Clearance",
+        streak: "Stable Cycles",
+        currency: "Spare Cells",
+        objective: "Control",
+        objectiveDone: "All circuits stabilized.",
+        points: "Heat XP"
+      },
+      rewards: {
+        setPoints: 8,
+        setCurrency: 4,
+        exercisePoints: 22,
+        exerciseCurrency: 10
+      },
+      initial: {
+        rank: 6,
+        rankXp: 44,
+        streak: 5,
+        currency: 190
+      },
+      notificationTitle: "Reactor Timer",
+      indexHref: "./index.html",
+      indexLabel: "GPT index",
+      backHref: "../index.html",
+      backLabel: "Design explorer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

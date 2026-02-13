@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V2 Design Exploration Index</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(900px 600px at -10% -30%, rgba(89, 122, 255, 0.28), transparent 62%),
+        radial-gradient(800px 500px at 110% 15%, rgba(83, 216, 255, 0.2), transparent 60%),
+        #080d17;
+      color: #e7edff;
+      font-family: "IBM Plex Mono", monospace;
+      padding: 18px;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    header {
+      border: 1px solid rgba(145, 172, 222, 0.35);
+      background: rgba(10, 17, 31, 0.9);
+      padding: 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: clamp(1.25rem, 2.2vw, 1.8rem);
+    }
+
+    p {
+      margin: 0;
+      color: #b4c0dc;
+      line-height: 1.45;
+    }
+
+    .links {
+      display: grid;
+      gap: 8px;
+    }
+
+    a {
+      display: block;
+      border: 1px solid rgba(145, 172, 222, 0.35);
+      background: rgba(13, 21, 38, 0.94);
+      color: #ddecff;
+      text-decoration: none;
+      padding: 12px;
+      transition: border-color 160ms ease, transform 160ms ease;
+    }
+
+    a:hover {
+      border-color: #70dbff;
+      transform: translateY(-2px);
+    }
+
+    .sub {
+      color: #9bb3d7;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .back {
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>V2 Exploration: 5 New Directional Designs</h1>
+      <p>Same corrected UX flow, five separate files, clean-edge modern visual systems, AAA-inspired narratives without store-style caricatures.</p>
+      <p class="back"><a href="../index.html">Open previous 5 designs</a></p>
+      <p class="back"><a href="../designs_gpt/index.html">Open GPT set 02 + set 03 designs</a></p>
+    </header>
+
+    <section class="links">
+      <a href="./design-01-blacksite-command.html">Design 01 - Blacksite Command<div class="sub">Stealth-action mission loop, restrained high-contrast console language.</div></a>
+      <a href="./design-02-pitwall-protocol.html">Design 02 - Pitwall Protocol<div class="sub">Racing-sim control board, precision tempo and run consistency framing.</div></a>
+      <a href="./design-03-expedition-rig.html">Design 03 - Expedition Rig<div class="sub">Survival systems interface, calibration chain progression.</div></a>
+      <a href="./design-04-heist-ledger.html">Design 04 - Heist Ledger<div class="sub">Tactical-heist operation sheet, objective-locked workflow.</div></a>
+      <a href="./design-05-orbit-protocol.html">Design 05 - Orbit Protocol<div class="sub">Space strategy command deck with minimal visual noise.</div></a>
+    </section>
+  </div>
+</body>
+</html>

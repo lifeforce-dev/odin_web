@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ODIN // RUNE</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap');
+
+        :root {
+            --c-void: #0c0a0a;
+            --c-stone: #1c1a1a;
+            --c-gold: #c5a059;
+            --c-text: #e0d8c8;
+            --f-title: 'Cinzel', serif;
+            --f-body: 'Lato', sans-serif;
+        }
+
+        body {
+            background-color: var(--c-void);
+            color: var(--c-text);
+            font-family: var(--f-body);
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMWMxYTFhIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMyMzIwMjAiLz4KPC9zdmc+');
+        }
+
+        .scroll-container {
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+            min-height: 100vh;
+            border-left: 2px solid #2a2520;
+            border-right: 2px solid #2a2520;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ornate Headers */
+        h1, h2 {
+            font-family: var(--f-title);
+            text-align: center;
+            color: var(--c-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        h1::after {
+            content: '❖';
+            display: block;
+            font-size: 1.5rem;
+            margin-top: 10px;
+            opacity: 0.5;
+        }
+
+        /* Buttons */
+        .btn-rune {
+            background: linear-gradient(to top, #1a1510, #2a2520);
+            border: 1px solid var(--c-gold);
+            color: var(--c-gold);
+            font-family: var(--f-title);
+            padding: 18px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin: 20px;
+            display: block;
+            transition: 0.3s;
+            box-shadow: 0 0 10px rgba(197, 160, 89, 0.1);
+        }
+
+        .btn-rune:hover {
+            box-shadow: 0 0 20px rgba(197, 160, 89, 0.3);
+            background: linear-gradient(to top, #2a2520, #3a3225);
+        }
+
+        /* List Items */
+        .glyph-item {
+            padding: 20px;
+            border-bottom: 1px solid #332f2a;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .glyph-item:hover {
+            background: rgba(197, 160, 89, 0.05);
+            padding-left: 25px;
+        }
+
+        .glyph-icon {
+            width: 30px; height: 30px;
+            border: 1px solid #444;
+            transform: rotate(45deg);
+            margin-right: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #555;
+        }
+        
+        .glyph-item.active .glyph-icon {
+            border-color: var(--c-gold);
+            color: var(--c-gold);
+            box-shadow: 0 0 10px rgba(197,160,89,0.3);
+        }
+        
+        .glyph-item.complete {
+            opacity: 0.4;
+        }
+
+        /* Stats */
+        .stat-shrine {
+            text-align: center;
+            padding: 40px 20px;
+            background: radial-gradient(circle, rgba(197, 160, 89, 0.05) 0%, transparent 70%);
+        }
+        
+        .stat-rune {
+            font-size: 4rem;
+            font-family: var(--f-title);
+            color: var(--c-text);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #887;
+            margin-top: 5px;
+        }
+
+        /* Inputs */
+        .input-altar {
+            margin: 20px;
+            text-align: center;
+        }
+        
+        input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--c-gold);
+            color: var(--c-gold);
+            font-family: var(--f-title);
+            font-size: 3rem;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        /* Timer */
+        .hourglass {
+            font-size: 6rem;
+            font-family: var(--f-title);
+            color: var(--c-gold);
+            text-shadow: 0 0 20px rgba(197, 160, 89, 0.5);
+            animation: breathe 3s infinite ease-in-out;
+        }
+        
+        @keyframes breathe {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; text-shadow: 0 0 30px rgba(197, 160, 89, 0.8); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="scroll-container">
+        
+        <!-- Main -->
+        <div id="page-main" class="page hidden full-screen flex-center" style="flex-direction: column;">
+            <h1>The Trials</h1>
+            <p style="color: #887; font-style: italic;">Strength is the only truth.</p>
+            <button class="btn-rune" style="margin-top: 50px;" onclick="app.startWorkout()">Begin Trial</button>
+        </div>
+
+        <!-- Circuit -->
+        <div id="page-circuit" class="page hidden">
+            <h2 style="font-size: 1.5rem; margin-top: 30px;">Path of Power</h2>
+            <div id="circuit-list"></div>
+        </div>
+
+        <!-- Progress -->
+        <div id="page-progress" class="page hidden full-screen" style="flex-direction: column; display: flex;">
+             <div class="stat-shrine" style="flex: 1; display:flex; flex-direction:column; justify-content:center;">
+                <h2 id="prog-name">NAME</h2>
+                
+                <div style="display: flex; justify-content: center; gap: 40px; margin-top: 20px;">
+                    <div>
+                        <div class="stat-rune" id="prog-set">1</div>
+                        <div class="stat-label">Measure</div>
+                    </div>
+                    <div>
+                         <div class="stat-rune" id="prog-target">8</div>
+                         <div class="stat-label">Task</div>
+                    </div>
+                </div>
+             </div>
+             
+             <button class="btn-rune" onclick="app.enterResultData()">Inscribe</button>
+        </div>
+
+        <!-- Result -->
+        <div id="page-result-input" class="page hidden full-screen" style="flex-direction: column; display: flex;">
+            <h2 style="margin-top: 40px;">Offering</h2>
+            
+            <div class="input-altar">
+                <div class="stat-label">Repetitions</div>
+                <input type="number" id="input-reps">
+                
+                <div class="stat-label">Burden (kg)</div>
+                <input type="number" id="input-weight">
+            </div>
+
+            <button class="btn-rune" onclick="submitForm()">Seal Fate</button>
+        </div>
+
+        <!-- Rest -->
+        <div id="page-rest" class="page hidden full-screen flex-center" style="flex-direction: column;">
+            <div class="stat-label" style="margin-bottom: 20px;">Recover Strength</div>
+            <div class="hourglass" id="rest-timer">00:03</div>
+        </div>
+
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        const app = new WorkoutFlow({
+            renderPage: (pageId, state) => {
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+                document.getElementById(pageId).style.display = 'flex';
+                if(pageId === 'page-circuit') document.getElementById(pageId).style.display = 'block';
+
+                if (pageId === 'page-circuit') renderCircuit(state.workout);
+                if (pageId === 'page-progress') {
+                    document.getElementById('prog-name').innerText = state.activeExercise.name;
+                    document.getElementById('prog-set').innerText = state.activeExercise.completedSets + 1;
+                    document.getElementById('prog-target').innerText = state.activeExercise.reps;
+                }
+            },
+            updateTimer: (seconds) => {
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-timer').innerText = `${min}:${sec}`;
+            }
+        });
+
+        function renderCircuit(workout) {
+            const list = document.getElementById('circuit-list');
+            list.innerHTML = '';
+            workout.exercises.forEach(ex => {
+                const div = document.createElement('div');
+                div.className = `glyph-item ${ex.isComplete ? 'complete' : ''} ${app.state.activeExerciseId === ex.id ? 'active' : ''}`;
+                div.innerHTML = `
+                    <div class="glyph-icon">♦</div>
+                    <div>
+                        <div style="font-size: 1.1rem; color: ${ex.isComplete ? '#666' : '#e0d8c8'}">${ex.name}</div>
+                        <div style="font-size: 0.8rem; color: #887;">${ex.completedSets}/${ex.sets}</div>
+                    </div>
+                `;
+                div.onclick = () => app.selectExercise(ex.id);
+                list.appendChild(div);
+            });
+        }
+
+        function submitForm() {
+            const reps = document.getElementById('input-reps').value;
+            const weight = document.getElementById('input-weight').value;
+            app.submitResult(reps, weight);
+            document.getElementById('input-reps').value = '';
+        }
+    </script>
+</body>
+</html>

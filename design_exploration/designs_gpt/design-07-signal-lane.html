@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 07 - Signal Lane</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Titillium+Web:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #09090d;
+      --bg-accent: rgba(160, 255, 147, 0.17);
+      --surface-0: rgba(15, 15, 21, 0.97);
+      --surface-1: rgba(19, 19, 27, 0.97);
+      --surface-2: rgba(13, 14, 22, 0.99);
+      --text-main: #f2f6ff;
+      --text-dim: rgba(242, 246, 255, 0.72);
+      --line: rgba(179, 193, 226, 0.26);
+      --line-strong: rgba(197, 211, 241, 0.46);
+      --accent: #a0ff93;
+      --accent-2: #77d1ff;
+      --accent-text: #081907;
+      --radius: 0px;
+      --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+      --font-display: "Titillium Web", sans-serif;
+      --focus: 0 0 0 3px rgba(160, 255, 147, 0.28);
+    }
+
+    body {
+      background:
+        radial-gradient(850px 600px at 100% -10%, rgba(160, 255, 147, 0.15), transparent 62%),
+        linear-gradient(180deg, #09090d 0%, #07070b 100%);
+    }
+
+    .device {
+      grid-template-rows: auto auto auto 1fr auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Signal Lane",
+      pageTitle: "Signal Lane",
+      pageSubtitle: "An action-rhythm lane concept focused on pulse and clarity rather than flashy rhythm-game tropes.",
+      genre: "Action Rhythm",
+      narrative: "Pulse Sequence",
+      narrativeTitle: "Narrative",
+      narrativeSummary: "Each exercise is a signal lane. Finish every beat (set) before switching lanes.",
+      designPrinciples: [
+        "Monospaced spacing rhythm for predictable reading.",
+        "Dark matte surfaces to reduce eye fatigue.",
+        "All critical state in one viewport without clutter."
+      ],
+      labels: {
+        rank: "Signal Grade",
+        streak: "Clean Beats",
+        currency: "Pulse",
+        objective: "Active Lane",
+        objectiveDone: "All lanes complete.",
+        points: "Rhythm XP"
+      },
+      initial: { rank: 6, rankXp: 33, streak: 4, currency: 122 },
+      rewards: { setPoints: 10, setCurrency: 4, exercisePoints: 26, exerciseCurrency: 10 },
+      globalRestSeconds: 3,
+      notificationTitle: "Signal Lane Timer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

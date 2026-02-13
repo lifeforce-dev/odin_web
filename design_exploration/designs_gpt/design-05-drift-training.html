@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 05 - Drift Training</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Unbounded:wght@500;700&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #070c12;
+      --bg-accent: rgba(92, 170, 255, 0.18);
+      --surface-0: rgba(10, 16, 25, 0.92);
+      --surface-1: rgba(12, 20, 33, 0.92);
+      --surface-2: rgba(8, 14, 22, 0.96);
+      --text-main: #eff6ff;
+      --text-dim: rgba(239, 246, 255, 0.7);
+      --line: rgba(165, 206, 255, 0.22);
+      --line-strong: rgba(165, 206, 255, 0.42);
+      --accent: #5cffff;
+      --accent-2: #5caaFF;
+      --accent-text: #021220;
+      --warn: #ffd17a;
+      --success: #75ffb7;
+      --radius: 18px;
+      --shadow: 0 26px 60px rgba(0, 0, 0, 0.55);
+      --focus: 0 0 0 3px rgba(92, 255, 255, 0.22);
+      --font-body: "Outfit", system-ui, -apple-system, sans-serif;
+      --font-display: "Unbounded", sans-serif;
+    }
+
+    body {
+      background:
+        radial-gradient(900px 520px at 20% -12%, rgba(92, 255, 255, 0.12), transparent 62%),
+        radial-gradient(900px 650px at 110% 10%, rgba(92, 170, 255, 0.16), transparent 62%),
+        linear-gradient(180deg, #070c12 0%, #04070b 100%);
+    }
+
+    .layout {
+      position: relative;
+    }
+
+    .layout::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.28;
+      background-image:
+        radial-gradient(1px 1px at 18% 20%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 58% 70%, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 82% 40%, rgba(255, 255, 255, 0.35), transparent),
+        linear-gradient(115deg, rgba(92, 255, 255, 0.16), transparent 55%),
+        linear-gradient(200deg, rgba(92, 170, 255, 0.12), transparent 50%);
+      mix-blend-mode: soft-light;
+    }
+
+    .badge {
+      font-family: "Spline Sans Mono", monospace;
+      letter-spacing: 0.08em;
+    }
+
+    .top-meta,
+    .narrative,
+    .status-grid,
+    .objective {
+      border-radius: 22px;
+    }
+
+    .phone {
+      border-radius: 26px;
+      overflow: hidden;
+    }
+
+    .xp-bar {
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .timer-banner {
+      border-radius: 999px;
+    }
+
+    .exercise {
+      border-radius: 18px;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .exercise:hover {
+      transform: translateY(-2px);
+    }
+
+    .rest-stage {
+      border-radius: 26px;
+    }
+
+    .rest-stage strong {
+      font-family: var(--font-display);
+      letter-spacing: 0.06em;
+    }
+
+    .cta,
+    .ghost {
+      border-radius: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Drift",
+      pageTitle: "Drift Training",
+      pageSubtitle: "Practice mode: smooth iteration, minimal noise, fast loops.",
+      genre: "Training",
+      narrative: "Ghost Laps",
+      narrativeTitle: "Practice Loop",
+      narrativeSummary: "Lock a single exercise and iterate: input -> rest -> repeat until the final set closes the lap.",
+      designPrinciples: [
+        "Quiet surfaces and soft-light accents reduce fatigue.",
+        "Action buttons are visually distinct from informational tiles.",
+        "Timer is high-contrast but not visually loud."
+      ],
+      labels: {
+        rank: "License",
+        streak: "Clean Laps",
+        currency: "Vouchers",
+        objective: "Lap",
+        objectiveDone: "Session clean. Garage closed.",
+        points: "Grip XP"
+      },
+      rewards: {
+        setPoints: 9,
+        setCurrency: 4,
+        exercisePoints: 24,
+        exerciseCurrency: 12
+      },
+      initial: {
+        rank: 4,
+        rankXp: 36,
+        streak: 3,
+        currency: 150
+      },
+      notificationTitle: "Drift Timer",
+      indexHref: "./index.html",
+      indexLabel: "GPT index",
+      backHref: "../index.html",
+      backLabel: "Design explorer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

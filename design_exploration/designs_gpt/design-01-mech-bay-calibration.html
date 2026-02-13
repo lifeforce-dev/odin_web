@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 01 - Mech Bay Calibration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Oxanium:wght@500;700&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #06080c;
+      --bg-accent: rgba(97, 255, 199, 0.14);
+      --surface-0: rgba(10, 14, 20, 0.92);
+      --surface-1: rgba(12, 18, 26, 0.92);
+      --surface-2: rgba(9, 14, 22, 0.96);
+      --text-main: #eaf2ff;
+      --text-dim: rgba(234, 242, 255, 0.7);
+      --line: rgba(186, 220, 255, 0.2);
+      --line-strong: rgba(186, 220, 255, 0.36);
+      --accent: #61ffc7;
+      --accent-2: #ffd07a;
+      --accent-text: #051714;
+      --warn: #ffb36b;
+      --success: #7bffcf;
+      --radius: 14px;
+      --shadow: 0 22px 56px rgba(0, 0, 0, 0.5);
+      --focus: 0 0 0 3px rgba(97, 255, 199, 0.22);
+      --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+      --font-display: "Oxanium", sans-serif;
+    }
+
+    body {
+      background:
+        radial-gradient(900px 600px at 12% -20%, rgba(97, 255, 199, 0.16), transparent 64%),
+        radial-gradient(900px 600px at 110% 10%, rgba(255, 208, 122, 0.12), transparent 62%),
+        linear-gradient(180deg, #06080c 0%, #05060a 100%);
+    }
+
+    .top-meta {
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .top-meta::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      background:
+        linear-gradient(90deg, rgba(97, 255, 199, 0.22), transparent 55%),
+        linear-gradient(180deg, rgba(255, 208, 122, 0.12), transparent 60%);
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    .top-meta > * { position: relative; }
+
+    .meta-chip {
+      border-radius: 999px;
+    }
+
+    .badge {
+      font-family: "Spline Sans Mono", monospace;
+      letter-spacing: 0.08em;
+    }
+
+    .status-grid {
+      border-radius: 16px;
+    }
+
+    .objective {
+      border-radius: 16px;
+    }
+
+    .phone {
+      border-radius: 18px;
+      overflow: hidden;
+    }
+
+    .xp-fill {
+      filter: saturate(1.12);
+    }
+
+    .cta {
+      border-radius: 14px;
+    }
+
+    .ghost {
+      border-radius: 14px;
+    }
+
+    .exercise {
+      border-radius: 16px;
+    }
+
+    .rest-stage {
+      border-radius: 18px;
+    }
+
+    .timer-banner {
+      border-radius: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Mech Bay",
+      pageTitle: "Mech Bay Calibration",
+      pageSubtitle: "Treat the workout like equipment maintenance: one checklist at a time, no context switching until the chain is done.",
+      genre: "Maintenance Sim",
+      narrative: "Calibration Loop",
+      narrativeTitle: "Operator Brief",
+      narrativeSummary: "Each exercise is a subsystem. Calibrate it fully (all sets) before moving on.",
+      designPrinciples: [
+        "High-contrast, low-glare text designed for quick scanning.",
+        "Primary action always obvious; secondary actions never compete.",
+        "State is redundant: objective + timer + set markers all agree."
+      ],
+      labels: {
+        rank: "Cert",
+        streak: "Clean Runs",
+        currency: "Parts",
+        objective: "Checklist",
+        objectiveDone: "All subsystems calibrated.",
+        points: "Output XP"
+      },
+      rewards: {
+        setPoints: 8,
+        setCurrency: 3,
+        exercisePoints: 22,
+        exerciseCurrency: 9
+      },
+      initial: {
+        rank: 4,
+        rankXp: 38,
+        streak: 3,
+        currency: 140
+      },
+      notificationTitle: "Mech Bay Timer",
+      indexHref: "./index.html",
+      indexLabel: "GPT index",
+      backHref: "../index.html",
+      backLabel: "Design explorer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

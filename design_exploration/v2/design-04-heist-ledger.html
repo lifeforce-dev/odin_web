@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 04 - Heist Ledger</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=Azeret+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./common.css">
+  <style>
+    :root {
+      --bg: #0a0a0c;
+      --bg-accent: #24262f;
+      --surface-0: rgba(13, 14, 18, 0.95);
+      --surface-1: rgba(17, 18, 24, 0.94);
+      --surface-2: rgba(12, 14, 20, 0.98);
+      --text-main: #f1f3f7;
+      --text-dim: #adb2c2;
+      --line: rgba(142, 152, 178, 0.32);
+      --line-strong: rgba(171, 179, 199, 0.55);
+      --accent: #f55d67;
+      --accent-2: #ffb978;
+      --accent-text: #28080c;
+      --warn: #ffb978;
+      --success: #8de7b7;
+      --radius: 0px;
+      --font-body: "Azeret Mono", monospace;
+      --font-display: "Archivo", sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Heist Ledger",
+      pageTitle: "Heist Ledger // Clean Execution",
+      pageSubtitle: "Tactical-heist pacing: every set is an operation step. Stay on target until the chain is done.",
+      genre: "Tactical Heist",
+      narrative: "Operation Ledger",
+      narrativeTitle: "Narrative Lens",
+      narrativeSummary: "Exercises are jobs. Set completion is handled like staged operation checkpoints with strict flow control.",
+      designPrinciples: [
+        "Hard-edged structural layout with no visual bloat.",
+        "Objective clarity over ornamental motifs.",
+        "Timer-driven progression that never asks redundant clicks."
+      ],
+      labels: {
+        rank: "Planner Grade",
+        streak: "Clean Runs",
+        currency: "Cred",
+        objective: "Operation",
+        objectiveDone: "Job complete. All checkpoints cleared.",
+        points: "Control XP"
+      },
+      rewards: {
+        setPoints: 8,
+        setCurrency: 6,
+        exercisePoints: 24,
+        exerciseCurrency: 14
+      },
+      initial: {
+        rank: 5,
+        rankXp: 39,
+        streak: 6,
+        currency: 160
+      },
+      notificationTitle: "Ledger Timer"
+    };
+  </script>
+  <script src="./common.js"></script>
+</body>
+</html>

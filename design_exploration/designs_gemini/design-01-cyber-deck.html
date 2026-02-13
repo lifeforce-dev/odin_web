@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ODIN // CYBER DECK</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        :root {
+            --c-bg: #050505;
+            --c-panel: #111;
+            --c-border: #333;
+            --c-primary: #00ff9d; /* Matrix Cyan */
+            --c-secondary: #ff0055; /* Error Red */
+            --c-text: #eee;
+            --c-dim: #666;
+            --f-mono: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--c-bg);
+            color: var(--c-text);
+            font-family: var(--f-mono);
+            letter-spacing: 0.05em;
+            background-image: 
+                linear-gradient(rgba(0, 255, 157, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 157, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* --- Components --- */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid var(--c-border);
+            border-right: 1px solid var(--c-border);
+            background: rgba(5,5,5,0.9);
+            position: relative;
+        }
+
+        header {
+            padding: 1rem;
+            border-bottom: 2px solid var(--c-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 5px var(--c-primary);
+            color: var(--c-primary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--c-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 5px var(--c-primary);
+            animation: pulse 2s infinite;
+        }
+
+        .page {
+            flex: 1;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        /* Glitch Button */
+        .btn {
+            background: transparent;
+            border: 1px solid var(--c-primary);
+            color: var(--c-primary);
+            padding: 1rem 2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            position: relative;
+            transition: all 0.2s;
+            margin: 1rem 0;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .btn:hover {
+            background: var(--c-primary);
+            color: var(--c-bg);
+            text-shadow: none;
+            box-shadow: 0 0 15px var(--c-primary);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-large {
+            font-size: 1.5rem;
+            width: 100%;
+            margin-top: auto;
+        }
+
+        /* Circuit List */
+        .exo-list {
+            list-style: none;
+            display: grid;
+            gap: 1rem;
+        }
+
+        .exo-item {
+            border: 1px solid var(--c-border);
+            background: var(--c-panel);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .exo-item:hover {
+            border-color: var(--c-primary);
+        }
+
+        .exo-item.complete {
+            border-color: var(--c-dim);
+            color: var(--c-dim);
+            opacity: 0.5;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                45deg,
+                var(--c-panel),
+                var(--c-panel) 10px,
+                #1a1a1a 10px,
+                #1a1a1a 20px
+            );
+        }
+
+        /* Progress Display */
+        .progress-hud {
+            text-align: center;
+            margin: auto 0;
+        }
+        
+        .big-number {
+            font-size: 6rem;
+            font-weight: bold;
+            line-height: 1;
+            color: var(--c-primary);
+            text-shadow: 4px 4px 0px rgba(0, 255, 157, 0.2);
+        }
+
+        .label {
+            font-size: 0.8rem;
+            color: var(--c-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+        }
+
+        /* Inputs */
+        .input-group {
+            margin: 2rem 0;
+            border: 1px solid var(--c-border);
+            padding: 1rem;
+            position: relative;
+        }
+
+        .input-group label {
+            position: absolute;
+            top: -0.6em;
+            left: 1rem;
+            background: var(--c-bg);
+            padding: 0 0.5rem;
+            color: var(--c-primary);
+            font-size: 0.8rem;
+        }
+
+        .input-group input {
+            width: 100%;
+            font-size: 2rem;
+            color: #fff;
+            text-align: center;
+        }
+
+        /* Rest Page */
+        .rest-timer-display {
+            font-size: 8rem;
+            color: var(--c-secondary);
+            text-shadow: 0 0 20px var(--c-secondary);
+            width: 100%;
+            text-align: center;
+            margin: auto 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        /* Scanline effect */
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 255, 157, 0.1);
+            position: absolute;
+            z-index: 10;
+            animation: scan 4s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            100% { top: 100%; }
+        }
+
+        .crt-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.4) 100%);
+            pointer-events: none;
+            z-index: 20;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    <div class="crt-overlay"></div>
+    <div class="container">
+        <header>
+            <h1>ODIN // SYS_ROOT</h1>
+            <div class="status-dot"></div>
+        </header>
+
+        <!-- Pages -->
+        <!-- Main Page -->
+        <div id="page-main" class="page hidden">
+            <div style="margin: auto; text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 2rem; color: var(--c-primary);">PROTOCOL_01</div>
+                <div style="color: var(--c-dim); margin-bottom: 4rem;">Awaiting input...</div>
+                <button class="btn btn-large" onclick="app.startWorkout()">Initialize Sequence</button>
+            </div>
+        </div>
+
+        <!-- Circuit Page -->
+        <div id="page-circuit" class="page hidden">
+            <h2 style="margin-bottom: 1rem; border-bottom: 1px dashed var(--c-dim); padding-bottom: 0.5rem;">Target Acquisition</h2>
+            <ul class="exo-list" id="circuit-list">
+                <!-- Injected via JS -->
+            </ul>
+        </div>
+
+        <!-- Progress Page -->
+        <div id="page-progress" class="page hidden">
+            <div style="display: flex; justify-content: space-between; color: var(--c-dim);">
+                <span id="prog-name">EXERCISE</span>
+                <span>SET <span id="prog-set" style="color: #fff">1</span> / <span id="prog-total" style="color: #fff">3</span></span>
+            </div>
+            
+            <div class="progress-hud">
+                <div class="label">TARGET REPS</div>
+                <div class="big-number" id="prog-target">8-12</div>
+            </div>
+
+            <div style="margin-top: auto;">
+                <div style="text-align: center; color: var(--c-dim); margin-bottom: 1rem; font-size: 0.8rem;">
+                    Wait for signal...
+                </div>
+                <button class="btn btn-large" onclick="app.enterResultData()">> INPUT DATA</button>
+            </div>
+        </div>
+
+        <!-- Result Input Page -->
+        <div id="page-result-input" class="page hidden">
+             <div style="display: flex; justify-content: space-between; color: var(--c-dim);">
+                <span>DATA ENTRY</span>
+                <span style="color: var(--c-secondary);">REC</span>
+            </div>
+
+            <div style="margin: auto 0; width: 100%;">
+                <div class="input-group">
+                    <label>REPS</label>
+                    <input type="number" id="input-reps" placeholder="0" autofocus>
+                </div>
+                <div class="input-group">
+                    <label>LOAD (KG)</label>
+                    <input type="number" id="input-weight" placeholder="0">
+                </div>
+            </div>
+
+            <button class="btn btn-large" onclick="submitForm()">COMMIT</button>
+        </div>
+
+        <!-- Rest Page -->
+        <div id="page-rest" class="page hidden">
+             <div style="text-align: center; color: var(--c-dim);">SYSTEM COOLING</div>
+             <div class="rest-timer-display" id="rest-timer">00:00</div>
+             <div style="text-align: center; color: var(--c-dim);">STANDBY</div>
+        </div>
+
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        // Init App with UI Callbacks
+        const app = new WorkoutFlow({
+            renderPage: (pageId, state) => {
+                // Hide all pages
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                // Show requested page
+                document.getElementById(pageId).classList.remove('hidden');
+                
+                // Render specific page content
+                if (pageId === 'page-circuit') {
+                    renderCircuit(state.workout);
+                } else if (pageId === 'page-progress') {
+                    document.getElementById('prog-name').innerText = state.activeExercise.name;
+                    document.getElementById('prog-set').innerText = state.activeExercise.completedSets + 1;
+                    document.getElementById('prog-total').innerText = state.activeExercise.sets;
+                    document.getElementById('prog-target').innerText = state.activeExercise.reps;
+                }
+            },
+            updateTimer: (seconds) => {
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-timer').innerText = `${min}:${sec}`;
+            }
+        });
+
+        // Helpers
+        function renderCircuit(workout) {
+            const list = document.getElementById('circuit-list');
+            list.innerHTML = '';
+            workout.exercises.forEach(ex => {
+                const li = document.createElement('li');
+                li.className = `exo-item ${ex.isComplete ? 'complete' : ''}`;
+                li.innerHTML = `
+                    <span>${ex.name}</span>
+                    <span style="font-size: 0.8em; color: var(--c-dim)">${ex.completedSets}/${ex.sets}</span>
+                `;
+                li.onclick = () => app.selectExercise(ex.id);
+                list.appendChild(li);
+            });
+        }
+
+        function submitForm() {
+            const reps = document.getElementById('input-reps').value;
+            const weight = document.getElementById('input-weight').value;
+            app.submitResult(reps, weight);
+            // reset inputs
+            document.getElementById('input-reps').value = '';
+            // keep weight ideally but for prototype reset is fine
+        }
+    </script>
+</body>
+</html>

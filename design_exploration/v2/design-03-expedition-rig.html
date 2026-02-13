@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 03 - Expedition Rig</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./common.css">
+  <style>
+    :root {
+      --bg: #0b1110;
+      --bg-accent: #1f2f2a;
+      --surface-0: rgba(11, 18, 17, 0.94);
+      --surface-1: rgba(14, 24, 22, 0.95);
+      --surface-2: rgba(10, 19, 18, 0.97);
+      --text-main: #e9f5ef;
+      --text-dim: #a2beb2;
+      --line: rgba(122, 166, 146, 0.33);
+      --line-strong: rgba(145, 196, 169, 0.55);
+      --accent: #7ee2b2;
+      --accent-2: #f0d36d;
+      --accent-text: #0d271b;
+      --warn: #e2b35f;
+      --success: #9bf4c3;
+      --radius: 1px;
+      --font-body: "Chakra Petch", sans-serif;
+      --font-display: "Oxanium", sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Expedition Rig",
+      pageTitle: "Expedition Rig // Endurance Pass",
+      pageSubtitle: "Survival-operations framing: controlled loops, constrained choices, and reliable timing signals.",
+      genre: "Survival Action",
+      narrative: "Suit Diagnostics",
+      narrativeTitle: "Narrative Lens",
+      narrativeSummary: "Each exercise is a subsystem calibration routine; the workflow remains locked until the routine set chain is complete.",
+      designPrinciples: [
+        "Instrument-panel clarity over decoration.",
+        "No modal clutter during active set loops.",
+        "Completion and timer state visible from every step."
+      ],
+      labels: {
+        rank: "Rig Tier",
+        streak: "Stable Chains",
+        currency: "Cache",
+        objective: "Calibration",
+        objectiveDone: "Suit stabilized. All calibration chains complete.",
+        points: "Stability XP"
+      },
+      rewards: {
+        setPoints: 9,
+        setCurrency: 5,
+        exercisePoints: 26,
+        exerciseCurrency: 12
+      },
+      initial: {
+        rank: 7,
+        rankXp: 51,
+        streak: 4,
+        currency: 205
+      },
+      notificationTitle: "Rig Timer"
+    };
+  </script>
+  <script src="./common.js"></script>
+</body>
+</html>

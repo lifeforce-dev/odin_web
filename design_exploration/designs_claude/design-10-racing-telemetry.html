@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design 10 - Racing Telemetry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./common.css">
+  <style>
+    :root {
+      --bg: #0c0c0e;
+      --bg-panel: #121216;
+      --bg-elevated: #1a1a20;
+      --border: #28282f;
+      --text: #f0f0f5;
+      --text-dim: #6e6e7a;
+      --red: #e63946;
+      --orange: #f77f00;
+      --yellow: #fcbf49;
+      --font-display: "Orbitron", sans-serif;
+      --font-main: "Barlow", sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-main);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .toast {
+      background: var(--bg-elevated);
+      border: 1px solid var(--red);
+      color: var(--text);
+      font-family: var(--font-main);
+      font-weight: 600;
+      border-radius: 3px;
+    }
+
+    .app-header {
+      background: var(--bg-panel);
+      border-bottom: 2px solid var(--red);
+      padding: 12px 20px;
+    }
+
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 3px;
+    }
+
+    .brand-tag {
+      font-family: var(--font-display);
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--red);
+      letter-spacing: 2px;
+    }
+
+    .btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 18px;
+      font-family: var(--font-main);
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 3px;
+      transition: all 0.1s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn:hover:not(:disabled) {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .btn--small {
+      padding: 6px 12px;
+      font-size: 11px;
+    }
+
+    .btn--primary {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+    }
+
+    .btn--primary:hover:not(:disabled) {
+      background: var(--orange);
+      border-color: var(--orange);
+    }
+
+    .btn--ghost {
+      background: transparent;
+      border-color: transparent;
+      color: var(--text-dim);
+    }
+
+    .sidebar {
+      padding: 16px;
+    }
+
+    .design-info {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      padding: 20px;
+      border-radius: 3px;
+    }
+
+    .design-info__title {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .design-info__desc {
+      color: var(--text-dim);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .design-info__principles li {
+      color: var(--text);
+      font-size: 12px;
+      padding: 5px 0;
+    }
+
+    .device-frame {
+      padding: 16px;
+    }
+
+    .device {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      max-width: 400px;
+      overflow: hidden;
+    }
+
+    .device__status {
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .status-badge {
+      font-family: var(--font-display);
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .status-badge--screen {
+      color: var(--orange);
+    }
+
+    .gamification-bar {
+      background: var(--bg);
+      margin: 10px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+    }
+
+    .level-display__label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    .level-display__value {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .xp-bar {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      height: 8px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .xp-bar__fill {
+      background: linear-gradient(90deg, var(--red), var(--orange));
+      border-radius: 2px;
+    }
+
+    .xp-bar__text {
+      color: var(--text);
+      font-family: var(--font-display);
+      font-size: 8px;
+      font-weight: 600;
+    }
+
+    .metric {
+      background: var(--bg-panel);
+      padding: 8px 10px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+
+    .metric__label {
+      font-family: var(--font-display);
+      font-size: 8px;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+
+    .metric__value {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .objective-bar {
+      background: rgba(230, 57, 70, 0.08);
+      margin: 0 10px;
+      padding: 12px;
+      border-radius: 3px;
+      border-left: 3px solid var(--red);
+    }
+
+    .objective-bar__label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--red);
+      letter-spacing: 2px;
+    }
+
+    .objective-bar__text {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .screen {
+      padding: 14px;
+    }
+
+    .screen__title {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 1px;
+    }
+
+    .screen__subtitle {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-top: 6px;
+    }
+
+    .action-stack {
+      margin-top: 20px;
+    }
+
+    .action-stack .btn {
+      width: 100%;
+      padding: 16px;
+      font-size: 14px;
+    }
+
+    .exercise-grid {
+      gap: 6px;
+    }
+
+    .exercise-tile {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 12px 10px;
+      transition: all 0.1s;
+    }
+
+    .exercise-tile:hover:not(:disabled) {
+      border-color: var(--orange);
+      background: rgba(247, 127, 0, 0.05);
+    }
+
+    .exercise-tile--done {
+      border-color: var(--orange);
+      background: rgba(247, 127, 0, 0.08);
+    }
+
+    .exercise-tile--done .exercise-tile__name {
+      color: var(--orange);
+    }
+
+    .exercise-tile--locked {
+      opacity: 0.35;
+    }
+
+    .exercise-tile__name {
+      font-family: var(--font-main);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .exercise-tile__meta,
+    .exercise-tile__reps {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+
+    .progress-stats {
+      gap: 8px;
+    }
+
+    .stat-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .stat-block__label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--orange);
+      letter-spacing: 1px;
+    }
+
+    .stat-block__value {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+      margin-top: 4px;
+    }
+
+    .set-indicators {
+      padding: 14px 0;
+      gap: 6px;
+    }
+
+    .set-dot {
+      width: 34px;
+      height: 34px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-dim);
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .set-dot--done {
+      background: var(--orange);
+      border-color: var(--orange);
+      color: #fff;
+    }
+
+    .set-dot--current {
+      border-color: var(--red);
+      color: var(--red);
+      box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2);
+    }
+
+    .timer-display {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .timer-display__label {
+      font-family: var(--font-display);
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+    }
+
+    .timer-display__value {
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--orange);
+    }
+
+    .input-form {
+      margin-top: 18px;
+    }
+
+    .input-field label {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .input-field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      padding: 14px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .input-field input:focus {
+      border-color: var(--red);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.15);
+    }
+
+    .rest-display {
+      background: rgba(230, 57, 70, 0.05);
+      margin: 10px;
+      border: 2px solid var(--red);
+      border-radius: 4px;
+      padding: 36px 14px;
+    }
+
+    .rest-display__label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--red);
+      letter-spacing: 3px;
+    }
+
+    .rest-display__timer {
+      font-family: var(--font-display);
+      font-size: 56px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .rest-display__meta {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 18px;
+    }
+
+    .rest-display__set {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    .rest-display__hint {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 18px;
+    }
+
+    .summary-list {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 10px;
+    }
+
+    .summary-item {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-item:last-child {
+      border-bottom: none;
+    }
+
+    .summary-item__name {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .summary-item__stats {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+
+    .device__footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+    }
+
+    .footer-stat__label {
+      font-family: var(--font-display);
+      font-size: 8px;
+      font-weight: 500;
+      color: var(--text-dim);
+    }
+
+    .footer-stat__value {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--orange);
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      brandName: "ODIN",
+      brandTag: "TELEMETRY",
+      shortName: "TEL",
+      designTitle: "Racing Telemetry",
+      designDesc: "F1/racing game inspired dashboard. Bold display fonts, red/orange accents, precision timing aesthetic.",
+      principles: [
+        "Bold display typography",
+        "Red to orange gradient energy",
+        "Dashboard-style data readouts",
+        "Precision timing displays",
+        "High contrast on dark"
+      ],
+      labels: {
+        rank: "TIER",
+        streak: "LAPS",
+        currency: "POINTS",
+        objective: "SECTOR",
+        objectiveDone: "Sector Complete",
+        points: "TIME"
+      },
+      rewards: { setPoints: 10, setCurrency: 5, exercisePoints: 25, exerciseCurrency: 12 },
+      initial: { rank: 5, rankXp: 38, streak: 22, currency: 680 },
+      notificationTitle: "ODIN Telemetry"
+    };
+  </script>
+  <script src="./common.js"></script>
+</body>
+</html>

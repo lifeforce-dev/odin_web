@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ODIN // FIELD OPS</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Teko:wght@400;600&display=swap');
+
+        :root {
+            --c-bg: #1c1f1c; /* Muted olive option or dark slate */
+            --c-panel: #2a302a;
+            --c-accent: #e6b800; /* Safety Yellow/Amber */
+            --c-grid: rgba(255, 255, 255, 0.1);
+            --c-text-main: #d0d0d0;
+            --f-head: 'Teko', sans-serif;
+            --f-body: 'Chakra Petch', sans-serif;
+        }
+
+        body {
+            background-color: var(--c-bg);
+            color: var(--c-text-main);
+            font-family: var(--f-body);
+            /* Grid background */
+            background-image: 
+                linear-gradient(var(--c-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--c-grid) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .hud-top, .hud-bottom {
+            position: fixed;
+            left: 0; right: 0;
+            height: 60px;
+            background: rgba(20, 20, 20, 0.9);
+            border-bottom: 2px solid var(--c-accent);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        
+        .hud-bottom {
+            top: auto; bottom: 0;
+            border-bottom: none;
+            border-top: 2px solid var(--c-accent);
+        }
+
+        .brand-text {
+            font-family: var(--f-head);
+            font-size: 2rem;
+            color: var(--c-accent);
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+
+        .coord-text {
+            font-family: monospace;
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .main-viewport {
+            padding: 80px 20px; /* clear HUDs */
+            height: 100vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Buttons */
+        .tactical-btn {
+            background: rgba(230, 184, 0, 0.1);
+            border: 1px solid var(--c-accent);
+            color: var(--c-accent);
+            font-family: var(--f-head);
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            padding: 15px 0;
+            width: 100%;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        
+        .tactical-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--c-accent);
+        }
+
+        .tactical-btn:active {
+            background: var(--c-accent);
+            color: #000;
+        }
+
+        /* Lists */
+        .mission-item {
+            background: var(--c-panel);
+            margin-bottom: 10px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 4px solid #444;
+            clip-path: polygon(0 0, 100% 0, 100% 80%, 95% 100%, 0 100%);
+        }
+
+        .mission-item:hover {
+            background: #353c35;
+        }
+
+        .mission-item.active {
+            border-left-color: var(--c-accent);
+        }
+        
+        .mission-item.complete {
+            opacity: 0.4;
+            text-decoration: line-through;
+        }
+
+        /* Cards */
+        .info-card {
+            border: 1px solid #444;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 2rem;
+            font-family: var(--f-head);
+            color: #fff;
+        }
+
+        /* Timer */
+        .timer-ring {
+            width: 200px;
+            height: 200px;
+            border: 4px dashed var(--c-accent);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem auto;
+            font-size: 4rem;
+            font-family: var(--f-head);
+            color: var(--c-accent);
+            animation: spin 10s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .timer-text {
+            animation: counter-spin 10s linear infinite; /* Keep text upright */
+        }
+        @keyframes counter-spin { 100% { transform: rotate(-360deg); } }
+
+        input.field-input {
+            background: #000;
+            border: 1px solid #444;
+            color: var(--c-accent);
+            font-family: var(--f-head);
+            font-size: 3rem;
+            width: 100%;
+            text-align: right;
+            padding: 10px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="hud-top">
+        <div class="brand-text">ODIN</div>
+        <div class="coord-text">LAT: 49.20<br>LNG: 12.00</div>
+    </div>
+
+    <div class="main-viewport">
+        <!-- Main Page -->
+        <div id="page-main" class="page hidden" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+            <div style="border: 1px solid var(--c-accent); padding: 20px; text-align: center;">
+                <h1 style="font-family: var(--f-head); font-size: 4rem; margin-bottom: 0;">MISSION START</h1>
+                <p style="color: #888; margin-bottom: 20px;">AUTHORIZATION REQUIRED</p>
+                <button class="tactical-btn" onclick="app.startWorkout()">DEPLOY</button>
+            </div>
+        </div>
+
+        <!-- Circuit Page -->
+        <div id="page-circuit" class="page hidden">
+            <h2 style="font-family: var(--f-head); font-size: 2rem; color: #fff; margin-bottom: 1rem;">OBJECTIVES</h2>
+            <div id="circuit-list"></div>
+        </div>
+
+        <!-- Progress Page -->
+        <div id="page-progress" class="page hidden">
+             <div class="info-card">
+                 <span class="info-label">CURRENT_OBJECTIVE</span>
+                 <div class="info-value" id="prog-name">NAME</div>
+             </div>
+             
+             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                 <div class="info-card">
+                     <span class="info-label">SET_INDEX</span>
+                     <div class="info-value"><span id="prog-set">1</span>/<span id="prog-total">3</span></div>
+                 </div>
+                 <div class="info-card">
+                     <span class="info-label">REQ_REPS</span>
+                     <div class="info-value" id="prog-target">12</div>
+                 </div>
+             </div>
+
+             <div style="margin-top:auto;">
+                 <button class="tactical-btn" onclick="app.enterResultData()">LOG SITREP</button>
+             </div>
+        </div>
+
+        <!-- Result Page -->
+        <div id="page-result-input" class="page hidden">
+            <h2 style="font-family: var(--f-head);">ENTER METRICS</h2>
+            
+            <div class="info-card">
+                <span class="info-label">REPS_COMPLETED</span>
+                <input type="number" id="input-reps" class="field-input" placeholder="0">
+            </div>
+
+            <div class="info-card">
+                <span class="info-label">RESISTANCE_LOAD</span>
+                <input type="number" id="input-weight" class="field-input" placeholder="0">
+            </div>
+
+            <button class="tactical-btn" onclick="submitForm()">CONFIRM</button>
+        </div>
+
+        <!-- Rest Page -->
+        <div id="page-rest" class="page hidden">
+            <h2 style="text-align: center; font-family: var(--f-head); color: #888;">RECOVERY PHASE</h2>
+            <div class="timer-ring">
+                <div class="timer-text" id="rest-timer">00:00</div>
+            </div>
+            <p style="text-align: center; color: #666;">MAINTAIN READINESS</p>
+        </div>
+
+    </div>
+
+    <div class="hud-bottom">
+        <div class="coord-text">SYS: ONLINE</div>
+        <div class="coord-text">PWR: 100%</div>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        const app = new WorkoutFlow({
+            renderPage: (pageId, state) => {
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+                document.getElementById(pageId).style.display = (pageId === 'page-main') ? 'flex' : 'block'; // preserve flex for main
+
+                if (pageId === 'page-circuit') renderCircuit(state.workout);
+                if (pageId === 'page-progress') {
+                    document.getElementById('prog-name').innerText = state.activeExercise.name;
+                    document.getElementById('prog-set').innerText = state.activeExercise.completedSets + 1;
+                    document.getElementById('prog-total').innerText = state.activeExercise.sets;
+                    document.getElementById('prog-target').innerText = state.activeExercise.reps;
+                }
+            },
+            updateTimer: (seconds) => {
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-timer').innerText = `${min}:${sec}`;
+            }
+        });
+
+        function renderCircuit(workout) {
+            const list = document.getElementById('circuit-list');
+            list.innerHTML = '';
+            workout.exercises.forEach(ex => {
+                const div = document.createElement('div');
+                div.className = `mission-item ${ex.isComplete ? 'complete' : ''}`;
+                div.innerHTML = `
+                    <div style="font-weight: bold;">${ex.name}</div>
+                    <div style="font-family: var(--f-head); color: var(--c-accent)">${ex.completedSets}/${ex.sets}</div>
+                `;
+                div.onclick = () => app.selectExercise(ex.id);
+                list.appendChild(div);
+            });
+        }
+
+        function submitForm() {
+            const reps = document.getElementById('input-reps').value;
+            const weight = document.getElementById('input-weight').value;
+            app.submitResult(reps, weight);
+            document.getElementById('input-reps').value = '';
+        }
+
+    </script>
+</body>
+</html>

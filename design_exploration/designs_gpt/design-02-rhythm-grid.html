@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 02 - Rhythm Grid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&family=Kanit:wght@500;700&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #070815;
+      --bg-accent: rgba(82, 142, 255, 0.22);
+      --surface-0: rgba(10, 12, 28, 0.92);
+      --surface-1: rgba(14, 16, 38, 0.92);
+      --surface-2: rgba(10, 14, 34, 0.95);
+      --text-main: #eef1ff;
+      --text-dim: rgba(238, 241, 255, 0.72);
+      --line: rgba(170, 190, 255, 0.22);
+      --line-strong: rgba(170, 190, 255, 0.4);
+      --accent: #6fe1ff;
+      --accent-2: #ff6bd6;
+      --accent-text: #061023;
+      --warn: #ffc36d;
+      --success: #75ffb2;
+      --radius: 10px;
+      --shadow: 0 22px 54px rgba(0, 0, 0, 0.52);
+      --focus: 0 0 0 3px rgba(111, 225, 255, 0.25);
+      --font-body: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+      --font-display: "Kanit", sans-serif;
+    }
+
+    body {
+      background:
+        radial-gradient(900px 520px at 35% -20%, rgba(111, 225, 255, 0.16), transparent 64%),
+        radial-gradient(900px 600px at 110% 10%, rgba(255, 107, 214, 0.14), transparent 62%),
+        linear-gradient(180deg, #070815 0%, #05040e 100%);
+    }
+
+    .layout {
+      position: relative;
+    }
+
+    .layout::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.45;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 100% 18px, 18px 100%;
+      mix-blend-mode: soft-light;
+    }
+
+    .badge {
+      font-family: "Spline Sans Mono", monospace;
+      letter-spacing: 0.09em;
+    }
+
+    .xp-bar {
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .xp-fill {
+      filter: saturate(1.18);
+    }
+
+    .exercise {
+      border-radius: 12px;
+      min-height: 102px;
+    }
+
+    .exercise strong {
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+    }
+
+    .set-pill {
+      border-radius: 999px;
+    }
+
+    .timer-banner {
+      border-radius: 999px;
+    }
+
+    .rest-stage {
+      border-radius: 16px;
+    }
+
+    .rest-stage h4 {
+      margin: 0;
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .rest-stage strong {
+      font-family: var(--font-display);
+      letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Rhythm",
+      pageTitle: "Rhythm Grid",
+      pageSubtitle: "Cadence-first UI. Each set is a step. Lock the lane until the pattern completes.",
+      genre: "Rhythm / Timing",
+      narrative: "Step Chain",
+      narrativeTitle: "Tempo Rules",
+      narrativeSummary: "The screen reinforces a consistent loop: lock exercise -> enter data -> rest -> repeat until the chain is finished.",
+      designPrinciples: [
+        "No decorative clutter: patterns only where they support scanning.",
+        "Readable typography and generous spacing for tired eyes.",
+        "Rest timer is a single strong focal point when it matters."
+      ],
+      labels: {
+        rank: "Tier",
+        streak: "Perfect Steps",
+        currency: "Tokens",
+        objective: "Current Step",
+        objectiveDone: "Pattern complete. Session wrapped.",
+        points: "Tempo XP"
+      },
+      rewards: {
+        setPoints: 9,
+        setCurrency: 3,
+        exercisePoints: 24,
+        exerciseCurrency: 10
+      },
+      initial: {
+        rank: 5,
+        rankXp: 41,
+        streak: 4,
+        currency: 160
+      },
+      notificationTitle: "Rhythm Timer",
+      indexHref: "./index.html",
+      indexLabel: "GPT index",
+      backHref: "../index.html",
+      backLabel: "Design explorer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

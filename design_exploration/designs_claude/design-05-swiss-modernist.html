@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design 05 - Swiss Modernist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./common.css">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --bg-off: #f8f8f8;
+      --black: #0a0a0a;
+      --gray: #666666;
+      --gray-light: #cccccc;
+      --red: #ff0000;
+      --blue: #0055ff;
+      --yellow: #ffcc00;
+      --font-body: "Karla", sans-serif;
+      --font-display: "Bebas Neue", sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--black);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 0;
+    }
+
+    .toast {
+      background: var(--black);
+      color: var(--bg);
+      font-family: var(--font-body);
+      font-weight: 600;
+      border-radius: 0;
+    }
+
+    .app-header {
+      background: var(--black);
+      color: var(--bg);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 36px;
+      letter-spacing: 4px;
+      color: var(--bg);
+    }
+
+    .brand-tag {
+      font-size: 11px;
+      color: var(--gray-light);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 600;
+    }
+
+    .app-header__controls .btn {
+      background: var(--bg);
+      color: var(--black);
+      border: none;
+    }
+
+    .app-header__controls .btn:hover:not(:disabled) {
+      background: var(--yellow);
+    }
+
+    .btn {
+      background: var(--bg);
+      border: 2px solid var(--black);
+      color: var(--black);
+      padding: 10px 18px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.1s;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--black);
+      color: var(--bg);
+    }
+
+    .btn--small {
+      padding: 6px 12px;
+      font-size: 10px;
+    }
+
+    .btn--primary {
+      background: var(--red);
+      color: var(--bg);
+      border-color: var(--red);
+    }
+
+    .btn--primary:hover:not(:disabled) {
+      background: var(--black);
+      border-color: var(--black);
+    }
+
+    .btn--ghost {
+      background: transparent;
+      border-color: var(--gray-light);
+      color: var(--gray);
+    }
+
+    .btn--ghost:hover:not(:disabled) {
+      border-color: var(--black);
+      color: var(--black);
+      background: transparent;
+    }
+
+    .sidebar {
+      padding: 24px;
+    }
+
+    .design-info {
+      background: var(--bg);
+      border: 3px solid var(--black);
+      padding: 24px;
+      position: relative;
+    }
+
+    .design-info::before {
+      content: "";
+      position: absolute;
+      top: -3px;
+      left: 24px;
+      width: 60px;
+      height: 12px;
+      background: var(--red);
+    }
+
+    .design-info__title {
+      font-family: var(--font-display);
+      font-size: 32px;
+      color: var(--black);
+      margin-bottom: 16px;
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .design-info__desc {
+      color: var(--gray);
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .design-info__principles {
+      border-top: 2px solid var(--black);
+      padding-top: 16px;
+    }
+
+    .design-info__principles li {
+      color: var(--black);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .design-info__principles li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 10px;
+      height: 10px;
+      background: var(--blue);
+    }
+
+    .design-info__principles li:nth-child(2)::before {
+      background: var(--red);
+    }
+
+    .design-info__principles li:nth-child(3)::before {
+      background: var(--yellow);
+    }
+
+    .design-info__principles li:nth-child(4)::before {
+      background: var(--black);
+    }
+
+    .design-info__principles li:nth-child(5)::before {
+      background: var(--gray);
+    }
+
+    .device-frame {
+      padding: 24px;
+    }
+
+    .device {
+      background: var(--bg);
+      border: 4px solid var(--black);
+      max-width: 380px;
+    }
+
+    .device__status {
+      padding: 12px 16px;
+      border-bottom: 2px solid var(--black);
+      background: var(--yellow);
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--black);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .status-badge--screen {
+      background: var(--black);
+      color: var(--bg);
+      padding: 4px 10px;
+    }
+
+    .gamification-bar {
+      background: var(--bg-off);
+      border-bottom: 2px solid var(--black);
+      margin: 0;
+      padding: 16px;
+    }
+
+    .level-display {
+      margin-bottom: 8px;
+    }
+
+    .level-display__label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .level-display__value {
+      font-family: var(--font-display);
+      font-size: 48px;
+      color: var(--black);
+      line-height: 1;
+    }
+
+    .xp-bar {
+      background: var(--bg);
+      border: 2px solid var(--black);
+      height: 16px;
+    }
+
+    .xp-bar__fill {
+      background: var(--blue);
+    }
+
+    .xp-bar__text {
+      color: var(--bg);
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .metrics-row {
+      margin-top: 12px;
+      gap: 12px;
+    }
+
+    .metric {
+      flex: 1;
+      text-align: center;
+      padding: 8px;
+      border: 2px solid var(--black);
+    }
+
+    .metric:nth-child(1) {
+      background: var(--red);
+      color: var(--bg);
+    }
+
+    .metric:nth-child(2) {
+      background: var(--blue);
+      color: var(--bg);
+    }
+
+    .metric:nth-child(3) {
+      background: var(--yellow);
+      color: var(--black);
+    }
+
+    .metric__label {
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.8;
+    }
+
+    .metric__value {
+      font-family: var(--font-display);
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .objective-bar {
+      background: var(--black);
+      color: var(--bg);
+      margin: 0;
+      padding: 14px 16px;
+    }
+
+    .objective-bar__label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--yellow);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .objective-bar__text {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--bg);
+    }
+
+    .screen {
+      padding: 20px 16px;
+    }
+
+    .screen__title {
+      font-family: var(--font-display);
+      font-size: 56px;
+      color: var(--black);
+      line-height: 0.9;
+      letter-spacing: 2px;
+    }
+
+    .screen__subtitle {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray);
+      margin-top: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .action-stack {
+      margin-top: 32px;
+    }
+
+    .action-stack .btn {
+      width: 100%;
+      padding: 16px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .action-stack .btn--ghost {
+      text-align: left;
+      padding-left: 0;
+      border: none;
+      border-bottom: 1px solid var(--gray-light);
+    }
+
+    .exercise-grid {
+      gap: 0;
+      border: 2px solid var(--black);
+    }
+
+    .exercise-tile {
+      padding: 16px 12px;
+      transition: all 0.1s;
+      border: none;
+      border-bottom: 2px solid var(--black);
+      border-right: 2px solid var(--black);
+    }
+
+    .exercise-tile:nth-child(2n) {
+      border-right: none;
+    }
+
+    .exercise-tile:nth-last-child(-n+2) {
+      border-bottom: none;
+    }
+
+    .exercise-tile:hover:not(:disabled) {
+      background: var(--yellow);
+    }
+
+    .exercise-tile--done {
+      background: var(--black);
+      color: var(--bg);
+    }
+
+    .exercise-tile--done:hover:not(:disabled) {
+      background: var(--black);
+    }
+
+    .exercise-tile--done .exercise-tile__name,
+    .exercise-tile--done .exercise-tile__meta,
+    .exercise-tile--done .exercise-tile__reps {
+      color: var(--bg);
+    }
+
+    .exercise-tile--locked {
+      opacity: 0.4;
+    }
+
+    .exercise-tile__name {
+      font-family: var(--font-display);
+      font-size: 18px;
+      color: var(--black);
+      letter-spacing: 1px;
+    }
+
+    .exercise-tile__meta,
+    .exercise-tile__reps {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray);
+    }
+
+    .progress-stats {
+      gap: 0;
+      border: 2px solid var(--black);
+    }
+
+    .stat-block {
+      padding: 20px 16px;
+      text-align: center;
+      border: none;
+    }
+
+    .stat-block:first-child {
+      border-right: 2px solid var(--black);
+      background: var(--blue);
+      color: var(--bg);
+    }
+
+    .stat-block:first-child .stat-block__label,
+    .stat-block:first-child .stat-block__value {
+      color: var(--bg);
+    }
+
+    .stat-block__label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-block__value {
+      font-family: var(--font-display);
+      font-size: 40px;
+      color: var(--black);
+      line-height: 1;
+      margin-top: 4px;
+    }
+
+    .set-indicators {
+      padding: 20px 0;
+      gap: 0;
+    }
+
+    .set-dot {
+      width: 40px;
+      height: 40px;
+      border: 2px solid var(--black);
+      background: var(--bg);
+      color: var(--black);
+      font-family: var(--font-display);
+      font-size: 20px;
+      margin-left: -2px;
+    }
+
+    .set-dot:first-child {
+      margin-left: 0;
+    }
+
+    .set-dot--done {
+      background: var(--black);
+      color: var(--bg);
+    }
+
+    .set-dot--current {
+      background: var(--red);
+      color: var(--bg);
+      border-color: var(--red);
+      position: relative;
+      z-index: 1;
+    }
+
+    .timer-display {
+      background: var(--bg-off);
+      border: 2px solid var(--black);
+      padding: 24px;
+      position: relative;
+    }
+
+    .timer-display::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 8px;
+      background: var(--red);
+    }
+
+    .timer-display__label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .timer-display__value {
+      font-family: var(--font-display);
+      font-size: 64px;
+      color: var(--black);
+      letter-spacing: 4px;
+      line-height: 1;
+    }
+
+    .input-form {
+      margin-top: 24px;
+    }
+
+    .input-field label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--black);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .input-field input {
+      background: var(--bg);
+      border: 2px solid var(--black);
+      color: var(--black);
+      font-family: var(--font-display);
+      font-size: 32px;
+      padding: 12px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .input-field input:focus {
+      border-color: var(--blue);
+      outline: none;
+    }
+
+    .input-form .btn--primary {
+      margin-top: 20px;
+      width: 100%;
+      padding: 16px;
+    }
+
+    .rest-display {
+      background: var(--red);
+      color: var(--bg);
+      margin: 0;
+      padding: 60px 16px;
+    }
+
+    .rest-display__label {
+      font-family: var(--font-display);
+      font-size: 24px;
+      color: var(--bg);
+      letter-spacing: 8px;
+      opacity: 0.8;
+    }
+
+    .rest-display__timer {
+      font-family: var(--font-display);
+      font-size: 100px;
+      color: var(--bg);
+      letter-spacing: 8px;
+      line-height: 1;
+    }
+
+    .rest-display__meta {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--bg);
+      margin-top: 24px;
+    }
+
+    .rest-display__set {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--bg);
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .rest-display__hint {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--bg);
+      opacity: 0.6;
+      margin-top: 32px;
+    }
+
+    .summary-list {
+      background: var(--bg);
+      border: 2px solid var(--black);
+      padding: 0;
+    }
+
+    .summary-item {
+      border-bottom: 2px solid var(--black);
+      padding: 14px 16px;
+      font-size: 12px;
+    }
+
+    .summary-item:last-child {
+      border-bottom: none;
+    }
+
+    .summary-item__name {
+      font-family: var(--font-display);
+      font-size: 18px;
+      color: var(--black);
+    }
+
+    .summary-item__stats {
+      color: var(--gray);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .device__footer {
+      background: var(--black);
+      color: var(--bg);
+      border-top: none;
+      padding: 14px 16px;
+    }
+
+    .footer-stat__label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--gray-light);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .footer-stat__value {
+      font-family: var(--font-display);
+      font-size: 24px;
+      color: var(--bg);
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      brandName: "ODIN",
+      brandTag: "System",
+      shortName: "SWISS",
+      designTitle: "Swiss Modernist",
+      designDesc: "Helvetica-era inspired design. Bold primary colors, structured grids, asymmetric layouts. Maximum information clarity through systematic visual hierarchy.",
+      principles: [
+        "Bold primary color blocks",
+        "Strong black borders and lines",
+        "Condensed display typography",
+        "Asymmetric but balanced layouts",
+        "No decorative elements"
+      ],
+      labels: {
+        rank: "Level",
+        streak: "Days",
+        currency: "Score",
+        objective: "Current",
+        objectiveDone: "Session complete. All objectives met.",
+        points: "Points"
+      },
+      rewards: { setPoints: 10, setCurrency: 5, exercisePoints: 25, exerciseCurrency: 12 },
+      initial: { rank: 8, rankXp: 33, streak: 28, currency: 720 },
+      notificationTitle: "ODIN System"
+    };
+  </script>
+  <script src="./common.js"></script>
+</body>
+</html>

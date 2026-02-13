@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 06 - Quiet Command</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #070b14;
+      --bg-accent: rgba(95, 173, 255, 0.2);
+      --surface-0: rgba(10, 16, 28, 0.96);
+      --surface-1: rgba(12, 20, 33, 0.96);
+      --surface-2: rgba(9, 17, 29, 0.98);
+      --text-main: #eef5ff;
+      --text-dim: rgba(238, 245, 255, 0.74);
+      --line: rgba(151, 185, 238, 0.28);
+      --line-strong: rgba(166, 199, 249, 0.5);
+      --accent: #79c6ff;
+      --accent-2: #6df0cf;
+      --accent-text: #051525;
+      --radius: 2px;
+      --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+      --font-display: "Chakra Petch", sans-serif;
+      --focus: 0 0 0 3px rgba(121, 198, 255, 0.3);
+    }
+
+    body {
+      background:
+        radial-gradient(900px 640px at 0% -20%, rgba(121, 198, 255, 0.2), transparent 63%),
+        linear-gradient(180deg, #070b14 0%, #060911 100%);
+    }
+
+    .top-meta,
+    .narrative,
+    .phone,
+    .status-grid,
+    .objective,
+    .exercise,
+    .panel,
+    .timer,
+    .rest-stage,
+    button.cta,
+    button.ghost,
+    .field input,
+    .footer,
+    .set-pill {
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Quiet Command",
+      pageTitle: "Quiet Command",
+      pageSubtitle: "A tactical command tone with restrained contrast and low reading effort.",
+      genre: "Tactical Strategy",
+      narrative: "Command Queue",
+      narrativeTitle: "Narrative",
+      narrativeSummary: "Exercises are queued directives. Complete one directive chain fully before dispatching the next.",
+      designPrinciples: [
+        "Large legible type and short labels.",
+        "Strong primary action, muted secondary controls.",
+        "Dark neutral background with clean contrast edges."
+      ],
+      labels: {
+        rank: "Command Level",
+        streak: "Control Streak",
+        currency: "Tokens",
+        objective: "Current Directive",
+        objectiveDone: "Queue complete.",
+        points: "Session XP"
+      },
+      initial: { rank: 5, rankXp: 41, streak: 6, currency: 168 },
+      rewards: { setPoints: 9, setCurrency: 3, exercisePoints: 24, exerciseCurrency: 11 },
+      globalRestSeconds: 3,
+      notificationTitle: "Quiet Command Timer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

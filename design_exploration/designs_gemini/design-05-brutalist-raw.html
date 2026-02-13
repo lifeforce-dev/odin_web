@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ODIN // RAW</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        :root {
+            --c-bg: #fff;
+            --c-fg: #000;
+        }
+
+        body {
+            background-color: var(--c-bg);
+            color: var(--c-fg);
+            font-family: 'Arial Black', 'Helvetica Neue', sans-serif;
+            text-transform: uppercase;
+        }
+
+        /* Running Banner */
+        .marquee-container {
+            width: 100%;
+            overflow: hidden;
+            border-bottom: 5px solid var(--c-fg);
+            white-space: nowrap;
+            padding: 10px 0;
+            background: var(--c-fg);
+            color: var(--c-bg);
+        }
+        
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 10s linear infinite;
+            font-size: 1.5rem;
+        }
+
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        /* General Layout */
+        .wrapper {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            font-size: 4rem;
+            line-height: 0.8;
+            letter-spacing: -2px;
+            word-break: break-all;
+            margin-bottom: 20px;
+        }
+
+        .brut-box {
+            border: 4px solid var(--c-fg);
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 8px 8px 0px var(--c-fg);
+            transition: 0.1s;
+            background: #fff;
+        }
+        
+        .brut-box:active {
+            transform: translate(4px, 4px);
+            box-shadow: 4px 4px 0px var(--c-fg);
+        }
+        
+        .brut-box.invert {
+            background: var(--c-fg);
+            color: var(--c-bg);
+        }
+
+        .brut-btn {
+            background: var(--c-fg);
+            color: var(--c-bg);
+            font-size: 2rem;
+            font-weight: 900;
+            padding: 20px;
+            width: 100%;
+            border: 4px solid var(--c-fg);
+            cursor: pointer;
+            margin-top: auto;
+        }
+
+        .brut-btn:hover {
+            background: var(--c-bg);
+            color: var(--c-fg);
+        }
+
+        /* List Items */
+        .list-row {
+            border-bottom: 4px solid var(--c-fg);
+            padding: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.5rem;
+            align-items: center;
+        }
+        .list-row:first-child { border-top: 4px solid var(--c-fg); }
+        
+        .list-row.complete {
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+
+        /* Inputs */
+        .input-mega {
+            font-size: 5rem;
+            font-weight: 900;
+            border: 4px solid var(--c-fg);
+            width: 100%;
+            margin-bottom: 20px;
+            background: #efefef;
+        }
+
+        /* Timer */
+        .timer-mega {
+            font-size: 10rem;
+            line-height: 0.8;
+            letter-spacing: -10px;
+            text-align: center;
+            font-weight: 900;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="marquee-container">
+        <div class="marquee-content">
+            ODIN WORKOUT PROTOCOL // PAIN IS TEMPORARY // GLORY IS FOREVER // ODIN WORKOUT PROTOCOL // PAIN IS TEMPORARY // GLORY IS FOREVER //
+        </div>
+    </div>
+
+    <div class="wrapper">
+        
+        <!-- Main -->
+        <div id="page-main" class="page hidden" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
+            <h1>Start<br>Your<br>Grind.</h1>
+            <button class="brut-btn" onclick="app.startWorkout()">GO -></button>
+        </div>
+
+        <!-- Circuit -->
+        <div id="page-circuit" class="page hidden">
+            <h2 style="font-size: 3rem; margin-bottom: 20px; text-decoration: underline;">TODAY</h2>
+            <div id="circuit-list"></div>
+        </div>
+
+        <!-- Progress -->
+        <div id="page-progress" class="page hidden" style="height:100%; display:flex; flex-direction:column;">
+            <div class="brut-box invert">
+                <span style="font-size: 1rem;">TARGET</span>
+                <div style="font-size: 3rem; line-height: 1;" id="prog-name">NAME</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="brut-box">
+                    <span>SET</span>
+                    <div style="font-size: 2rem;"><span id="prog-set">1</span>/<span id="prog-total">3</span></div>
+                </div>
+                <div class="brut-box">
+                    <span>REPS</span>
+                    <div style="font-size: 2rem;" id="prog-target">8-12</div>
+                </div>
+            </div>
+
+            <button class="brut-btn" onclick="app.enterResultData()">LOG IT</button>
+        </div>
+
+        <!-- Log -->
+        <div id="page-result-input" class="page hidden">
+            <h1 style="font-size: 3rem;">HOW<br>MUCH?</h1>
+            
+            <label style="font-weight: bold;">REPS</label>
+            <input type="number" id="input-reps" class="input-mega" placeholder="0">
+            
+            <label style="font-weight: bold;">WEIGHT</label>
+            <input type="number" id="input-weight" class="input-mega" placeholder="0">
+
+            <button class="brut-btn" onclick="submitForm()">DONE</button>
+        </div>
+
+        <!-- Rest -->
+        <div id="page-rest" class="page hidden" style="height:100%; display: flex; flex-direction: column; justify-content: space-between;">
+             <h1 style="text-align: center;">WAIT.</h1>
+             <div class="timer-mega" id="rest-timer">00:00</div>
+             <div class="brut-box" style="text-align: center;">BREATHE</div>
+        </div>
+
+    </div>
+
+    <script src="common.js"></script>
+    <script>
+        const app = new WorkoutFlow({
+            renderPage: (pageId, state) => {
+                document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+                
+                if (pageId === 'page-circuit') renderCircuit(state.workout);
+                if (pageId === 'page-progress') {
+                    document.getElementById('prog-name').innerText = state.activeExercise.name;
+                    document.getElementById('prog-set').innerText = state.activeExercise.completedSets + 1;
+                    document.getElementById('prog-total').innerText = state.activeExercise.sets;
+                    document.getElementById('prog-target').innerText = state.activeExercise.reps;
+                }
+            },
+            updateTimer: (seconds) => {
+                const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const sec = (seconds % 60).toString().padStart(2, '0');
+                document.getElementById('rest-timer').innerText = `${min}:${sec}`;
+            }
+        });
+
+        function renderCircuit(workout) {
+            const list = document.getElementById('circuit-list');
+            list.innerHTML = '';
+            workout.exercises.forEach(ex => {
+                const div = document.createElement('div');
+                div.className = `list-row ${ex.isComplete ? 'complete' : ''}`;
+                div.innerHTML = `
+                    <b>${ex.name}</b>
+                    <span>${ex.completedSets}/${ex.sets}</span>
+                `;
+                div.onclick = () => app.selectExercise(ex.id);
+                list.appendChild(div);
+            });
+        }
+
+        function submitForm() {
+            const reps = document.getElementById('input-reps').value;
+            const weight = document.getElementById('input-weight').value;
+            app.submitResult(reps, weight);
+            document.getElementById('input-reps').value = '';
+        }
+    </script>
+</body>
+</html>

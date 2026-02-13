@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 03 - Topo Ascent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Montserrat+Alternates:wght@600;700&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #061015;
+      --bg-accent: rgba(72, 255, 215, 0.14);
+      --surface-0: rgba(8, 18, 24, 0.92);
+      --surface-1: rgba(10, 23, 30, 0.92);
+      --surface-2: rgba(7, 18, 25, 0.96);
+      --text-main: #e9fbff;
+      --text-dim: rgba(233, 251, 255, 0.7);
+      --line: rgba(155, 220, 230, 0.22);
+      --line-strong: rgba(155, 220, 230, 0.42);
+      --accent: #48ffd7;
+      --accent-2: #8de6ff;
+      --accent-text: #021a1c;
+      --warn: #ffbf73;
+      --success: #6bffb9;
+      --radius: 16px;
+      --shadow: 0 24px 58px rgba(0, 0, 0, 0.52);
+      --focus: 0 0 0 3px rgba(72, 255, 215, 0.22);
+      --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+      --font-display: "Montserrat Alternates", sans-serif;
+    }
+
+    body {
+      background:
+        radial-gradient(900px 520px at 18% -15%, rgba(72, 255, 215, 0.12), transparent 62%),
+        radial-gradient(900px 600px at 110% 10%, rgba(141, 230, 255, 0.12), transparent 62%),
+        linear-gradient(180deg, #061015 0%, #04090d 100%);
+    }
+
+    .layout {
+      position: relative;
+    }
+
+    .layout::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.3;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(72, 255, 215, 0.14), transparent 38%),
+        radial-gradient(circle at 70% 65%, rgba(141, 230, 255, 0.12), transparent 45%),
+        repeating-radial-gradient(circle at 45% 35%, rgba(255, 255, 255, 0.06) 0px, rgba(255, 255, 255, 0.06) 1px, transparent 1px, transparent 18px);
+      mix-blend-mode: soft-light;
+    }
+
+    .badge {
+      font-family: "Spline Sans Mono", monospace;
+      letter-spacing: 0.09em;
+    }
+
+    .narrative {
+      border-radius: 18px;
+    }
+
+    .top-meta {
+      border-radius: 18px;
+    }
+
+    .phone {
+      border-radius: 22px;
+      overflow: hidden;
+    }
+
+    .exercise:hover {
+      transform: translateY(-1px);
+    }
+
+    .rest-stage {
+      border-radius: 22px;
+    }
+
+    .rest-stage h4 {
+      margin: 0;
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .rest-stage strong {
+      font-family: var(--font-display);
+      letter-spacing: 0.06em;
+    }
+
+    .objective strong {
+      letter-spacing: 0.12em;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Topo",
+      pageTitle: "Topo Ascent",
+      pageSubtitle: "A navigation tool aesthetic: waypoint-by-waypoint progression with contour-line calm.",
+      genre: "Exploration",
+      narrative: "Waypoints",
+      narrativeTitle: "Route Logic",
+      narrativeSummary: "Pick a waypoint (exercise). Stay on-route until you finish the full set chain.",
+      designPrinciples: [
+        "Contours add atmosphere without reducing contrast.",
+        "The objective reads like a route instruction, not a paragraph.",
+        "Everything important fits in a quick glance."
+      ],
+      labels: {
+        rank: "Grade",
+        streak: "On Route",
+        currency: "Supplies",
+        objective: "Route",
+        objectiveDone: "Summit reached. Session complete.",
+        points: "Altitude XP"
+      },
+      rewards: {
+        setPoints: 8,
+        setCurrency: 4,
+        exercisePoints: 23,
+        exerciseCurrency: 11
+      },
+      initial: {
+        rank: 5,
+        rankXp: 33,
+        streak: 4,
+        currency: 172
+      },
+      notificationTitle: "Topo Timer",
+      indexHref: "./index.html",
+      indexLabel: "GPT index",
+      backHref: "../index.html",
+      backLabel: "Design explorer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>

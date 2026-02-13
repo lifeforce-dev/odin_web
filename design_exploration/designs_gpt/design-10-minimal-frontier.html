@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design 10 - Minimal Frontier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Red+Hat+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../v2/common.css">
+  <style>
+    :root {
+      --bg: #05070b;
+      --bg-accent: rgba(132, 160, 255, 0.16);
+      --surface-0: rgba(9, 12, 18, 0.97);
+      --surface-1: rgba(11, 15, 22, 0.97);
+      --surface-2: rgba(8, 12, 20, 0.99);
+      --text-main: #f1f6ff;
+      --text-dim: rgba(241, 246, 255, 0.74);
+      --line: rgba(166, 183, 229, 0.27);
+      --line-strong: rgba(183, 200, 241, 0.5);
+      --accent: #84a0ff;
+      --accent-2: #7ce6ff;
+      --accent-text: #07112b;
+      --radius: 2px;
+      --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+      --font-display: "Red Hat Display", sans-serif;
+      --focus: 0 0 0 3px rgba(132, 160, 255, 0.28);
+    }
+
+    body {
+      background:
+        radial-gradient(900px 600px at 50% -30%, rgba(132, 160, 255, 0.16), transparent 63%),
+        linear-gradient(180deg, #05070b 0%, #04060a 100%);
+    }
+
+    .screen h3,
+    .narrative h2,
+    .top-meta h1 {
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+
+    .meta-chip,
+    .badge,
+    button.cta,
+    button.ghost,
+    .footer div,
+    .field {
+      text-transform: none;
+      letter-spacing: 0.01em;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <script>
+    window.DESIGN_CONFIG = {
+      shortLabel: "Minimal Frontier",
+      pageTitle: "Minimal Frontier",
+      pageSubtitle: "A quiet sci-fi exploration style where every UI block has one clear purpose.",
+      genre: "Exploration",
+      narrative: "Pathfinding Chain",
+      narrativeTitle: "Narrative",
+      narrativeSummary: "Each exercise is a route segment. You finish the segment chain before opening the next path.",
+      designPrinciples: [
+        "Softer but still high-contrast dark theme.",
+        "Compact copy and straightforward labels.",
+        "Consistent control placement to reduce memory load."
+      ],
+      labels: {
+        rank: "Path Rank",
+        streak: "Stable Path",
+        currency: "Shards",
+        objective: "Current Path",
+        objectiveDone: "All paths completed.",
+        points: "Path XP"
+      },
+      initial: { rank: 5, rankXp: 49, streak: 7, currency: 151 },
+      rewards: { setPoints: 9, setCurrency: 5, exercisePoints: 25, exerciseCurrency: 11 },
+      globalRestSeconds: 3,
+      notificationTitle: "Minimal Frontier Timer"
+    };
+  </script>
+  <script src="../v2/common.js"></script>
+</body>
+</html>
