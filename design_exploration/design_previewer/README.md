@@ -23,9 +23,11 @@ python e:/source/odin_web/design_exploration/design_previewer/setup_previewer.py
 
 The script will:
 
-1. Install missing dependencies with pip install -e . (using pyproject.toml).
-2. Discover versions, groups, and design html files.
-3. Generate manifest.json.
+1. Create/use a local .venv next to the script.
+2. Install missing dependencies in that .venv.
+3. Re-run itself from the .venv Python.
+4. Discover versions, groups, and design html files.
+5. Generate manifest.json.
 
 ## Optional preview server
 

@@ -2,12 +2,37 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import os
 import subprocess
 import sys
 import webbrowser
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+
+def get_venv_python(script_dir: Path) -> Path:
+    if os.name == "nt":
+        return script_dir / ".venv" / "Scripts" / "python.exe"
+
+    return script_dir / ".venv" / "bin" / "python"
+
+
+def run_command(command: list[str], error_message: str) -> None:
+    result = subprocess.run(command, check=False)
+    if result.returncode != 0:
+        raise RuntimeError(error_message)
+
+
+def ensure_pip(venv_python: Path) -> None:
+    pip_check = subprocess.run([str(venv_python), "-m", "pip", "--version"], check=False)
+    if pip_check.returncode == 0:
+        return
+
+    run_command(
+        [str(venv_python), "-m", "ensurepip", "--upgrade"],
+        "Failed to bootstrap pip in previewer .venv.",
+    )
 
 
 def ensure_dependencies(script_dir: Path, skip_install: bool) -> None:
@@ -18,10 +43,31 @@ def ensure_dependencies(script_dir: Path, skip_install: bool) -> None:
         if skip_install:
             raise RuntimeError("pydantic is not installed. Re-run without --skip-install.")
 
-    command = [sys.executable, "-m", "pip", "install", "-e", str(script_dir)]
-    result = subprocess.run(command, check=False)
-    if result.returncode != 0:
-        raise RuntimeError("Failed to install previewer dependencies.")
+    venv_python = get_venv_python(script_dir)
+    if not venv_python.exists():
+        run_command(
+            [sys.executable, "-m", "venv", str(script_dir / ".venv")],
+            "Failed to create previewer .venv.",
+        )
+
+    ensure_pip(venv_python)
+
+    run_command(
+        [str(venv_python), "-m", "pip", "install", "pydantic>=2,<3"],
+        "Failed to install previewer dependencies.",
+    )
+
+    current_python = Path(sys.executable).resolve()
+    target_python = venv_python.resolve()
+    if current_python == target_python:
+        return
+
+    forwarded_args = list(sys.argv[1:])
+    if "--skip-install" not in forwarded_args:
+        forwarded_args.append("--skip-install")
+
+    rerun = subprocess.run([str(venv_python), str(Path(__file__).resolve()), *forwarded_args], check=False)
+    raise SystemExit(rerun.returncode)
 
 
 def run_server(root_path: Path, host: str, port: int, auto_open: bool) -> None:
