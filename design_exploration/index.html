@@ -1,1468 +1,280 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Odin Workout - Gamified Design Exploration</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@500;700&family=Cinzel:wght@600;700&family=MedievalSharp&family=Teko:wght@500;700&family=Exo+2:wght@500;700&family=Audiowide&family=Rajdhani:wght@500;700&family=Chakra+Petch:wght@500;700&display=swap');
-
-    * {
-      box-sizing: border-box;
-    }
-
-    :root {
-      --shell-bg: #080c17;
-      --shell-text: #ebefff;
-      --shell-dim: #b8c0e7;
-      --shell-panel: rgba(12, 18, 33, 0.86);
-      --shell-border: rgba(190, 214, 255, 0.18);
-      --focus: 0 0 0 3px rgba(122, 216, 255, 0.35);
-      --shadow: 0 18px 46px rgba(0, 0, 0, 0.42);
-      --radius-lg: 26px;
-      --radius-md: 16px;
-      --radius-sm: 12px;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      color: var(--shell-text);
-      background:
-        radial-gradient(1200px 680px at -10% -20%, rgba(88, 106, 255, 0.36), transparent 60%),
-        radial-gradient(900px 620px at 110% 8%, rgba(67, 255, 226, 0.22), transparent 62%),
-        linear-gradient(160deg, #090d19 0%, #070b14 100%);
-      font-family: "Rajdhani", sans-serif;
-      padding: 20px;
-    }
-
-    button,
-    input {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    button:focus-visible,
-    input:focus-visible {
-      outline: none;
-      box-shadow: var(--focus);
-    }
-
-    .lab-header {
-      max-width: 1320px;
-      margin: 0 auto 18px;
-      border: 1px solid var(--shell-border);
-      border-radius: var(--radius-lg);
-      background: var(--shell-panel);
-      backdrop-filter: blur(8px);
-      padding: 16px;
-      display: grid;
-      gap: 12px;
-    }
-
-    .lab-header h1 {
-      margin: 0;
-      font-size: clamp(1.5rem, 2.2vw, 2.1rem);
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-    }
-
-    .lab-header p {
-      margin: 0;
-      color: var(--shell-dim);
-      line-height: 1.45;
-      max-width: 1050px;
-    }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .toolbar button,
-    .design-tab {
-      border: 1px solid var(--shell-border);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--shell-text);
-      padding: 8px 13px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-
-    .toolbar button:hover,
-    .design-tab:hover {
-      background: rgba(255, 255, 255, 0.16);
-    }
-
-    .notif-status {
-      color: #d4ddfb;
-      font-size: 0.9rem;
-    }
-
-    .design-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .design-tab[aria-selected="true"] {
-      background: linear-gradient(135deg, #5fe8ff, #8ea3ff);
-      border-color: transparent;
-      color: #031322;
-    }
-
-    .design-host {
-      max-width: 1320px;
-      margin: 0 auto;
-    }
-
-    .design-panel {
-      display: none;
-      grid-template-columns: minmax(260px, 1fr) minmax(330px, 460px);
-      gap: 16px;
-      align-items: start;
-    }
-
-    .design-panel.is-active {
-      display: grid;
-    }
-
-    .design-intro {
-      border-radius: var(--radius-lg);
-      padding: 16px;
-      border: 1px solid var(--shell-border);
-      background: rgba(11, 18, 35, 0.84);
-      display: grid;
-      gap: 12px;
-    }
-
-    .design-intro h2 {
-      margin: 0;
-      font-size: clamp(1.2rem, 1.8vw, 1.6rem);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .design-intro p {
-      margin: 0;
-      color: var(--shell-dim);
-      line-height: 1.4;
-    }
-
-    .mini-list {
-      margin: 0;
-      padding-left: 18px;
-      color: #d6def9;
-      line-height: 1.45;
-      display: grid;
-      gap: 5px;
-    }
-
-    .phone-shell {
-      min-height: 780px;
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      overflow: hidden;
-      box-shadow: var(--shadow);
-    }
-
-    .device {
-      min-height: 780px;
-      padding: 14px;
-      display: grid;
-      grid-template-rows: auto auto 1fr auto;
-      gap: 12px;
-      color: var(--theme-text);
-      background: var(--theme-bg);
-      font-family: var(--theme-body);
-      position: relative;
-      isolation: isolate;
-    }
-
-    .device::before,
-    .device::after {
-      content: "";
-      position: absolute;
-      pointer-events: none;
-      z-index: -1;
-    }
-
-    .top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .chip {
-      border: 1px solid var(--theme-border);
-      background: var(--theme-chip);
-      border-radius: 999px;
-      padding: 5px 10px;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .hud {
-      border-radius: var(--theme-radius);
-      border: 1px solid var(--theme-border);
-      background: var(--theme-surface-1);
-      padding: 10px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .hud-line {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      font-size: 0.84rem;
-    }
-
-    .hud-line strong {
-      font-size: 0.95rem;
-      letter-spacing: 0.03em;
-    }
-
-    .xp-track {
-      height: 10px;
-      border-radius: 999px;
-      background: var(--theme-surface-2);
-      overflow: hidden;
-      border: 1px solid var(--theme-border);
-    }
-
-    .xp-fill {
-      display: block;
-      height: 100%;
-      background: linear-gradient(90deg, var(--theme-accent), var(--theme-accent-2));
-      width: 0;
-      transition: width 240ms ease;
-    }
-
-    .hud-metrics {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      font-size: 0.78rem;
-      color: var(--theme-dim);
-    }
-
-    .hud-metrics span {
-      border: 1px solid var(--theme-border);
-      border-radius: 10px;
-      background: var(--theme-surface-2);
-      padding: 6px;
-      text-align: center;
-    }
-
-    .quest-card {
-      border: 1px solid var(--theme-border);
-      border-radius: var(--theme-radius);
-      background: var(--theme-surface-1);
-      padding: 10px;
-      display: grid;
-      gap: 5px;
-      font-size: 0.86rem;
-    }
-
-    .quest-title {
-      font-family: var(--theme-display);
-      font-size: 1.05rem;
-      letter-spacing: 0.04em;
-      margin: 0;
-    }
-
-    .screen {
-      display: grid;
-      align-content: start;
-      gap: 12px;
-    }
-
-    .screen h3 {
-      margin: 0;
-      font-family: var(--theme-display);
-      font-size: clamp(1.25rem, 2.2vw, 1.65rem);
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .meta {
-      margin: 0;
-      color: var(--theme-dim);
-      line-height: 1.4;
-      font-size: 0.88rem;
-    }
-
-    .menu,
-    .stack,
-    .input-actions {
-      display: grid;
-      gap: 8px;
-    }
-
-    .tiles {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
-    }
-
-    .exercise {
-      text-align: left;
-      border: 1px solid var(--theme-border);
-      border-radius: var(--theme-radius);
-      background: var(--theme-surface-2);
-      color: var(--theme-text);
-      padding: 10px;
-      min-height: 96px;
-      display: grid;
-      align-content: space-between;
-      gap: 8px;
-      transition: transform 0.16s ease, border-color 0.16s ease;
-    }
-
-    .exercise:hover {
-      transform: translateY(-2px);
-      border-color: var(--theme-accent);
-    }
-
-    .exercise.is-selected {
-      border-color: var(--theme-accent);
-      background: var(--theme-selected);
-    }
-
-    .exercise.is-done {
-      opacity: 0.64;
-    }
-
-    .exercise strong {
-      line-height: 1.2;
-      font-size: 0.92rem;
-    }
-
-    .exercise small {
-      color: var(--theme-dim);
-      font-size: 0.78rem;
-    }
-
-    .card {
-      border: 1px solid var(--theme-border);
-      border-radius: var(--theme-radius);
-      background: var(--theme-surface-1);
-      padding: 10px;
-      display: grid;
-      gap: 7px;
-    }
-
-    .set-track {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
-      gap: 7px;
-    }
-
-    .set-pill {
-      min-height: 34px;
-      border-radius: 9px;
-      border: 1px solid var(--theme-border);
-      background: var(--theme-surface-2);
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      font-size: 0.82rem;
-    }
-
-    .set-pill.is-done {
-      background: var(--theme-accent);
-      color: var(--theme-accent-text);
-      border-color: transparent;
-    }
-
-    .set-pill.is-active {
-      border-color: var(--theme-accent);
-      background: var(--theme-selected);
-    }
-
-    .timer-banner {
-      border-radius: var(--theme-radius);
-      border: 1px solid var(--theme-border);
-      background: linear-gradient(130deg, var(--theme-surface-2), var(--theme-surface-1));
-      padding: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-    }
-
-    .timer-value {
-      font-size: 1.1rem;
-    }
-
-    .cta,
-    .ghost {
-      border: 1px solid var(--theme-border);
-      border-radius: var(--theme-radius);
-      padding: 10px 12px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      transition: transform 0.16s ease, filter 0.16s ease;
-    }
-
-    .cta {
-      border-color: transparent;
-      background: var(--theme-accent);
-      color: var(--theme-accent-text);
-    }
-
-    .ghost {
-      background: var(--theme-surface-2);
-      color: var(--theme-text);
-    }
-
-    .cta:hover,
-    .ghost:hover {
-      transform: translateY(-1px);
-      filter: brightness(1.08);
-    }
-
-    .input-grid {
-      display: grid;
-      gap: 10px;
-    }
-
-    .field {
-      display: grid;
-      gap: 5px;
-      font-size: 0.86rem;
-      color: var(--theme-dim);
-    }
-
-    .field input {
-      border-radius: var(--theme-radius);
-      border: 1px solid var(--theme-border);
-      background: var(--theme-surface-2);
-      color: var(--theme-text);
-      padding: 9px;
-    }
-
-    .rest-stage {
-      min-height: 280px;
-      border-radius: var(--theme-radius);
-      border: 1px solid var(--theme-border);
-      background: var(--theme-surface-1);
-      display: grid;
-      place-items: center;
-      text-align: center;
-      gap: 10px;
-      padding: 16px;
-    }
-
-    .rest-word {
-      font-family: var(--theme-display);
-      font-size: clamp(2rem, 6vw, 3.2rem);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      line-height: 0.95;
-    }
-
-    .rest-clock {
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-    }
-
-    .summary {
-      display: grid;
-      gap: 8px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      max-height: 230px;
-      overflow: auto;
-    }
-
-    .summary li {
-      border: 1px solid var(--theme-border);
-      border-radius: var(--theme-radius);
-      background: var(--theme-surface-2);
-      padding: 9px;
-      font-size: 0.85rem;
-    }
-
-    .footer {
-      border: 1px solid var(--theme-border);
-      border-radius: var(--theme-radius);
-      background: var(--theme-surface-1);
-      overflow: hidden;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-    }
-
-    .footer > div {
-      padding: 8px;
-      border-right: 1px solid var(--theme-border);
-      font-size: 0.8rem;
-      color: var(--theme-dim);
-    }
-
-    .footer > div:last-child {
-      border-right: 0;
-    }
-
-    .footer strong {
-      display: block;
-      color: var(--theme-text);
-      margin-top: 3px;
-      font-size: 0.96rem;
-      letter-spacing: 0.03em;
-    }
-
-    .toast-region {
-      position: fixed;
-      right: 14px;
-      bottom: 14px;
-      z-index: 90;
-      display: grid;
-      gap: 8px;
-      max-width: 330px;
-    }
-
-    .toast {
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      background: rgba(6, 10, 20, 0.93);
-      color: #f2f6ff;
-      padding: 10px 11px;
-      box-shadow: var(--shadow);
-      font-size: 0.86rem;
-      animation: rise 220ms ease;
-    }
-
-    @keyframes rise {
-      from {
-        opacity: 0;
-        transform: translateY(8px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .theme-arcade {
-      --theme-display: "Press Start 2P", monospace;
-      --theme-body: "Chakra Petch", sans-serif;
-      --theme-bg:
-        radial-gradient(900px 500px at 50% -40%, rgba(255, 76, 205, 0.32), rgba(255, 76, 205, 0) 70%),
-        linear-gradient(160deg, #100627 0%, #080d1f 55%, #042326 100%);
-      --theme-surface-1: rgba(21, 13, 45, 0.9);
-      --theme-surface-2: rgba(12, 22, 45, 0.95);
-      --theme-text: #e7f8ff;
-      --theme-dim: #9ec7df;
-      --theme-accent: #32f3ea;
-      --theme-accent-2: #f750d2;
-      --theme-accent-text: #021f24;
-      --theme-border: rgba(140, 229, 255, 0.42);
-      --theme-selected: rgba(50, 243, 234, 0.18);
-      --theme-chip: rgba(50, 243, 234, 0.12);
-      --theme-radius: 4px;
-    }
-
-    .theme-arcade .device::before {
-      inset: 0;
-      background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 100% 4px;
-      opacity: 0.45;
-    }
-
-    .theme-quest {
-      --theme-display: "Cinzel", serif;
-      --theme-body: "MedievalSharp", cursive;
-      --theme-bg:
-        radial-gradient(900px 520px at 50% -120px, rgba(255, 219, 149, 0.42), rgba(255, 219, 149, 0) 66%),
-        linear-gradient(180deg, #3b2412 0%, #211307 100%);
-      --theme-surface-1: rgba(64, 36, 16, 0.9);
-      --theme-surface-2: rgba(49, 30, 13, 0.94);
-      --theme-text: #ffeecf;
-      --theme-dim: #e0be87;
-      --theme-accent: #efb44d;
-      --theme-accent-2: #ffdd8f;
-      --theme-accent-text: #2e1804;
-      --theme-border: rgba(255, 212, 132, 0.4);
-      --theme-selected: rgba(239, 180, 77, 0.2);
-      --theme-chip: rgba(239, 180, 77, 0.14);
-      --theme-radius: 12px;
-    }
-
-    .theme-quest .device::after {
-      width: 180px;
-      height: 180px;
-      left: -40px;
-      top: -40px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 214, 148, 0.3), rgba(255, 214, 148, 0));
-    }
-
-    .theme-brawler {
-      --theme-display: "Teko", sans-serif;
-      --theme-body: "Exo 2", sans-serif;
-      --theme-bg:
-        radial-gradient(700px 380px at 50% -80px, rgba(255, 79, 59, 0.42), rgba(255, 79, 59, 0) 70%),
-        linear-gradient(180deg, #191111 0%, #0f1219 100%);
-      --theme-surface-1: rgba(36, 25, 30, 0.88);
-      --theme-surface-2: rgba(23, 19, 28, 0.93);
-      --theme-text: #ffeff2;
-      --theme-dim: #d7b5bc;
-      --theme-accent: #ff5f48;
-      --theme-accent-2: #ffbf4b;
-      --theme-accent-text: #2a100a;
-      --theme-border: rgba(255, 121, 104, 0.46);
-      --theme-selected: rgba(255, 95, 72, 0.2);
-      --theme-chip: rgba(255, 95, 72, 0.13);
-      --theme-radius: 10px;
-    }
-
-    .theme-brawler .screen h3 {
-      letter-spacing: 0.12em;
-      font-size: clamp(1.45rem, 2.5vw, 1.85rem);
-    }
-
-    .theme-space {
-      --theme-display: "Orbitron", sans-serif;
-      --theme-body: "Rajdhani", sans-serif;
-      --theme-bg:
-        radial-gradient(1000px 600px at 120% 0%, rgba(116, 112, 255, 0.34), rgba(116, 112, 255, 0) 64%),
-        radial-gradient(800px 500px at -20% 90%, rgba(72, 224, 255, 0.26), rgba(72, 224, 255, 0) 60%),
-        linear-gradient(160deg, #081528 0%, #05080f 100%);
-      --theme-surface-1: rgba(13, 26, 46, 0.88);
-      --theme-surface-2: rgba(10, 20, 34, 0.94);
-      --theme-text: #e7f4ff;
-      --theme-dim: #a7c1dd;
-      --theme-accent: #58dbff;
-      --theme-accent-2: #8e8fff;
-      --theme-accent-text: #071f2c;
-      --theme-border: rgba(125, 182, 255, 0.42);
-      --theme-selected: rgba(88, 219, 255, 0.2);
-      --theme-chip: rgba(88, 219, 255, 0.14);
-      --theme-radius: 14px;
-    }
-
-    .theme-space .device::before {
-      inset: 0;
-      background-image:
-        radial-gradient(2px 2px at 10% 20%, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(2px 2px at 40% 80%, rgba(255, 255, 255, 0.4), transparent),
-        radial-gradient(2px 2px at 70% 35%, rgba(255, 255, 255, 0.45), transparent),
-        radial-gradient(2px 2px at 84% 60%, rgba(255, 255, 255, 0.35), transparent);
-      opacity: 0.35;
-    }
-
-    .theme-monster {
-      --theme-display: "Audiowide", sans-serif;
-      --theme-body: "Chakra Petch", sans-serif;
-      --theme-bg:
-        radial-gradient(900px 460px at 20% -80px, rgba(123, 255, 115, 0.3), rgba(123, 255, 115, 0) 68%),
-        linear-gradient(160deg, #102017 0%, #132115 52%, #28160d 100%);
-      --theme-surface-1: rgba(25, 42, 29, 0.88);
-      --theme-surface-2: rgba(18, 33, 22, 0.94);
-      --theme-text: #ebffe9;
-      --theme-dim: #bdd8b7;
-      --theme-accent: #8dff63;
-      --theme-accent-2: #ffd765;
-      --theme-accent-text: #14240a;
-      --theme-border: rgba(158, 255, 138, 0.4);
-      --theme-selected: rgba(141, 255, 99, 0.22);
-      --theme-chip: rgba(141, 255, 99, 0.14);
-      --theme-radius: 18px;
-    }
-
-    .theme-monster .device::after {
-      width: 220px;
-      height: 90px;
-      left: -60px;
-      bottom: 120px;
-      border-radius: 70px;
-      transform: rotate(-8deg);
-      background: linear-gradient(90deg, rgba(141, 255, 99, 0.2), rgba(255, 215, 101, 0.15));
-    }
-
-    @media (max-width: 960px) {
-      body {
-        padding: 14px;
-      }
-
-      .design-panel,
-      .design-panel.is-active {
-        grid-template-columns: 1fr;
-      }
-
-      .phone-shell,
-      .device {
-        min-height: 720px;
-      }
-    }
-  </style>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Design Exploration Navigator</title>
+	<style>
+		:root {
+			--bg: #0c0f14;
+			--panel: #141a22;
+			--panel-2: #1a2230;
+			--border: #2a3547;
+			--text: #e8edf6;
+			--text-dim: #a6b3c8;
+			--accent: #7eb4ff;
+			--accent-soft: #1e2f47;
+			--shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+			--radius: 14px;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			padding: 24px;
+			font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+			background: var(--bg);
+			color: var(--text);
+		}
+
+		a {
+			color: inherit;
+		}
+
+		a:focus-visible,
+		button:focus-visible {
+			outline: 2px solid var(--accent);
+			outline-offset: 2px;
+		}
+
+		.page {
+			max-width: 1080px;
+			margin: 0 auto;
+			display: grid;
+			gap: 18px;
+		}
+
+		.header {
+			background: var(--panel);
+			border: 1px solid var(--border);
+			border-radius: var(--radius);
+			padding: 18px;
+			box-shadow: var(--shadow);
+		}
+
+		.header h1 {
+			margin: 0 0 8px;
+			font-size: clamp(1.4rem, 2.1vw, 2rem);
+			letter-spacing: 0.01em;
+		}
+
+		.header p {
+			margin: 0;
+			color: var(--text-dim);
+			line-height: 1.5;
+		}
+
+		.quick-links {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10px;
+			margin-top: 14px;
+		}
+
+		.quick-link {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			text-decoration: none;
+			border: 1px solid var(--border);
+			background: var(--panel-2);
+			color: var(--text);
+			padding: 10px 14px;
+			border-radius: 999px;
+			font-weight: 600;
+		}
+
+		.quick-link:hover {
+			border-color: var(--accent);
+			background: var(--accent-soft);
+		}
+
+		.grid {
+			display: grid;
+			gap: 14px;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			align-items: start;
+		}
+
+		.card {
+			background: var(--panel);
+			border: 1px solid var(--border);
+			border-radius: var(--radius);
+			padding: 16px;
+			display: grid;
+			gap: 12px;
+			box-shadow: var(--shadow);
+		}
+
+		.card h2 {
+			margin: 0;
+			font-size: 1.05rem;
+		}
+
+		.card .meta {
+			margin: 0;
+			color: var(--text-dim);
+			font-size: 0.92rem;
+		}
+
+		.actions {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+		}
+
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			padding: 9px 13px;
+			border-radius: 10px;
+			text-decoration: none;
+			font-weight: 600;
+			border: 1px solid var(--border);
+			background: var(--panel-2);
+		}
+
+		.btn:hover {
+			border-color: var(--accent);
+			background: var(--accent-soft);
+		}
+
+		.list {
+			margin: 0;
+			padding: 0;
+			list-style: none;
+			display: grid;
+			gap: 7px;
+		}
+
+		.list a {
+			display: block;
+			padding: 8px 10px;
+			text-decoration: none;
+			border-radius: 8px;
+			border: 1px solid transparent;
+			color: var(--text-dim);
+		}
+
+		.list a:hover {
+			color: var(--text);
+			border-color: var(--border);
+			background: rgba(255, 255, 255, 0.03);
+		}
+
+		.footer {
+			color: var(--text-dim);
+			font-size: 0.88rem;
+			padding: 2px;
+		}
+
+		@media (max-width: 920px) {
+			body {
+				padding: 14px;
+			}
+
+			.grid {
+				grid-template-columns: 1fr;
+			}
+		}
+	</style>
 </head>
 <body>
-  <header class="lab-header">
-    <h1>Gamified Workout Flow Exploration</h1>
-    <p>Five new game-inspired designs implementing your updated UX: start workout -> pick exercise -> locked set loop -> enter data while rest timer already running -> rest countdown -> auto return -> back to circuit only when all sets for that exercise are complete.</p>
-    <div class="toolbar">
-      <a class="design-tab" href="./designs_gpt/index.html">GPT sets 02 + 03</a>
-      <a class="design-tab" href="./v2/index.html">v2 designs</a>
-      <a class="design-tab" href="./designs_claude/index.html">Claude set</a>
-      <a class="design-tab" href="./designs_gemini/index.html">Gemini set</a>
-      <button type="button" data-action="request-notify">Enable Browser Notifications</button>
-      <span id="notifStatus" class="notif-status" aria-live="polite">Notifications: not requested.</span>
-    </div>
-    <nav id="designTabs" class="design-tabs" aria-label="Design variants"></nav>
-  </header>
-
-  <main id="designHost" class="design-host"></main>
-  <div id="toastRegion" class="toast-region" aria-live="assertive" aria-atomic="true"></div>
-
-  <script>
-    const DESIGNS = [
-      {
-        key: "theme-arcade",
-        label: "1. Neon XP Arena",
-        title: "Neon XP Arena",
-        pitch: "Arcade cabinet energy: sharp pixels, bright rewards, instant progression feedback.",
-        bullets: [
-          "High-contrast command buttons",
-          "XP-first visual hierarchy",
-          "Fast scan under fatigue"
-        ]
-      },
-      {
-        key: "theme-quest",
-        label: "2. Questforge",
-        title: "Questforge",
-        pitch: "RPG quest log style: each exercise feels like a mission chain with set milestones.",
-        bullets: [
-          "Quest framing for each exercise",
-          "Achievement-style completion rhythm",
-          "Warm low-glare palette"
-        ]
-      },
-      {
-        key: "theme-brawler",
-        label: "3. Combo Brawler",
-        title: "Combo Brawler",
-        pitch: "Fighting game pacing: big set counters and high urgency for rest-window decisions.",
-        bullets: [
-          "Aggressive action focus",
-          "Combo/streak reinforcement",
-          "Minimal distractions"
-        ]
-      },
-      {
-        key: "theme-space",
-        label: "4. Mission Control",
-        title: "Mission Control",
-        pitch: "Space-ops framing: each set is a mission stage with telemetry and objective tracking.",
-        bullets: [
-          "Telemetry style countdowns",
-          "Clear objective states",
-          "Structured, data-driven look"
-        ]
-      },
-      {
-        key: "theme-monster",
-        label: "5. Beast Hunt",
-        title: "Beast Hunt",
-        pitch: "Monster-hunt progression: exercises become targets; sets are hunt phases.",
-        bullets: [
-          "Big trophy feedback on completion",
-          "Distinctive organic shapes",
-          "Persistent streak reward cues"
-        ]
-      }
-    ];
-
-    const WORKOUT = {
-      name: "Upper Push/Pull Circuit",
-      exercises: [
-        { name: "Lat Pulldown", targetReps: 10, setCount: 4, defaultWeight: 90, restSeconds: 3 },
-        { name: "Cable Row", targetReps: 12, setCount: 4, defaultWeight: 80, restSeconds: 3 },
-        { name: "Face Pull", targetReps: 15, setCount: 3, defaultWeight: 40, restSeconds: 3 },
-        { name: "Chest Press", targetReps: 10, setCount: 4, defaultWeight: 110, restSeconds: 3 },
-        { name: "Chest Fly", targetReps: 12, setCount: 3, defaultWeight: 70, restSeconds: 3 }
-      ]
-    };
-
-    function createState(id) {
-      return {
-        id,
-        screen: "main",
-        startedAt: null,
-        selectedExercise: null,
-        completedSets: Array(WORKOUT.exercises.length).fill(0),
-        entries: Array.from({ length: WORKOUT.exercises.length }, () => []),
-        currentInput: { reps: "", weight: "" },
-        restRemaining: 0,
-        restTimerId: null,
-        restTimerStarted: false,
-        inputSubmitted: false,
-        level: 4 + id,
-        xpInLevel: 32 + id * 7,
-        streak: 3 + id,
-        coins: 120 + id * 28,
-        sessionXp: 0
-      };
-    }
-
-    const states = DESIGNS.map((_, index) => createState(index));
-
-    function formatSeconds(totalSeconds) {
-      const safe = Math.max(0, Math.floor(totalSeconds));
-      const minutes = Math.floor(safe / 60);
-      const seconds = safe % 60;
-      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-    }
-
-    function elapsedSeconds(state) {
-      if (!state.startedAt) {
-        return 0;
-      }
-      return Math.floor((Date.now() - state.startedAt) / 1000);
-    }
-
-    function exerciseByIndex(index) {
-      return WORKOUT.exercises[index];
-    }
-
-    function lockedExerciseIndex(state) {
-      if (state.selectedExercise === null) {
-        return null;
-      }
-
-      const exercise = exerciseByIndex(state.selectedExercise);
-      if (!exercise) {
-        return null;
-      }
-
-      return state.completedSets[state.selectedExercise] < exercise.setCount ? state.selectedExercise : null;
-    }
-
-    function allExercisesComplete(state) {
-      return WORKOUT.exercises.every((exercise, idx) => state.completedSets[idx] >= exercise.setCount);
-    }
-
-    function addRewards(state, xp, coins) {
-      state.sessionXp += xp;
-      state.xpInLevel += xp;
-      state.coins += coins;
-
-      while (state.xpInLevel >= 100) {
-        state.xpInLevel -= 100;
-        state.level += 1;
-        showToast(`Design ${state.id + 1}: Level up! Now level ${state.level}.`);
-      }
-    }
-
-    function requestNotifications() {
-      const status = document.getElementById("notifStatus");
-      if (!("Notification" in window)) {
-        status.textContent = "Notifications: this browser context does not support Notification API.";
-        showToast("Notification API unavailable; using in-page timer alerts only.");
-        return;
-      }
-
-      Notification.requestPermission().then((permission) => {
-        status.textContent = `Notifications: ${permission}.`;
-        if (permission === "granted") {
-          showToast("Notifications enabled.");
-        } else {
-          showToast("Notification permission not granted; using in-page alerts.");
-        }
-      });
-    }
-
-    function notifyTimerDone(state) {
-      const idx = state.selectedExercise;
-      const exercise = idx !== null ? exerciseByIndex(idx) : null;
-      const body = exercise
-        ? `${exercise.name} rest timer finished. Continue your workout flow.`
-        : "Rest timer finished.";
-
-      showToast(`Design ${state.id + 1}: ${body}`);
-
-      if ("Notification" in window && Notification.permission === "granted") {
-        try {
-          new Notification("Workout Timer", {
-            body,
-            tag: `workout-rest-${state.id}`
-          });
-        } catch (error) {
-          showToast("Notification failed in this context; fallback toast shown.");
-        }
-      }
-    }
-
-    function showToast(text) {
-      const region = document.getElementById("toastRegion");
-      const node = document.createElement("div");
-      node.className = "toast";
-      node.textContent = text;
-      region.appendChild(node);
-      setTimeout(() => node.remove(), 3400);
-    }
-
-    function stopRestTimer(state) {
-      if (state.restTimerId) {
-        clearInterval(state.restTimerId);
-        state.restTimerId = null;
-      }
-    }
-
-    function advanceAfterSet(state) {
-      const idx = state.selectedExercise;
-      if (idx === null) {
-        return;
-      }
-
-      const exercise = exerciseByIndex(idx);
-      if (state.completedSets[idx] < exercise.setCount) {
-        state.completedSets[idx] += 1;
-      }
-
-      state.restTimerStarted = false;
-      state.inputSubmitted = false;
-      state.restRemaining = 0;
-
-      if (state.completedSets[idx] >= exercise.setCount) {
-        addRewards(state, 24, 12);
-        state.selectedExercise = null;
-        state.currentInput = { reps: "", weight: "" };
-        state.screen = allExercisesComplete(state) ? "complete" : "circuit";
-      } else {
-        state.screen = "progress";
-      }
-
-      renderState(state);
-    }
-
-    function handleRestTimerFinished(state) {
-      stopRestTimer(state);
-      notifyTimerDone(state);
-
-      if (state.inputSubmitted) {
-        advanceAfterSet(state);
-        return;
-      }
-
-      if (state.screen !== "input") {
-        state.screen = "input";
-      }
-
-      showToast(`Design ${state.id + 1}: Timer ended. Submit set data to continue.`);
-      renderState(state);
-    }
-
-    function startRestTimer(state) {
-      stopRestTimer(state);
-      state.restTimerId = setInterval(() => {
-        if (state.restRemaining > 0) {
-          state.restRemaining -= 1;
-          renderState(state);
-          if (state.restRemaining === 0) {
-            handleRestTimerFinished(state);
-          }
-          return;
-        }
-
-        handleRestTimerFinished(state);
-      }, 1000);
-    }
-
-    function startWorkout(state) {
-      if (!state.startedAt) {
-        state.startedAt = Date.now();
-      }
-      state.screen = allExercisesComplete(state) ? "complete" : "circuit";
-      renderState(state);
-    }
-
-    function selectExercise(state, index) {
-      const lockedIndex = lockedExerciseIndex(state);
-      if (lockedIndex !== null && lockedIndex !== index) {
-        showToast(`Design ${state.id + 1}: finish ${exerciseByIndex(lockedIndex).name} first.`);
-        return;
-      }
-
-      const exercise = exerciseByIndex(index);
-      if (state.completedSets[index] >= exercise.setCount) {
-        showToast(`Design ${state.id + 1}: ${exercise.name} is already complete.`);
-        return;
-      }
-
-      state.selectedExercise = index;
-      state.restRemaining = 0;
-      state.restTimerStarted = false;
-      state.inputSubmitted = false;
-      state.currentInput = {
-        reps: String(exercise.targetReps),
-        weight: String(exercise.defaultWeight)
-      };
-      state.screen = "progress";
-      renderState(state);
-    }
-
-    function goToResultInput(state) {
-      const idx = state.selectedExercise;
-      if (idx === null) {
-        showToast(`Design ${state.id + 1}: choose an exercise first.`);
-        return;
-      }
-
-      const exercise = exerciseByIndex(idx);
-      if (!state.restTimerStarted) {
-        state.restRemaining = exercise.restSeconds;
-        state.restTimerStarted = true;
-        startRestTimer(state);
-      }
-
-      state.screen = "input";
-      renderState(state);
-    }
-
-    function submitResult(state, form) {
-      const idx = state.selectedExercise;
-      if (idx === null) {
-        return;
-      }
-
-      if (state.inputSubmitted) {
-        showToast(`Design ${state.id + 1}: set already submitted; wait for transition.`);
-        return;
-      }
-
-      const reps = Number(form.reps.value);
-      const weight = Number(form.weight.value);
-
-      if (!Number.isFinite(reps) || reps <= 0) {
-        showToast("Enter a valid rep count.");
-        return;
-      }
-
-      if (!Number.isFinite(weight) || weight < 0) {
-        showToast("Enter a valid weight.");
-        return;
-      }
-
-      const nextSet = state.completedSets[idx] + 1;
-      state.entries[idx].push({
-        set: nextSet,
-        reps,
-        weight,
-        time: new Date().toLocaleTimeString()
-      });
-
-      addRewards(state, 9, 4);
-      state.inputSubmitted = true;
-
-      if (!state.restTimerStarted) {
-        const exercise = exerciseByIndex(idx);
-        state.restRemaining = exercise.restSeconds;
-        state.restTimerStarted = true;
-        startRestTimer(state);
-      }
-
-      if (state.restRemaining > 0) {
-        state.screen = "rest";
-        renderState(state);
-        return;
-      }
-
-      advanceAfterSet(state);
-    }
-
-    function restartSession(state) {
-      stopRestTimer(state);
-      const fresh = createState(state.id);
-      Object.assign(state, fresh);
-      renderState(state);
-    }
-
-    function renderMain(state) {
-      return `
-        <section class="screen" aria-label="Main page">
-          <h3>Main Page</h3>
-          <p class="meta">Tap start and move directly into your preconfigured workout flow.</p>
-          <div class="menu">
-            <button class="cta" type="button" data-action="start-workout" data-runtime="${state.id}">Start Workout</button>
-            <button class="ghost" type="button" disabled>Log Stretches (mock)</button>
-            <button class="ghost" type="button" disabled>Stats (mock)</button>
-            <button class="ghost" type="button" disabled>Settings (mock)</button>
-          </div>
-        </section>
-      `;
-    }
-
-    function renderCircuit(state) {
-      const lockIdx = lockedExerciseIndex(state);
-      const lockMessage = lockIdx !== null
-        ? `Flow locked on ${exerciseByIndex(lockIdx).name} until all its sets are done.`
-        : "Choose any incomplete exercise to begin.";
-
-      return `
-        <section class="screen" aria-label="Workout page">
-          <h3>Workout Page</h3>
-          <p class="meta">${lockMessage}</p>
-          <div class="tiles">
-            ${WORKOUT.exercises.map((exercise, index) => {
-              const doneSets = state.completedSets[index];
-              const isDone = doneSets >= exercise.setCount;
-              const isLockedOut = lockIdx !== null && lockIdx !== index;
-              const classes = ["exercise"];
-              if (state.selectedExercise === index) classes.push("is-selected");
-              if (isDone) classes.push("is-done");
-              return `
-                <button
-                  type="button"
-                  class="${classes.join(" ")}"
-                  data-action="select-exercise"
-                  data-runtime="${state.id}"
-                  data-index="${index}"
-                  ${isDone || isLockedOut ? "disabled" : ""}
-                  aria-label="${exercise.name}, ${doneSets} of ${exercise.setCount} sets complete"
-                >
-                  <strong>${exercise.name}</strong>
-                  <small>${doneSets}/${exercise.setCount} sets complete • ${exercise.targetReps} reps target</small>
-                </button>
-              `;
-            }).join("")}
-          </div>
-        </section>
-      `;
-    }
-
-    function renderProgress(state) {
-      const idx = state.selectedExercise;
-      const exercise = idx !== null ? exerciseByIndex(idx) : null;
-      if (!exercise) {
-        return renderCircuit(state);
-      }
-
-      const completed = state.completedSets[idx];
-      const nextSet = completed + 1;
-      const lastEntry = state.entries[idx][state.entries[idx].length - 1];
-
-      return `
-        <section class="screen" aria-label="Workout progress page">
-          <h3>Workout Progress Page</h3>
-          <div class="card">
-            <strong>${exercise.name}</strong>
-            <p class="meta">Current set: ${nextSet}/${exercise.setCount} • Required reps: ${exercise.targetReps}</p>
-            <p class="meta">Last data: ${lastEntry ? `${lastEntry.reps} reps @ ${lastEntry.weight} lbs` : "No previous set entry"}</p>
-          </div>
-
-          <div class="card">
-            <strong>Set Progress</strong>
-            <div class="set-track">
-              ${Array.from({ length: exercise.setCount }, (_, setIdx) => {
-                const classes = ["set-pill"];
-                if (setIdx < completed) classes.push("is-done");
-                if (setIdx === completed) classes.push("is-active");
-                return `<span class="${classes.join(" ")}">${setIdx + 1}</span>`;
-              }).join("")}
-            </div>
-          </div>
-
-          <div class="timer-banner">
-            <span>Rest Timer</span>
-            <span class="timer-value">${state.restTimerStarted ? formatSeconds(state.restRemaining) : "Starts on Enter Result Data"}</span>
-          </div>
-
-          <button class="cta" type="button" data-action="enter-result" data-runtime="${state.id}">Enter Result Data</button>
-          <p class="meta">Flow remains on ${exercise.name} until all ${exercise.setCount} sets are complete.</p>
-        </section>
-      `;
-    }
-
-    function renderInput(state) {
-      const idx = state.selectedExercise;
-      const exercise = idx !== null ? exerciseByIndex(idx) : null;
-      if (!exercise) {
-        return renderCircuit(state);
-      }
-
-      const setNumber = state.completedSets[idx] + 1;
-
-      return `
-        <section class="screen" aria-label="Workout result input page">
-          <h3>Workout Result Input Page</h3>
-          <p class="meta">${exercise.name} set ${setNumber}/${exercise.setCount}. Timer is already running.</p>
-
-          <div class="timer-banner">
-            <span>Rest Time Remaining</span>
-            <span class="timer-value">${formatSeconds(state.restRemaining)}</span>
-          </div>
-
-          <form class="input-grid" data-action="submit-result" data-runtime="${state.id}">
-            <label class="field">
-              Rep Count
-              <input type="number" name="reps" min="1" max="200" required value="${state.currentInput.reps}">
-            </label>
-            <label class="field">
-              Weight (lbs)
-              <input type="number" name="weight" min="0" max="2000" required value="${state.currentInput.weight}">
-            </label>
-            <div class="input-actions">
-              <button class="cta" type="submit">Done</button>
-            </div>
-          </form>
-        </section>
-      `;
-    }
-
-    function renderRest(state) {
-      const idx = state.selectedExercise;
-      const exercise = idx !== null ? exerciseByIndex(idx) : null;
-      const setNumber = idx !== null ? state.completedSets[idx] + 1 : 0;
-
-      return `
-        <section class="screen" aria-label="Rest page">
-          <h3>Rest Page</h3>
-          <div class="rest-stage">
-            <span class="rest-word">Rest</span>
-            <span class="rest-clock">${formatSeconds(state.restRemaining)}</span>
-            <p class="meta">Auto-return to workout progress when timer finishes.</p>
-            <p class="meta">${exercise ? `${exercise.name} • Set ${setNumber}` : ""}</p>
-          </div>
-        </section>
-      `;
-    }
-
-    function renderComplete(state) {
-      const summary = WORKOUT.exercises.map((exercise, idx) => {
-        const logged = state.entries[idx];
-        const totalSets = logged.length;
-        const avgReps = totalSets ? Math.round(logged.reduce((sum, item) => sum + item.reps, 0) / totalSets) : 0;
-        return `${exercise.name}: ${totalSets}/${exercise.setCount} sets, avg reps ${avgReps}`;
-      });
-
-      return `
-        <section class="screen" aria-label="Workout complete page">
-          <h3>Workout Complete</h3>
-          <p class="meta">All exercises complete. Session XP gained: ${state.sessionXp}</p>
-          <ul class="summary">
-            ${summary.map((line) => `<li>${line}</li>`).join("")}
-          </ul>
-          <button class="cta" type="button" data-action="restart" data-runtime="${state.id}">Restart Session</button>
-        </section>
-      `;
-    }
-
-    function renderScreen(state) {
-      switch (state.screen) {
-        case "main":
-          return renderMain(state);
-        case "circuit":
-          return renderCircuit(state);
-        case "progress":
-          return renderProgress(state);
-        case "input":
-          return renderInput(state);
-        case "rest":
-          return renderRest(state);
-        case "complete":
-          return renderComplete(state);
-        default:
-          return renderMain(state);
-      }
-    }
-
-    function currentQuestText(state) {
-      if (allExercisesComplete(state)) {
-        return "Quest complete: all workout targets cleared.";
-      }
-
-      const lockIdx = lockedExerciseIndex(state);
-      if (lockIdx !== null) {
-        const exercise = exerciseByIndex(lockIdx);
-        const done = state.completedSets[lockIdx];
-        return `Locked quest: ${exercise.name} set ${done + 1}/${exercise.setCount}.`;
-      }
-
-      return "Open quest: pick your next exercise from workout page.";
-    }
-
-    function renderState(state) {
-      const mount = document.getElementById(`runtime-${state.id}`);
-      if (!mount) {
-        return;
-      }
-
-      mount.innerHTML = `
-        <article class="device" role="region" aria-label="Design ${state.id + 1} workout simulator">
-          <div class="top-row">
-            <span class="chip">Design ${state.id + 1}</span>
-            <span class="chip">${state.screen}</span>
-          </div>
-
-          <section class="hud" aria-label="Gamification status">
-            <div class="hud-line">
-              <strong>Level ${state.level}</strong>
-              <span>${state.xpInLevel}/100 XP</span>
-            </div>
-            <div class="xp-track"><span class="xp-fill" style="width:${state.xpInLevel}%"></span></div>
-            <div class="hud-metrics">
-              <span>Streak<br><strong>${state.streak}</strong></span>
-              <span>Coins<br><strong>${state.coins}</strong></span>
-              <span>Session XP<br><strong>${state.sessionXp}</strong></span>
-            </div>
-          </section>
-
-          <section class="quest-card" aria-label="Current quest">
-            <p class="quest-title">Current Quest</p>
-            <p class="meta">${currentQuestText(state)}</p>
-          </section>
-
-          ${renderScreen(state)}
-
-          <footer class="footer">
-            <div>
-              Total Time Taken
-              <strong>${formatSeconds(elapsedSeconds(state))}</strong>
-            </div>
-            <div>
-              Rest Time Remaining
-              <strong>${formatSeconds(state.restRemaining)}</strong>
-            </div>
-          </footer>
-        </article>
-      `;
-    }
-
-    function renderAllStates() {
-      states.forEach((state) => renderState(state));
-    }
-
-    function selectDesign(index) {
-      const panels = document.querySelectorAll(".design-panel");
-      const tabs = document.querySelectorAll(".design-tab");
-
-      panels.forEach((panel) => {
-        panel.classList.toggle("is-active", Number(panel.dataset.design) === index);
-      });
-
-      tabs.forEach((tab) => {
-        tab.setAttribute("aria-selected", String(Number(tab.dataset.design) === index));
-      });
-    }
-
-    function bootstrapLayout() {
-      const tabs = document.getElementById("designTabs");
-      const host = document.getElementById("designHost");
-
-      tabs.innerHTML = DESIGNS.map((design, index) => `
-        <button
-          class="design-tab"
-          type="button"
-          data-action="select-design"
-          data-design="${index}"
-          aria-selected="${index === 0 ? "true" : "false"}"
-        >
-          ${design.label}
-        </button>
-      `).join("");
-
-      host.innerHTML = DESIGNS.map((design, index) => `
-        <section class="design-panel ${design.key} ${index === 0 ? "is-active" : ""}" data-design="${index}">
-          <aside class="design-intro">
-            <h2>${design.title}</h2>
-            <p>${design.pitch}</p>
-            <ul class="mini-list">
-              ${design.bullets.map((bullet) => `<li>${bullet}</li>`).join("")}
-            </ul>
-          </aside>
-          <div class="phone-shell" id="runtime-${index}"></div>
-        </section>
-      `).join("");
-    }
-
-    document.addEventListener("click", (event) => {
-      const target = event.target.closest("[data-action]");
-      if (!target) {
-        return;
-      }
-
-      const action = target.dataset.action;
-
-      if (action === "request-notify") {
-        requestNotifications();
-        return;
-      }
-
-      if (action === "select-design") {
-        selectDesign(Number(target.dataset.design));
-        return;
-      }
-
-      const state = states[Number(target.dataset.runtime)];
-      if (!state) {
-        return;
-      }
-
-      switch (action) {
-        case "start-workout":
-          startWorkout(state);
-          break;
-        case "select-exercise":
-          selectExercise(state, Number(target.dataset.index));
-          break;
-        case "enter-result":
-          goToResultInput(state);
-          break;
-        case "restart":
-          restartSession(state);
-          break;
-        default:
-          break;
-      }
-    });
-
-    document.addEventListener("submit", (event) => {
-      const form = event.target;
-      if (!(form instanceof HTMLFormElement)) {
-        return;
-      }
-
-      if (form.dataset.action !== "submit-result") {
-        return;
-      }
-
-      event.preventDefault();
-      const state = states[Number(form.dataset.runtime)];
-      if (!state) {
-        return;
-      }
-
-      submitResult(state, form);
-    });
-
-    setInterval(() => {
-      states.forEach((state) => {
-        if (state.startedAt && !state.restTimerId) {
-          renderState(state);
-        }
-      });
-    }, 1000);
-
-    bootstrapLayout();
-    renderAllStates();
-  </script>
+	<main class="page">
+		<header class="header">
+			<h1>Design Exploration Navigator</h1>
+			<p>Neutral dark-mode index for quick handoff. Open any design set index, or jump straight into an individual design file.</p>
+			<div class="quick-links" aria-label="Primary navigation">
+				<a class="quick-link" href="./v1/designs_gpt/index.html">V1 GPT Index</a>
+				<a class="quick-link" href="./v1/designs_claude/index.html">V1 Claude Index</a>
+				<a class="quick-link" href="./v1/designs_gemini/index.html">V1 Gemini Index</a>
+				<a class="quick-link" href="./v2/designs%20gemini/index.html">V2 Gemini Index</a>
+			</div>
+		</header>
+
+		<section class="grid" aria-label="Design sets">
+			<article class="card">
+				<h2>V1 - GPT (10 designs)</h2>
+				<p class="meta">Path: v1/designs_gpt</p>
+				<div class="actions">
+					<a class="btn" href="./v1/designs_gpt/index.html">Open Set Index</a>
+				</div>
+				<ul class="list">
+					<li><a href="./v1/designs_gpt/design-01-mech-bay-calibration.html">01 - Mech Bay Calibration</a></li>
+					<li><a href="./v1/designs_gpt/design-02-rhythm-grid.html">02 - Rhythm Grid</a></li>
+					<li><a href="./v1/designs_gpt/design-03-topo-ascent.html">03 - Topo Ascent</a></li>
+					<li><a href="./v1/designs_gpt/design-04-reactor-room.html">04 - Reactor Room</a></li>
+					<li><a href="./v1/designs_gpt/design-05-drift-training.html">05 - Drift Training</a></li>
+					<li><a href="./v1/designs_gpt/design-06-quiet-command.html">06 - Quiet Command</a></li>
+					<li><a href="./v1/designs_gpt/design-07-signal-lane.html">07 - Signal Lane</a></li>
+					<li><a href="./v1/designs_gpt/design-08-night-vector.html">08 - Night Vector</a></li>
+					<li><a href="./v1/designs_gpt/design-09-core-discipline.html">09 - Core Discipline</a></li>
+					<li><a href="./v1/designs_gpt/design-10-minimal-frontier.html">10 - Minimal Frontier</a></li>
+				</ul>
+			</article>
+
+			<article class="card">
+				<h2>V1 - Claude (10 designs)</h2>
+				<p class="meta">Path: v1/designs_claude</p>
+				<div class="actions">
+					<a class="btn" href="./v1/designs_claude/index.html">Open Set Index</a>
+				</div>
+				<ul class="list">
+					<li><a href="./v1/designs_claude/design-01-brutalist-terminal.html">01 - Brutalist Terminal</a></li>
+					<li><a href="./v1/designs_claude/design-02-luxury-editorial.html">02 - Luxury Editorial</a></li>
+					<li><a href="./v1/designs_claude/design-03-industrial-blueprint.html">03 - Industrial Blueprint</a></li>
+					<li><a href="./v1/designs_claude/design-04-analog-cassette.html">04 - Analog Cassette</a></li>
+					<li><a href="./v1/designs_claude/design-05-swiss-modernist.html">05 - Swiss Modernist</a></li>
+					<li><a href="./v1/designs_claude/design-06-tactical-hud.html">06 - Tactical HUD</a></li>
+					<li><a href="./v1/designs_claude/design-07-neon-arcade.html">07 - Neon Arcade</a></li>
+					<li><a href="./v1/designs_claude/design-08-mission-control.html">08 - Mission Control</a></li>
+					<li><a href="./v1/designs_claude/design-09-stealth-protocol.html">09 - Stealth Protocol</a></li>
+					<li><a href="./v1/designs_claude/design-10-racing-telemetry.html">10 - Racing Telemetry</a></li>
+				</ul>
+			</article>
+
+			<article class="card">
+				<h2>V1 - Gemini (10 designs)</h2>
+				<p class="meta">Path: v1/designs_gemini</p>
+				<div class="actions">
+					<a class="btn" href="./v1/designs_gemini/index.html">Open Set Index</a>
+				</div>
+				<ul class="list">
+					<li><a href="./v1/designs_gemini/design-01-cyber-deck.html">01 - Cyber Deck</a></li>
+					<li><a href="./v1/designs_gemini/design-02-field-ops.html">02 - Field Ops</a></li>
+					<li><a href="./v1/designs_gemini/design-03-flight-hud.html">03 - Flight HUD</a></li>
+					<li><a href="./v1/designs_gemini/design-04-atelier.html">04 - Atelier</a></li>
+					<li><a href="./v1/designs_gemini/design-05-brutalist-raw.html">05 - Brutalist Raw</a></li>
+					<li><a href="./v1/designs_gemini/design-06-obsidian.html">06 - Obsidian</a></li>
+					<li><a href="./v1/designs_gemini/design-07-holo-field.html">07 - Holo Field</a></li>
+					<li><a href="./v1/designs_gemini/design-08-terminal-velocity.html">08 - Terminal Velocity</a></li>
+					<li><a href="./v1/designs_gemini/design-09-rune-stone.html">09 - Rune Stone</a></li>
+					<li><a href="./v1/designs_gemini/design-10-deep-dive.html">10 - Deep Dive</a></li>
+				</ul>
+			</article>
+
+			<article class="card">
+				<h2>V2 - Gemini (5 designs)</h2>
+				<p class="meta">Path: v2/designs gemini</p>
+				<div class="actions">
+					<a class="btn" href="./v2/designs%20gemini/index.html">Open Set Index</a>
+				</div>
+				<ul class="list">
+					<li><a href="./v2/designs%20gemini/design-01-blacksite-command.html">01 - Blacksite Command</a></li>
+					<li><a href="./v2/designs%20gemini/design-02-pitwall-protocol.html">02 - Pitwall Protocol</a></li>
+					<li><a href="./v2/designs%20gemini/design-03-expedition-rig.html">03 - Expedition Rig</a></li>
+					<li><a href="./v2/designs%20gemini/design-04-heist-ledger.html">04 - Heist Ledger</a></li>
+					<li><a href="./v2/designs%20gemini/design-05-orbit-protocol.html">05 - Orbit Protocol</a></li>
+				</ul>
+			</article>
+		</section>
+
+		<p class="footer">Tip: If you rename folders again, update only the links in this file to keep the handoff page accurate.</p>
+	</main>
 </body>
 </html>
