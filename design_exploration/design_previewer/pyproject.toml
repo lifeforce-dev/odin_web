@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "design-previewer"
+version = "0.1.0"
+description = "Portable design previewer manifest tools"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "pydantic>=2.7,<3",
+]
+
+[project.scripts]
+setup_previewer = "setup_previewer:main"
+
+[tool.setuptools]
+py-modules = ["previewer_manifest", "setup_previewer"]
