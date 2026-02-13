@@ -1,3 +1,24 @@
 /docs/mock/pwa-context-convo.txt
 /docs/mock/pwa-context-*.txt
 /design_exploration/design_previewer/manifest.json
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
