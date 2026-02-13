@@ -1,280 +1,364 @@
 <!doctype html>
 <html lang="en">
 <head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Design Exploration Navigator</title>
-	<style>
-		:root {
-			--bg: #0c0f14;
-			--panel: #141a22;
-			--panel-2: #1a2230;
-			--border: #2a3547;
-			--text: #e8edf6;
-			--text-dim: #a6b3c8;
-			--accent: #7eb4ff;
-			--accent-soft: #1e2f47;
-			--shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
-			--radius: 14px;
-		}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Odin Design Previewer</title>
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --panel: #141a22;
+      --panel-2: #1a2230;
+      --border: #2a3547;
+      --text: #e8edf6;
+      --text-dim: #a6b3c8;
+      --accent: #7eb4ff;
+      --accent-soft: #1e2f47;
+      --radius: 14px;
+    }
 
-		* {
-			box-sizing: border-box;
-		}
+    * { box-sizing: border-box; }
 
-		body {
-			margin: 0;
-			min-height: 100vh;
-			padding: 24px;
-			font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-			background: var(--bg);
-			color: var(--text);
-		}
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 14px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-		a {
-			color: inherit;
-		}
+    .layout {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 14px;
+      height: calc(100vh - 28px);
+    }
 
-		a:focus-visible,
-		button:focus-visible {
-			outline: 2px solid var(--accent);
-			outline-offset: 2px;
-		}
+    .sidebar,
+    .preview-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      overflow: hidden;
+    }
 
-		.page {
-			max-width: 1080px;
-			margin: 0 auto;
-			display: grid;
-			gap: 18px;
-		}
+    .sidebar {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      min-height: 0;
+    }
 
-		.header {
-			background: var(--panel);
-			border: 1px solid var(--border);
-			border-radius: var(--radius);
-			padding: 18px;
-			box-shadow: var(--shadow);
-		}
+    .head {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      gap: 6px;
+    }
 
-		.header h1 {
-			margin: 0 0 8px;
-			font-size: clamp(1.4rem, 2.1vw, 2rem);
-			letter-spacing: 0.01em;
-		}
+    .head h1 {
+      margin: 0;
+      font-size: 1rem;
+    }
 
-		.header p {
-			margin: 0;
-			color: var(--text-dim);
-			line-height: 1.5;
-		}
+    .head p {
+      margin: 0;
+      color: var(--text-dim);
+      font-size: 0.86rem;
+    }
 
-		.quick-links {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 10px;
-			margin-top: 14px;
-		}
+    .tabs {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
-		.quick-link {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			text-decoration: none;
-			border: 1px solid var(--border);
-			background: var(--panel-2);
-			color: var(--text);
-			padding: 10px 14px;
-			border-radius: 999px;
-			font-weight: 600;
-		}
+    .tab {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
 
-		.quick-link:hover {
-			border-color: var(--accent);
-			background: var(--accent-soft);
-		}
+    .tab.is-active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
 
-		.grid {
-			display: grid;
-			gap: 14px;
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			align-items: start;
-		}
+    .tree {
+      min-height: 0;
+      overflow: auto;
+      padding: 10px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
 
-		.card {
-			background: var(--panel);
-			border: 1px solid var(--border);
-			border-radius: var(--radius);
-			padding: 16px;
-			display: grid;
-			gap: 12px;
-			box-shadow: var(--shadow);
-		}
+    .group {
+      display: grid;
+      gap: 6px;
+    }
 
-		.card h2 {
-			margin: 0;
-			font-size: 1.05rem;
-		}
+    .group h2 {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 0 4px;
+    }
 
-		.card .meta {
-			margin: 0;
-			color: var(--text-dim);
-			font-size: 0.92rem;
-		}
+    .design-btn {
+      width: 100%;
+      text-align: left;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-dim);
+      padding: 8px;
+      cursor: pointer;
+      font: inherit;
+    }
 
-		.actions {
-			display: flex;
-			gap: 10px;
-			flex-wrap: wrap;
-		}
+    .design-btn:hover,
+    .design-btn.is-active {
+      color: var(--text);
+      border-color: var(--border);
+      background: rgba(255, 255, 255, 0.04);
+    }
 
-		.btn {
-			display: inline-flex;
-			align-items: center;
-			justify-content: center;
-			padding: 9px 13px;
-			border-radius: 10px;
-			text-decoration: none;
-			font-weight: 600;
-			border: 1px solid var(--border);
-			background: var(--panel-2);
-		}
+    .preview-wrap {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 0;
+    }
 
-		.btn:hover {
-			border-color: var(--accent);
-			background: var(--accent-soft);
-		}
+    .preview-head {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 0.88rem;
+      color: var(--text-dim);
+    }
 
-		.list {
-			margin: 0;
-			padding: 0;
-			list-style: none;
-			display: grid;
-			gap: 7px;
-		}
+    .preview-head strong {
+      color: var(--text);
+      font-size: 0.92rem;
+    }
 
-		.list a {
-			display: block;
-			padding: 8px 10px;
-			text-decoration: none;
-			border-radius: 8px;
-			border: 1px solid transparent;
-			color: var(--text-dim);
-		}
+    .open-link {
+      text-decoration: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: var(--panel-2);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-weight: 600;
+    }
 
-		.list a:hover {
-			color: var(--text);
-			border-color: var(--border);
-			background: rgba(255, 255, 255, 0.03);
-		}
+    .open-link:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
 
-		.footer {
-			color: var(--text-dim);
-			font-size: 0.88rem;
-			padding: 2px;
-		}
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #0b0f17;
+    }
 
-		@media (max-width: 920px) {
-			body {
-				padding: 14px;
-			}
-
-			.grid {
-				grid-template-columns: 1fr;
-			}
-		}
-	</style>
+    @media (max-width: 980px) {
+      body { padding: 10px; }
+      .layout {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: calc(100vh - 20px);
+      }
+      .sidebar {
+        max-height: 44vh;
+      }
+      .preview-wrap {
+        min-height: 52vh;
+      }
+    }
+  </style>
 </head>
 <body>
-	<main class="page">
-		<header class="header">
-			<h1>Design Exploration Navigator</h1>
-			<p>Neutral dark-mode index for quick handoff. Open any design set index, or jump straight into an individual design file.</p>
-			<div class="quick-links" aria-label="Primary navigation">
-				<a class="quick-link" href="./v1/designs_gpt/index.html">V1 GPT Index</a>
-				<a class="quick-link" href="./v1/designs_claude/index.html">V1 Claude Index</a>
-				<a class="quick-link" href="./v1/designs_gemini/index.html">V1 Gemini Index</a>
-				<a class="quick-link" href="./v2/designs%20gemini/index.html">V2 Gemini Index</a>
-			</div>
-		</header>
+  <main class="layout">
+    <aside class="sidebar" aria-label="Design navigation">
+      <section class="head">
+        <h1>Odin Design Previewer</h1>
+        <p>Sidebar stays fixed. Clicking designs only updates the preview panel.</p>
+      </section>
+      <nav id="tabs" class="tabs" aria-label="Version tabs"></nav>
+      <section id="tree" class="tree" aria-label="Design list"></section>
+    </aside>
 
-		<section class="grid" aria-label="Design sets">
-			<article class="card">
-				<h2>V1 - GPT (10 designs)</h2>
-				<p class="meta">Path: v1/designs_gpt</p>
-				<div class="actions">
-					<a class="btn" href="./v1/designs_gpt/index.html">Open Set Index</a>
-				</div>
-				<ul class="list">
-					<li><a href="./v1/designs_gpt/design-01-mech-bay-calibration.html">01 - Mech Bay Calibration</a></li>
-					<li><a href="./v1/designs_gpt/design-02-rhythm-grid.html">02 - Rhythm Grid</a></li>
-					<li><a href="./v1/designs_gpt/design-03-topo-ascent.html">03 - Topo Ascent</a></li>
-					<li><a href="./v1/designs_gpt/design-04-reactor-room.html">04 - Reactor Room</a></li>
-					<li><a href="./v1/designs_gpt/design-05-drift-training.html">05 - Drift Training</a></li>
-					<li><a href="./v1/designs_gpt/design-06-quiet-command.html">06 - Quiet Command</a></li>
-					<li><a href="./v1/designs_gpt/design-07-signal-lane.html">07 - Signal Lane</a></li>
-					<li><a href="./v1/designs_gpt/design-08-night-vector.html">08 - Night Vector</a></li>
-					<li><a href="./v1/designs_gpt/design-09-core-discipline.html">09 - Core Discipline</a></li>
-					<li><a href="./v1/designs_gpt/design-10-minimal-frontier.html">10 - Minimal Frontier</a></li>
-				</ul>
-			</article>
+    <section class="preview-wrap">
+      <header class="preview-head">
+        <div>
+          <div><strong id="activeTitle">Select a design</strong></div>
+          <div id="activePath">-</div>
+        </div>
+        <a id="openDirect" class="open-link" href="#">Open directly</a>
+      </header>
+      <iframe id="preview" title="Design preview panel" loading="eager"></iframe>
+    </section>
+  </main>
 
-			<article class="card">
-				<h2>V1 - Claude (10 designs)</h2>
-				<p class="meta">Path: v1/designs_claude</p>
-				<div class="actions">
-					<a class="btn" href="./v1/designs_claude/index.html">Open Set Index</a>
-				</div>
-				<ul class="list">
-					<li><a href="./v1/designs_claude/design-01-brutalist-terminal.html">01 - Brutalist Terminal</a></li>
-					<li><a href="./v1/designs_claude/design-02-luxury-editorial.html">02 - Luxury Editorial</a></li>
-					<li><a href="./v1/designs_claude/design-03-industrial-blueprint.html">03 - Industrial Blueprint</a></li>
-					<li><a href="./v1/designs_claude/design-04-analog-cassette.html">04 - Analog Cassette</a></li>
-					<li><a href="./v1/designs_claude/design-05-swiss-modernist.html">05 - Swiss Modernist</a></li>
-					<li><a href="./v1/designs_claude/design-06-tactical-hud.html">06 - Tactical HUD</a></li>
-					<li><a href="./v1/designs_claude/design-07-neon-arcade.html">07 - Neon Arcade</a></li>
-					<li><a href="./v1/designs_claude/design-08-mission-control.html">08 - Mission Control</a></li>
-					<li><a href="./v1/designs_claude/design-09-stealth-protocol.html">09 - Stealth Protocol</a></li>
-					<li><a href="./v1/designs_claude/design-10-racing-telemetry.html">10 - Racing Telemetry</a></li>
-				</ul>
-			</article>
+  <script>
+    const DATA = [
+      {
+        key: "v1",
+        label: "V1",
+        groups: [
+          {
+            label: "GPT",
+            items: [
+              ["01 - Mech Bay Calibration", "./v1/designs_gpt/design-01-mech-bay-calibration.html"],
+              ["02 - Rhythm Grid", "./v1/designs_gpt/design-02-rhythm-grid.html"],
+              ["03 - Topo Ascent", "./v1/designs_gpt/design-03-topo-ascent.html"],
+              ["04 - Reactor Room", "./v1/designs_gpt/design-04-reactor-room.html"],
+              ["05 - Drift Training", "./v1/designs_gpt/design-05-drift-training.html"],
+              ["06 - Quiet Command", "./v1/designs_gpt/design-06-quiet-command.html"],
+              ["07 - Signal Lane", "./v1/designs_gpt/design-07-signal-lane.html"],
+              ["08 - Night Vector", "./v1/designs_gpt/design-08-night-vector.html"],
+              ["09 - Core Discipline", "./v1/designs_gpt/design-09-core-discipline.html"],
+              ["10 - Minimal Frontier", "./v1/designs_gpt/design-10-minimal-frontier.html"]
+            ]
+          },
+          {
+            label: "Claude",
+            items: [
+              ["01 - Brutalist Terminal", "./v1/designs_claude/design-01-brutalist-terminal.html"],
+              ["02 - Luxury Editorial", "./v1/designs_claude/design-02-luxury-editorial.html"],
+              ["03 - Industrial Blueprint", "./v1/designs_claude/design-03-industrial-blueprint.html"],
+              ["04 - Analog Cassette", "./v1/designs_claude/design-04-analog-cassette.html"],
+              ["05 - Swiss Modernist", "./v1/designs_claude/design-05-swiss-modernist.html"],
+              ["06 - Tactical HUD", "./v1/designs_claude/design-06-tactical-hud.html"],
+              ["07 - Neon Arcade", "./v1/designs_claude/design-07-neon-arcade.html"],
+              ["08 - Mission Control", "./v1/designs_claude/design-08-mission-control.html"],
+              ["09 - Stealth Protocol", "./v1/designs_claude/design-09-stealth-protocol.html"],
+              ["10 - Racing Telemetry", "./v1/designs_claude/design-10-racing-telemetry.html"]
+            ]
+          },
+          {
+            label: "Gemini",
+            items: [
+              ["01 - Cyber Deck", "./v1/designs_gemini/design-01-cyber-deck.html"],
+              ["02 - Field Ops", "./v1/designs_gemini/design-02-field-ops.html"],
+              ["03 - Flight HUD", "./v1/designs_gemini/design-03-flight-hud.html"],
+              ["04 - Atelier", "./v1/designs_gemini/design-04-atelier.html"],
+              ["05 - Brutalist Raw", "./v1/designs_gemini/design-05-brutalist-raw.html"],
+              ["06 - Obsidian", "./v1/designs_gemini/design-06-obsidian.html"],
+              ["07 - Holo Field", "./v1/designs_gemini/design-07-holo-field.html"],
+              ["08 - Terminal Velocity", "./v1/designs_gemini/design-08-terminal-velocity.html"],
+              ["09 - Rune Stone", "./v1/designs_gemini/design-09-rune-stone.html"],
+              ["10 - Deep Dive", "./v1/designs_gemini/design-10-deep-dive.html"]
+            ]
+          }
+        ]
+      },
+      {
+        key: "v2",
+        label: "V2",
+        groups: [
+          {
+            label: "Gemini",
+            items: [
+              ["01 - Blacksite Command", "./v2/designs%20gemini/design-01-blacksite-command.html"],
+              ["02 - Pitwall Protocol", "./v2/designs%20gemini/design-02-pitwall-protocol.html"],
+              ["03 - Expedition Rig", "./v2/designs%20gemini/design-03-expedition-rig.html"],
+              ["04 - Heist Ledger", "./v2/designs%20gemini/design-04-heist-ledger.html"],
+              ["05 - Orbit Protocol", "./v2/designs%20gemini/design-05-orbit-protocol.html"]
+            ]
+          }
+        ]
+      }
+    ];
 
-			<article class="card">
-				<h2>V1 - Gemini (10 designs)</h2>
-				<p class="meta">Path: v1/designs_gemini</p>
-				<div class="actions">
-					<a class="btn" href="./v1/designs_gemini/index.html">Open Set Index</a>
-				</div>
-				<ul class="list">
-					<li><a href="./v1/designs_gemini/design-01-cyber-deck.html">01 - Cyber Deck</a></li>
-					<li><a href="./v1/designs_gemini/design-02-field-ops.html">02 - Field Ops</a></li>
-					<li><a href="./v1/designs_gemini/design-03-flight-hud.html">03 - Flight HUD</a></li>
-					<li><a href="./v1/designs_gemini/design-04-atelier.html">04 - Atelier</a></li>
-					<li><a href="./v1/designs_gemini/design-05-brutalist-raw.html">05 - Brutalist Raw</a></li>
-					<li><a href="./v1/designs_gemini/design-06-obsidian.html">06 - Obsidian</a></li>
-					<li><a href="./v1/designs_gemini/design-07-holo-field.html">07 - Holo Field</a></li>
-					<li><a href="./v1/designs_gemini/design-08-terminal-velocity.html">08 - Terminal Velocity</a></li>
-					<li><a href="./v1/designs_gemini/design-09-rune-stone.html">09 - Rune Stone</a></li>
-					<li><a href="./v1/designs_gemini/design-10-deep-dive.html">10 - Deep Dive</a></li>
-				</ul>
-			</article>
+    const tabsEl = document.getElementById("tabs");
+    const treeEl = document.getElementById("tree");
+    const previewEl = document.getElementById("preview");
+    const activeTitleEl = document.getElementById("activeTitle");
+    const activePathEl = document.getElementById("activePath");
+    const openDirectEl = document.getElementById("openDirect");
 
-			<article class="card">
-				<h2>V2 - Gemini (5 designs)</h2>
-				<p class="meta">Path: v2/designs gemini</p>
-				<div class="actions">
-					<a class="btn" href="./v2/designs%20gemini/index.html">Open Set Index</a>
-				</div>
-				<ul class="list">
-					<li><a href="./v2/designs%20gemini/design-01-blacksite-command.html">01 - Blacksite Command</a></li>
-					<li><a href="./v2/designs%20gemini/design-02-pitwall-protocol.html">02 - Pitwall Protocol</a></li>
-					<li><a href="./v2/designs%20gemini/design-03-expedition-rig.html">03 - Expedition Rig</a></li>
-					<li><a href="./v2/designs%20gemini/design-04-heist-ledger.html">04 - Heist Ledger</a></li>
-					<li><a href="./v2/designs%20gemini/design-05-orbit-protocol.html">05 - Orbit Protocol</a></li>
-				</ul>
-			</article>
-		</section>
+    let activeTab = DATA[0].key;
+    let activePath = DATA[0].groups[0].items[0][1];
 
-		<p class="footer">Tip: If you rename folders again, update only the links in this file to keep the handoff page accurate.</p>
-	</main>
+    function setPreview(title, path) {
+      activePath = path;
+      activeTitleEl.textContent = title;
+      activePathEl.textContent = path;
+      openDirectEl.href = path;
+      previewEl.src = path;
+      renderTree();
+    }
+
+    function renderTabs() {
+      tabsEl.innerHTML = DATA.map((tab) => {
+        const activeClass = tab.key === activeTab ? "is-active" : "";
+        return `<button class="tab ${activeClass}" type="button" data-tab="${tab.key}">${tab.label}</button>`;
+      }).join("");
+    }
+
+    function renderTree() {
+      const tab = DATA.find((entry) => entry.key === activeTab);
+      if (!tab) {
+        treeEl.innerHTML = "";
+        return;
+      }
+
+      treeEl.innerHTML = tab.groups.map((group) => {
+        const itemHtml = group.items.map(([title, path]) => {
+          const activeClass = path === activePath ? "is-active" : "";
+          return `<button class="design-btn ${activeClass}" type="button" data-title="${title}" data-path="${path}">${title}</button>`;
+        }).join("");
+
+        return `<section class="group"><h2>${group.label}</h2>${itemHtml}</section>`;
+      }).join("");
+    }
+
+    tabsEl.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-tab]");
+      if (!button) {
+        return;
+      }
+
+      activeTab = button.dataset.tab;
+      const tab = DATA.find((entry) => entry.key === activeTab);
+      const first = tab && tab.groups[0] && tab.groups[0].items[0];
+      if (first) {
+        setPreview(first[0], first[1]);
+      }
+      renderTabs();
+    });
+
+    treeEl.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-path]");
+      if (!button) {
+        return;
+      }
+
+      setPreview(button.dataset.title || "Design", button.dataset.path);
+    });
+
+    renderTabs();
+    renderTree();
+    setPreview("01 - Mech Bay Calibration", "./v1/designs_gpt/design-01-mech-bay-calibration.html");
+  </script>
 </body>
 </html>

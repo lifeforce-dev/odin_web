@@ -1,131 +1,62 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Odin Design Exploration</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #111;
-            color: #eee;
-            margin: 0;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h1 {
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 40px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
-        }
-        .card {
-            background: #222;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 20px;
-            text-decoration: none;
-            color: inherit;
-            transition: 0.2s;
-            display: flex;
-            flex-direction: column;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-            background: #2a2a2a;
-            border-color: #555;
-        }
-        .title {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .desc {
-            font-size: 0.9rem;
-            color: #aaa;
-            line-height: 1.4;
-        }
-        .tag {
-            display: inline-block;
-            padding: 4px 8px;
-            background: #333;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            margin-top: auto;
-            align-self: flex-start;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Odin V1 Gemini Designs</title>
+  <style>
+    :root { --bg:#0c0f14; --panel:#141a22; --border:#2a3547; --text:#e8edf6; --text-dim:#a6b3c8; --radius:14px; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--text); font-family:Inter,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; padding:16px; }
+    .layout { max-width:1240px; margin:0 auto; display:grid; grid-template-columns:280px minmax(0,1fr); gap:14px; align-items:start; }
+    .sidebar,.content { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); }
+    .sidebar { position:sticky; top:16px; padding:14px; display:grid; gap:12px; max-height:calc(100vh - 32px); overflow:auto; }
+    .sidebar h1 { margin:0; font-size:1.05rem; }
+    .sidebar p { margin:0; color:var(--text-dim); font-size:.9rem; }
+    .nav-group { display:grid; gap:8px; }
+    .nav-group strong { font-size:.85rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; }
+    .nav-link { text-decoration:none; color:var(--text-dim); border:1px solid transparent; border-radius:8px; padding:7px 8px; display:block; }
+    .nav-link:hover,.nav-link.is-active { color:var(--text); border-color:var(--border); background:rgba(255,255,255,.03); }
+    .content { padding:16px; display:grid; gap:12px; }
+    .content h2 { margin:0; }
+    .intro { margin:0; color:var(--text-dim); }
+    .list { margin:0; padding:0; list-style:none; display:grid; gap:7px; }
+    .list a { text-decoration:none; color:var(--text-dim); border:1px solid transparent; border-radius:8px; display:block; padding:7px 8px; }
+    .list a:hover { color:var(--text); border-color:var(--border); background:rgba(255,255,255,.03); }
+    @media (max-width:980px){ .layout{ grid-template-columns:1fr; } .sidebar{ position:static; max-height:none; } }
+  </style>
 </head>
 <body>
-    <h1>Odin Workout Design Prototypes</h1>
-    <div class="grid">
-        <a href="design-01-cyber-deck.html" class="card">
-            <div class="title">01 // Cyber Deck</div>
-            <div class="desc">High contrast, monospace, neon accents, glitch effects. Inspired by Cyberpunk terminals.</div>
-            <div class="tag" style="color: #00ff9d; margin-top: 15px;">Deck UI</div>
-        </a>
+  <main class="layout">
+    <aside class="sidebar">
+      <h1>Odin Design Nav</h1>
+      <p>Persistent set navigation.</p>
+      <nav class="nav-group">
+        <strong>Sections</strong>
+        <a class="nav-link" href="../../index.html">Explorer Home</a>
+        <a class="nav-link" href="../designs_gpt/index.html">V1 GPT</a>
+        <a class="nav-link" href="../designs_claude/index.html">V1 Claude</a>
+        <a class="nav-link is-active" href="./index.html">V1 Gemini</a>
+        <a class="nav-link" href="../../v2/designs%20gemini/index.html">V2 Gemini</a>
+      </nav>
+    </aside>
 
-        <a href="design-02-field-ops.html" class="card">
-            <div class="title">02 // Field Ops</div>
-            <div class="desc">Muted greens, stencil fonts, rigid grids, utilitarian durability. Inspired by Metal Gear Solid / The Division.</div>
-            <div class="tag" style="color: #e6b800; margin-top: 15px;">Tactical</div>
-        </a>
-
-        <a href="design-03-flight-hud.html" class="card">
-            <div class="title">03 // Flight HUD</div>
-            <div class="desc">Deep blue/black space, fine lines, circles, telemetry data. Inspired by space sims.</div>
-            <div class="tag" style="color: #00d9ff; margin-top: 15px;">Sci-Fi HUD</div>
-        </a>
-
-        <a href="design-04-atelier.html" class="card">
-            <div class="title">04 // Atelier</div>
-            <div class="desc">Minimalist, luxury fashion editorial, serif fonts, lots of whitespace. Inspired by high-end catalogues.</div>
-            <div class="tag" style="color: #b08d55; margin-top: 15px;">Luxury</div>
-        </a>
-
-        <a href="design-05-brutalist-raw.html" class="card">
-            <div class="title">05 // Raw Concrete</div>
-            <div class="desc">Stark black & white, massive typography, brutalist geometry, aggressive layout.</div>
-            <div class="tag" style="color: #fff; background: #000; border: 1px solid #fff; margin-top: 15px;">Brutalist</div>
-        </a>
-
-        <a href="design-06-obsidian.html" class="card">
-            <div class="title">06 // Obsidian Slate</div>
-            <div class="desc">Pure dark mode utility. Rounded corners, soft grays, zero distractions. Focus on readability.</div>
-            <div class="tag" style="color: #ccc; margin-top: 15px;">Minimal Dark</div>
-        </a>
-
-        <a href="design-07-holo-field.html" class="card">
-            <div class="title">07 // Holographic Field</div>
-            <div class="desc">Dark cyan/black terminal. High contrast, scanlines, data density without clutter.</div>
-            <div class="tag" style="color: #0ff; margin-top: 15px;">Terminal</div>
-        </a>
-
-        <a href="design-08-terminal-velocity.html" class="card">
-            <div class="title">08 // Terminal Velocity</div>
-            <div class="desc">Racing inspired. Asphalt darks, high-vis ember orange. Italicized speed.</div>
-            <div class="tag" style="color: #ff5500; margin-top: 15px;">Automotive</div>
-        </a>
-
-        <a href="design-09-rune-stone.html" class="card">
-            <div class="title">09 // Rune Stone</div>
-            <div class="desc">Fantasy UI. Stone textures, gold engravings, serif fonts. Weighty and permanent.</div>
-            <div class="tag" style="color: #c5a059; margin-top: 15px;">Fantasy</div>
-        </a>
-
-        <a href="design-10-deep-dive.html" class="card">
-            <div class="title">10 // Deep Dive</div>
-            <div class="desc">Abyssal submarine interface. Sonar green/teal on deep black. Circular HUD elements.</div>
-            <div class="tag" style="color: #00ffcc; margin-top: 15px;">Nautical</div>
-        </a>
-    </div>
+    <section class="content">
+      <h2>V1 Gemini Designs</h2>
+      <p class="intro">10 designs. Use the sidebar to switch sets anytime.</p>
+      <ul class="list">
+        <li><a href="./design-01-cyber-deck.html">01 - Cyber Deck</a></li>
+        <li><a href="./design-02-field-ops.html">02 - Field Ops</a></li>
+        <li><a href="./design-03-flight-hud.html">03 - Flight HUD</a></li>
+        <li><a href="./design-04-atelier.html">04 - Atelier</a></li>
+        <li><a href="./design-05-brutalist-raw.html">05 - Brutalist Raw</a></li>
+        <li><a href="./design-06-obsidian.html">06 - Obsidian</a></li>
+        <li><a href="./design-07-holo-field.html">07 - Holo Field</a></li>
+        <li><a href="./design-08-terminal-velocity.html">08 - Terminal Velocity</a></li>
+        <li><a href="./design-09-rune-stone.html">09 - Rune Stone</a></li>
+        <li><a href="./design-10-deep-dive.html">10 - Deep Dive</a></li>
+      </ul>
+    </section>
+  </main>
 </body>
 </html>
