@@ -165,7 +165,7 @@ def ensure_runtime_environment(previewer_dir: Path) -> None:
     env["VIRTUAL_ENV"] = str(previewer_dir / ".venv")
     env["PATH"] = str(venv_scripts_dir) + os.pathsep + env.get("PATH", "")
 
-    command = ["python", "-m", "pip", "install", "--quiet", "-e", str(previewer_dir)]
+    command = ["python", "-m", "pip", "install", "-e", str(previewer_dir)]
     result = subprocess.run(command, check=False, env=env)
     if result.returncode != 0:
         raise RuntimeError("Failed to install design_previewer runtime from pyproject.toml.")
