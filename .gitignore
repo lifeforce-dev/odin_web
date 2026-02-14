@@ -1,6 +1,8 @@
 /docs/mock/pwa-context-convo.txt
 /docs/mock/pwa-context-*.txt
+/design_exploration/design_previewer/
 /design_exploration/design_previewer/manifest.json
+/design_exploration/design_previewer/.previewer_runtime/
 
 # Python caches and bytecode
 __pycache__/
