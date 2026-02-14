@@ -137,18 +137,51 @@ def ensure_previewer_checkout(script_dir: Path, repo: str, tag: str) -> Path:
     return target_dir
 
 
-def run_core_setup(script_dir: Path, previewer_dir: Path, forwarded_args: list[str]) -> int:
-    command = [
-        sys.executable,
-        str(previewer_dir / "setup_previewer.py"),
-        "--root",
-        str(script_dir),
-        "--manifest",
-        str(previewer_dir / "manifest.json"),
-        *forwarded_args,
-    ]
-    result = subprocess.run(command, check=False)
-    return result.returncode
+def get_venv_python(previewer_dir: Path) -> Path:
+    if os.name == "nt":
+        return previewer_dir / ".venv" / "Scripts" / "python.exe"
+
+    return previewer_dir / ".venv" / "bin" / "python"
+
+
+def get_venv_scripts_dir(previewer_dir: Path) -> Path:
+    if os.name == "nt":
+        return previewer_dir / ".venv" / "Scripts"
+
+    return previewer_dir / ".venv" / "bin"
+
+
+def ensure_runtime_environment(previewer_dir: Path) -> None:
+    venv_python = get_venv_python(previewer_dir)
+
+    if not venv_python.exists():
+        create_venv = [sys.executable, "-m", "venv", str(previewer_dir / ".venv")]
+        create_result = subprocess.run(create_venv, check=False)
+        if create_result.returncode != 0:
+            raise RuntimeError("Failed to create runtime venv for design_previewer.")
+
+    venv_scripts_dir = get_venv_scripts_dir(previewer_dir)
+    env = os.environ.copy()
+    env["VIRTUAL_ENV"] = str(previewer_dir / ".venv")
+    env["PATH"] = str(venv_scripts_dir) + os.pathsep + env.get("PATH", "")
+
+    command = ["python", "-m", "pip", "install", "--quiet", "-e", str(previewer_dir)]
+    result = subprocess.run(command, check=False, env=env)
+    if result.returncode != 0:
+        raise RuntimeError("Failed to install design_previewer runtime from pyproject.toml.")
+
+
+def print_next_step(script_dir: Path, previewer_dir: Path) -> None:
+    print()
+    print("Fetch complete. Run these 3 commands:")
+    print()
+    print(f'  1.  cd "{script_dir}"')
+    if os.name == "nt":
+        print("  2.  & .\\design_previewer\\.venv\\Scripts\\Activate.ps1")
+        print("  3.  py design_previewer/setup_previewer.py --serve --open")
+    else:
+        print("  2.  source ./design_previewer/.venv/bin/activate")
+        print("  3.  python3 design_previewer/setup_previewer.py --serve --open")
 
 
 def main() -> int:
@@ -163,7 +196,7 @@ def main() -> int:
         default=os.environ.get("DESIGN_PREVIEWER_TAG", ""),
         help="Optional explicit tag. If omitted, latest dev-* tag is used.",
     )
-    args, forwarded_args = parser.parse_known_args()
+    args = parser.parse_args()
 
     repo = args.previewer_repo.strip() or DEFAULT_PREVIEWER_REPO
 
@@ -173,7 +206,10 @@ def main() -> int:
     previewer_dir = ensure_previewer_checkout(script_dir, repo, tag)
     print(f"Using design_previewer: {repo}@{tag} -> {previewer_dir}")
 
-    return run_core_setup(script_dir, previewer_dir, forwarded_args)
+    ensure_runtime_environment(previewer_dir)
+
+    print_next_step(script_dir, previewer_dir)
+    return 0
 
 
 if __name__ == "__main__":
