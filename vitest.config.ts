@@ -3,27 +3,28 @@ import { fileURLToPath, URL } from 'node:url';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
 
-// Two projects, deliberately split (epic 01 Task 1): domain/ and db/ run in
-// plain Node with zero Vue in the module graph, proving the logic layers never
-// depend on the UI stack. Component/composable/store tests get jsdom + the Vue
-// plugin.
+const alias = { '@': fileURLToPath(new URL('./src', import.meta.url)) };
+
+// Two projects, deliberately split (epic 01 Task 1): domain/, db/, and native/
+// run in plain Node with zero Vue in the module graph, proving the logic
+// layers never depend on the UI stack. Components/composables/stores/views/
+// router get jsdom + the Vue plugin. Both projects need the same `@` alias -
+// it's not inherited from vite.config.ts (vitest.config.ts fully replaces it
+// when present, it doesn't merge).
 export default defineConfig({
   test: {
     projects: [
       {
+        resolve: { alias },
         test: {
           name: 'node',
           environment: 'node',
-          include: ['src/domain/**/*.test.ts', 'src/db/**/*.test.ts'],
+          include: ['src/domain/**/*.test.ts', 'src/db/**/*.test.ts', 'src/native/**/*.test.ts'],
         },
       },
       {
         plugins: [vue()],
-        resolve: {
-          alias: {
-            '@': fileURLToPath(new URL('./src', import.meta.url)),
-          },
-        },
+        resolve: { alias },
         test: {
           name: 'components',
           environment: 'jsdom',
@@ -31,6 +32,8 @@ export default defineConfig({
             'src/components/**/*.test.ts',
             'src/composables/**/*.test.ts',
             'src/stores/**/*.test.ts',
+            'src/views/**/*.test.ts',
+            'src/router/**/*.test.ts',
           ],
         },
       },

@@ -69,9 +69,10 @@ export default withVueTs(
     },
   },
   {
-    // Bridge isolation backstop: dependency-cruiser enforces this for .ts
-    // files but does not parse .vue SFCs, so ESLint covers components too.
-    // Scoped to src/ so root config files (capacitor.config.ts) stay legal.
+    // Bridge isolation, second enforcer: dependency-cruiser (.dependency-cruiser.json)
+    // already catches this, including inside .vue SFCs. This one exists for
+    // failure distance, not coverage - it fires at editor/save time, before
+    // depcruise ever runs. Scoped to src/ so capacitor.config.ts stays legal.
     name: 'odin/bridge-isolation',
     files: ['src/**'],
     rules: {

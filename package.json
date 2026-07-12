@@ -3,13 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --build && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "vue-tsc --noEmit",
+    "typecheck": "vue-tsc --build",
     "lint": "eslint . && depcruise --config .dependency-cruiser.json src",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write src",
@@ -50,11 +53,16 @@
     "vue-tsc": "3.3.7"
   },
   "lint-staged": {
-    "*.{ts,vue}": [
+    "*.ts": [
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{css,vue}": [
+    "*.vue": [
+      "eslint --fix",
+      "prettier --write",
+      "stylelint --fix"
+    ],
+    "*.css": [
       "stylelint --fix"
     ]
   }
