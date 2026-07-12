@@ -1,0 +1,23 @@
+{
+  "forbidden": [
+    {
+      "name": "domain-db-pure",
+      "severity": "error",
+      "comment": "domain/ and db/ are plain TS with no UI dependencies. This is what keeps them runnable in Node (vitest, better-sqlite3) with zero mocking.",
+      "from": { "path": "^src/(domain|db)" },
+      "to": { "path": "^(node_modules/@?vue|src/components|src/composables|src/stores)" }
+    },
+    {
+      "name": "only-native-touches-capacitor",
+      "severity": "error",
+      "comment": "Bridge isolation (capacitor-builder): only src/native/ may import @capacitor/*. Everything else consumes the plain-TS adapters it exports.",
+      "from": { "path": "^src", "pathNot": "^src/native" },
+      "to": { "path": "^node_modules/@capacitor" }
+    }
+  ],
+  "options": {
+    "doNotFollow": { "path": "node_modules" },
+    "tsConfig": { "fileName": "tsconfig.json" },
+    "tsPreCompilationDeps": true
+  }
+}

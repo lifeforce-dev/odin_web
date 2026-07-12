@@ -1,0 +1,12 @@
+node_modules/
+dist/
+android/
+ios/
+design_reference/
+design_exploration/
+character_designs/
+new_designs/
+copilot/
+docs/
+.github/
+package-lock.json
