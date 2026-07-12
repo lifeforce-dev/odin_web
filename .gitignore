@@ -1,8 +1,19 @@
 /docs/mock/pwa-context-convo.txt
 /docs/mock/pwa-context-*.txt
-/design_exploration/design_previewer/
-/design_exploration/design_previewer/manifest.json
-/design_exploration/design_previewer/.previewer_runtime/
+
+# Feature-builder working notes (not tracked)
+copilot/features/
+
+# Design references and explorations are working material, not shipped
+# product code; they stay local to whoever is iterating on them.
+/design_reference/
+/design_exploration/
+/character_designs/
+/new_designs/
+
+# Personal AI-agent tooling ports (Codex/Copilot prompt mirrors of the
+# ~/.claude skills); local scratch config, not shipped product code.
+/.github/prompts/
 
 # Python caches and bytecode
 __pycache__/
@@ -24,3 +35,27 @@ pip-wheel-metadata/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# Node
+node_modules/
+coverage/
+*.tsbuildinfo
+.vite/
+npm-debug.log*
+
+# Secrets, never committed
+.env
+.env.local
+.env.*.local
+
+# Capacitor native build output (Task 2+). android/ and ios/ PROJECT FILES are
+# committed once `cap add` runs; only generated build output is excluded
+# (capacitor-builder skill's Sync and Build Workflow section).
+android/app/build/
+android/.gradle/
+android/local.properties
+ios/App/Pods/
+ios/App/build/
+**/DerivedData/
+xcuserdata/
+*.xcuserstate
