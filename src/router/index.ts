@@ -9,8 +9,8 @@ const router = createRouter({
       component: () => import('@/views/HomeView.vue'),
     },
     {
-      // Placeholder route; the component gallery + token board land in the
-      // theming task (epic 01 Task 5).
+      // The living token board + component gallery with a theme dropdown;
+      // grows as components land (see src/styles/contract.ts).
       path: '/gallery',
       name: 'gallery',
       component: () => import('@/views/GalleryView.vue'),
