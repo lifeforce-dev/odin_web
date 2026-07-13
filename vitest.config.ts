@@ -24,7 +24,14 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['src/domain/**/*.test.ts', 'src/db/**/*.test.ts', 'src/native/**/*.test.ts'],
+          include: [
+            'src/domain/**/*.test.ts',
+            'src/db/**/*.test.ts',
+            'src/native/**/*.test.ts',
+            // Theme-contract validation reads css files from disk; no DOM
+            // involved. npm run check:themes targets this same file.
+            'src/styles/**/*.test.ts',
+          ],
         },
       },
       {

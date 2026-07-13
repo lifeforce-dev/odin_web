@@ -1,0 +1,19 @@
+/*
+  App-wide element wiring. References semantic tokens only; the values
+  come from whichever theme is active on <html data-theme>.
+*/
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--type-body);
+  -webkit-font-smoothing: antialiased;
+}

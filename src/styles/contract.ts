@@ -1,0 +1,74 @@
+// The theme contract (architecture.md, theming section). Every file in
+// styles/themes/ must define exactly these custom properties, all scoped
+// under its own [data-theme] selector: no missing, no extra, no leaks.
+// Enforced by npm run check:themes (src/styles/contract.test.ts).
+//
+// The contract is grouped by kind so consumers can render a whole group:
+// the gallery's color board renders CONTRACT_COLOR_TOKENS. The sensory
+// groups (fonts, textures, glows) each need a bespoke presentation, so
+// the gallery samples those individually.
+
+export const THEMES = ['odin-dark'] as const;
+
+export type ThemeName = (typeof THEMES)[number];
+
+export const DEFAULT_THEME: ThemeName = 'odin-dark';
+
+export function isThemeName(value: string): value is ThemeName {
+  return (THEMES as readonly string[]).includes(value);
+}
+
+// Tier-1 primitives carry this prefix and never appear in the contract.
+export const PRIMITIVE_PREFIX = '--raw-';
+
+// Color roles (STYLEGUIDE.md section 3).
+export const CONTRACT_COLOR_TOKENS: readonly string[] = [
+  '--bg',
+  '--surface',
+  '--surface-raise',
+  '--border',
+  '--border-strong',
+  '--text',
+  '--text-soft',
+  '--text-dim',
+  '--accent',
+  '--accent-deep',
+  '--accent-soft',
+  '--accent-glow',
+  '--lock',
+  '--warning',
+];
+
+// Type families (sizes are geometry and live in structure.css).
+export const CONTRACT_FONT_TOKENS: readonly string[] = ['--font-display', '--font-mono'];
+
+// Sensory layer: a skin is a vibe, not just a palette.
+export const CONTRACT_TEXTURE_TOKENS: readonly string[] = [
+  '--texture-grain',
+  '--texture-grain-size',
+  '--texture-scanline',
+];
+
+export const CONTRACT_GLOW_TOKENS: readonly string[] = ['--glow-cta', '--glow-display-accent'];
+
+// Derived from the groups above, so a token added to a group is part of
+// the check automatically and the groups can never drift from the whole.
+export const THEME_CONTRACT: readonly string[] = [
+  ...CONTRACT_COLOR_TOKENS,
+  ...CONTRACT_FONT_TOKENS,
+  ...CONTRACT_TEXTURE_TOKENS,
+  ...CONTRACT_GLOW_TOKENS,
+];
+
+export interface ContractDiff {
+  missing: string[];
+  extra: string[];
+}
+
+export function diffAgainstContract(definedProperties: string[]): ContractDiff {
+  const tier2 = definedProperties.filter((name) => !name.startsWith(PRIMITIVE_PREFIX));
+  return {
+    missing: THEME_CONTRACT.filter((token) => !tier2.includes(token)),
+    extra: tier2.filter((token) => !THEME_CONTRACT.includes(token)),
+  };
+}

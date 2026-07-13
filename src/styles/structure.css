@@ -1,0 +1,56 @@
+/*
+  Geometry law (STYLEGUIDE.md section 10). NOT themable: no theme may
+  redefine anything in this file, and the contract check fails if it
+  declares a theme token. Spacing is static integer px on the 8px rhythm,
+  never fluid or viewport-scaled; clamp() is legal only in the display
+  type tier below and in screen-level layout knobs.
+*/
+
+:root {
+  /* Spacing scale: --space-N = N x 4px. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Border weights. Hairlines do not scale with screens. */
+  --hairline: 1px;
+  --rule: 2px;
+  --stamp: 3px;
+
+  /* Ergonomic floor for anything tappable. Fingers do not scale either. */
+  --tap-min: 48px;
+
+  /* Type, mono/UI tier (JetBrains Mono): fixed px. Small mono type needs
+     integer rendering; extend this ramp deliberately when a design ref
+     uses a size with no matching token. */
+  --type-micro: 10px;
+  --type-label: 11px;
+  --type-body: 12px;
+  --type-data: 14px;
+  --type-data-lg: 16px;
+  --type-data-xl: 18px;
+
+  /* Type, display tier (Bebas Neue heroes): the only fluid type. Sizes
+     are large enough that fractional px are invisible, and 320 vs 430
+     genuinely matters here. */
+  --type-display-title: clamp(40px, 12vw, 46px);
+  --type-display-wordmark: clamp(56px, 16vw, 64px);
+  --type-display-hero: clamp(96px, 30vw, 120px);
+
+  /* Safe areas: indirection tokens consumed only by AppShell. If the
+     Android WebView needs JS-injected inset values, only these four
+     definitions change. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Z-layers. The scanline overlay sits above everything and ignores
+     pointer events (STYLEGUIDE.md section 2). */
+  --z-docked: 10;
+  --z-scanline: 9999;
+}

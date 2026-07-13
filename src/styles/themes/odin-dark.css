@@ -1,0 +1,63 @@
+/*
+  Theme: odin-dark. The default Redline HUD skin, derived from
+  design_reference/STYLEGUIDE.md sections 2-4.
+
+  Two tiers (architecture.md): tier 1 raw primitives (--raw-*), the only
+  place raw color and texture literals may live; tier 2 the semantic
+  contract, fully answered. Components consume tier 2 only and know
+  nothing of this file. npm run check:themes fails this file on any
+  missing or extra tier-2 token, so contract.ts and this file move in
+  the same change. Geometry lives in structure.css; a theme that moves
+  or resizes things is a fork, not a skin.
+*/
+
+[data-theme='odin-dark'] {
+  /* Tier 1: raw primitives. */
+  --raw-iron-0: #090909;
+  --raw-iron-1: #121212;
+  --raw-iron-2: #191919;
+  --raw-iron-3: #2c2c2c;
+  --raw-iron-4: #474747;
+  --raw-white: #f2f2f2;
+  --raw-grey-soft: #c8c8c8;
+  --raw-grey-dim: #909090;
+  --raw-red: #ff5050;
+  --raw-red-deep: #e23c3c;
+  --raw-red-soft: rgb(255 80 80 / 10%);
+  --raw-red-glow: rgb(255 80 80 / 30%);
+  --raw-green: #46e08a;
+  --raw-amber: #ffba3a;
+  --raw-scanline-ink: rgb(0 0 0 / 16%);
+
+  /* Gritty iron film-grain (STYLEGUIDE.md section 2), copied from the
+     canonical home.html: fractal noise at 4% opacity, tiled fine. */
+  --raw-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+
+  /* Tier 2: the semantic contract. */
+  --bg: var(--raw-iron-0);
+  --surface: var(--raw-iron-1);
+  --surface-raise: var(--raw-iron-2);
+  --border: var(--raw-iron-3);
+  --border-strong: var(--raw-iron-4);
+  --text: var(--raw-white);
+  --text-soft: var(--raw-grey-soft);
+  --text-dim: var(--raw-grey-dim);
+  --accent: var(--raw-red);
+  --accent-deep: var(--raw-red-deep);
+  --accent-soft: var(--raw-red-soft);
+  --accent-glow: var(--raw-red-glow);
+  --lock: var(--raw-green);
+  --warning: var(--raw-amber);
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --texture-grain: var(--raw-grain);
+  --texture-grain-size: 200px 200px;
+  --texture-scanline: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--raw-scanline-ink) 3px
+  );
+  --glow-cta: inset 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow);
+  --glow-display-accent: 0 0 16px var(--accent-glow);
+}
