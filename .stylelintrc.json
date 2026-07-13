@@ -1,9 +1,75 @@
 {
   "extends": ["stylelint-config-standard"],
+  "rules": {
+    "selector-class-pattern": [
+      "^[a-z][a-z0-9]*(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$",
+      { "message": "Expected class selector to be BEM (block__element--modifier, kebab-case)" }
+    ],
+    "property-no-vendor-prefix": [true, { "ignoreProperties": ["/user-select/"] }]
+  },
   "overrides": [
     {
       "files": ["**/*.vue"],
       "customSyntax": "postcss-html"
+    },
+    {
+      "files": ["src/**/*.css", "src/**/*.vue"],
+      "rules": {
+        "color-no-hex": true,
+        "color-named": "never",
+        "function-disallowed-list": [
+          "rgb",
+          "rgba",
+          "hsl",
+          "hsla",
+          "hwb",
+          "lab",
+          "lch",
+          "oklab",
+          "oklch",
+          "color",
+          "color-mix",
+          "env"
+        ],
+        "unit-disallowed-list": ["vh", "svh", "lvh", "dvh", "vw"],
+        "declaration-property-value-disallowed-list": {
+          "/^(margin|padding|inset|gap|row-gap|column-gap|top|right|bottom|left)/": ["/px/"],
+          "/^font(-size)?$/": ["/px/"]
+        }
+      }
+    },
+    {
+      "files": ["src/styles/themes/**/*.css"],
+      "rules": {
+        "color-no-hex": null,
+        "color-named": null,
+        "function-disallowed-list": null
+      }
+    },
+    {
+      "files": ["src/styles/structure.css"],
+      "rules": {
+        "function-disallowed-list": [
+          "rgb",
+          "rgba",
+          "hsl",
+          "hsla",
+          "hwb",
+          "lab",
+          "lch",
+          "oklab",
+          "oklch",
+          "color",
+          "color-mix"
+        ],
+        "unit-disallowed-list": ["vh", "svh", "lvh", "dvh"]
+      }
+    },
+    {
+      "files": ["src/components/AppShell.vue"],
+      "rules": {
+        "unit-disallowed-list": ["vh", "svh", "lvh", "vw"]
+      }
     }
   ]
 }
