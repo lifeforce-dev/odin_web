@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:phone": "vite --host",
+    "rebuild:phone": "node scripts/rebuild-phone.mjs",
     "build": "vue-tsc --build && vite build",
     "preview": "vite preview",
     "test": "vitest run",
