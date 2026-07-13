@@ -53,6 +53,7 @@ npm-debug.log*
 # (capacitor-builder skill's Sync and Build Workflow section).
 android/app/build/
 android/.gradle/
+android/.idea/
 android/local.properties
 ios/App/Pods/
 ios/App/build/
