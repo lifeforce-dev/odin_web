@@ -48,6 +48,12 @@ npm-debug.log*
 .env.local
 .env.*.local
 
+# OS cruft
+.DS_Store
+
+# Claude Code per-machine permission overrides (CLAUDE.md itself IS committed)
+.claude/settings.local.json
+
 # Capacitor native build output (Task 2+). android/ and ios/ PROJECT FILES are
 # committed once `cap add` runs; only generated build output is excluded
 # (capacitor-builder skill's Sync and Build Workflow section).
