@@ -1,7 +1,20 @@
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
+// Fonts are bundled (offline-first: no runtime Google Fonts). Latin
+// subsets only; the weights match what the design refs request.
+import '@fontsource/bebas-neue/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-400.css';
+import '@fontsource/jetbrains-mono/latin-500.css';
+import '@fontsource/jetbrains-mono/latin-700.css';
+import '@fontsource/jetbrains-mono/latin-800.css';
+
+import './styles/structure.css';
+import './styles/base.css';
+import './styles/themes/odin-dark.css';
+
 import App from './App.vue';
+import { initTheme } from './composables/useTheme';
 import { initDatabase, isNative } from './native';
 import router from './router';
 
@@ -23,6 +36,12 @@ async function bootstrap(): Promise<void> {
       '[odin] browser dev mode: on-device SQLite is unavailable; data features are disabled',
     );
   }
+  // initTheme never rejects (a failed preference read keeps the static
+  // default from index.html). Awaiting it is a deliberate tradeoff: a
+  // persisted non-default theme renders without a flash, at the cost of
+  // mount waiting on one KV read.
+  await initTheme();
+
   createApp(App).use(createPinia()).use(router).mount('#app');
 }
 
