@@ -98,4 +98,26 @@ export default withVueTs(
       'no-restricted-imports': 'off',
     },
   },
+  {
+    // The device SQLite plugin cannot execute RETURNING: it fakes it by
+    // re-querying with the statement's extracted WHERE text and an empty
+    // bind list, silently returning wrong rows (verified in plugin 8.1.0
+    // Android + iOS sources; see src/db/proxy-statements.ts). Both drivers
+    // also reject row-returning writes at runtime; this rule moves the
+    // failure to save time.
+    name: 'odin/no-returning',
+    files: ['src/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'CallExpression[callee.property.name="returning"]',
+          message:
+            '.returning() is broken on the device SQLite plugin; ' +
+            'use separate read/write statements in a transaction instead ' +
+            '(see src/db/proxy-statements.ts).',
+        },
+      ],
+    },
+  },
 );
