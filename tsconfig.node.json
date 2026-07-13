@@ -15,5 +15,11 @@
     "noEmit": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo"
   },
-  "include": ["vite.config.ts", "vitest.config.ts", "capacitor.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "vitest.config.ts",
+    "capacitor.config.ts",
+    "drizzle.config.ts",
+    "vite-plugin-sql-raw.ts"
+  ]
 }

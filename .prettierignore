@@ -10,3 +10,4 @@ copilot/
 docs/
 .github/
 package-lock.json
+src/db/migrations/

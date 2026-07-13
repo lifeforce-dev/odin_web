@@ -3,6 +3,8 @@ import { fileURLToPath, URL } from 'node:url';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
 
+import { sqlRawPlugin } from './vite-plugin-sql-raw';
+
 const alias = { '@': fileURLToPath(new URL('./src', import.meta.url)) };
 
 // Two projects, deliberately split (epic 01 Task 1): domain/, db/, and native/
@@ -15,6 +17,9 @@ export default defineConfig({
   test: {
     projects: [
       {
+        // sqlRawPlugin: db/ tests apply the real generated migration bundle,
+        // which imports .sql files (see vite-plugin-sql-raw.ts).
+        plugins: [sqlRawPlugin()],
         resolve: { alias },
         test: {
           name: 'node',
