@@ -35,6 +35,8 @@ pip-wheel-metadata/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.eslintcache
+.stylelintcache
 
 # Node
 node_modules/
