@@ -37,6 +37,12 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   '--accent-glow',
   '--lock',
   '--warning',
+  // Brand mark fills (OdinMark.vue): raven 1 (Huginn) and raven 2
+  // (Muninn). Themable per skin; the carve color is not a theme choice
+  // (it tracks the surface the mark sits on) so it stays out of the
+  // contract.
+  '--logo-ink',
+  '--logo-slate',
 ];
 
 // Type families (sizes are geometry and live in structure.css).

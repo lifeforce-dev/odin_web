@@ -21,6 +21,8 @@
   --raw-white: #f2f2f2;
   --raw-grey-soft: #c8c8c8;
   --raw-grey-dim: #909090;
+  --raw-steel-light: #aeb8c6;
+  --raw-steel-mid: #63748c;
   --raw-red: #ff5050;
   --raw-red-deep: #e23c3c;
   --raw-red-soft: rgb(255 80 80 / 10%);
@@ -48,6 +50,11 @@
   --accent-glow: var(--raw-red-glow);
   --lock: var(--raw-green);
   --warning: var(--raw-amber);
+
+  /* Brand mark: twin ravens split by value, not hue (STYLEGUIDE brand
+     lockup). Red stays scarce, so the mark never spends the accent. */
+  --logo-ink: var(--raw-steel-light);
+  --logo-slate: var(--raw-steel-mid);
   --font-display: 'Bebas Neue', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --texture-grain: var(--raw-grain);
