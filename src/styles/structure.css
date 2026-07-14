@@ -41,6 +41,14 @@
   --type-display-wordmark: clamp(56px, 16vw, 64px);
   --type-display-hero: clamp(96px, 30vw, 120px);
 
+  /* Tracking (letter-spacing) ramp: static px like all geometry, one
+     token per ref value so retracking a recipe is a one-line edit.
+     Extend deliberately when a design ref uses a value with no matching
+     token (refs also carry 0.5px / 1.5px / 4px on unbuilt screens). */
+  --tracking-1: 1px;
+  --tracking-2: 2px;
+  --tracking-3: 3px;
+
   /* Safe areas: indirection tokens consumed only by AppShell. If the
      Android WebView needs JS-injected inset values, only these four
      definitions change. */

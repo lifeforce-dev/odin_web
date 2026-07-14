@@ -54,7 +54,7 @@ import OdinMark from '@/components/OdinMark.vue';
   font-family: var(--font-display);
   font-size: var(--type-display-wordmark);
   line-height: 0.82;
-  letter-spacing: 3px;
+  letter-spacing: var(--tracking-3);
   text-shadow: var(--glow-display-accent);
   border-left: var(--hairline) solid var(--border-strong);
 }
@@ -64,7 +64,7 @@ import OdinMark from '@/components/OdinMark.vue';
   color: var(--text-dim);
   font-size: var(--type-label);
   font-weight: 700;
-  letter-spacing: 3px;
+  letter-spacing: var(--tracking-3);
   text-transform: uppercase;
 }
 </style>

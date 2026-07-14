@@ -51,6 +51,12 @@ const viewportSfc = `<style scoped>
 }
 </style>`;
 
+const trackingSfc = `<style scoped>
+.probe {
+  letter-spacing: 2px;
+}
+</style>`;
+
 describe('the token wall on component styles', () => {
   it('rejects raw colors, px in spacing/font, viewport units, and env()', async () => {
     expect(await firedRules('src/components/ProbeCard.vue', offendingSfc)).toEqual([
@@ -64,6 +70,12 @@ describe('the token wall on component styles', () => {
   it('rejects dvh outside AppShell', async () => {
     expect(await firedRules('src/components/ProbeShell.vue', viewportSfc)).toEqual([
       'unit-disallowed-list',
+    ]);
+  });
+
+  it('rejects raw px letter-spacing (tracking is tokenized geometry)', async () => {
+    expect(await firedRules('src/components/ProbeTracking.vue', trackingSfc)).toEqual([
+      'declaration-property-value-disallowed-list',
     ]);
   });
 });

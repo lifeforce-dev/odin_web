@@ -38,6 +38,8 @@ const monoTypeTokens = [
 
 const displayTypeTokens = ['--type-display-title', '--type-display-wordmark'];
 
+const trackingTokens = ['--tracking-1', '--tracking-2', '--tracking-3'];
+
 const spacingTokens = [
   '--space-1',
   '--space-2',
@@ -133,6 +135,18 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
+        <h2 class="board-eyebrow">Tracking ramp</h2>
+        <p
+          v-for="token in trackingTokens"
+          :key="token"
+          class="type-sample"
+          :style="{ letterSpacing: `var(${token})` }"
+        >
+          {{ token }} // REDLINE HUD
+        </p>
+      </section>
+
+      <section class="board-section">
         <h2 class="board-eyebrow">Spacing scale</h2>
         <div v-for="token in spacingTokens" :key="token" class="spacing-row">
           <span class="spacing-row__name">{{ token }}</span>
@@ -211,7 +225,7 @@ onMounted(() => {
   font-size: var(--type-display-title);
   font-weight: 400;
   line-height: 1;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-2);
   color: var(--text);
   text-transform: uppercase;
 }
@@ -224,7 +238,7 @@ onMounted(() => {
 
 .theme-picker__label {
   font-size: var(--type-label);
-  letter-spacing: 0.14em;
+  letter-spacing: var(--tracking-3);
   color: var(--text-dim);
   text-transform: uppercase;
 }
@@ -254,7 +268,7 @@ onMounted(() => {
   margin: 0;
   font-size: var(--type-label);
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: var(--tracking-3);
   color: var(--text-dim);
   text-transform: uppercase;
 }
@@ -284,7 +298,7 @@ onMounted(() => {
   font-family: var(--font-display);
   font-size: var(--type-display-wordmark);
   line-height: 0.82;
-  letter-spacing: 3px;
+  letter-spacing: var(--tracking-3);
   text-shadow: var(--glow-display-accent);
   border-left: var(--hairline) solid var(--border-strong);
 }
@@ -340,7 +354,7 @@ onMounted(() => {
 .type-sample--display {
   font-family: var(--font-display);
   line-height: 1;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-2);
 }
 
 .type-sample--hero {
@@ -419,7 +433,7 @@ onMounted(() => {
   justify-content: center;
   min-height: var(--tap-min);
   font-size: var(--type-data);
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-2);
   color: var(--accent);
   text-transform: uppercase;
   background: var(--accent-soft);
@@ -456,7 +470,7 @@ onMounted(() => {
   font-family: var(--font-mono);
   font-size: var(--type-data-lg);
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-2);
   color: var(--accent);
   text-transform: uppercase;
   cursor: pointer;

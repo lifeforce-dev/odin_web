@@ -34,7 +34,8 @@
         "unit-disallowed-list": ["vh", "svh", "lvh", "dvh", "vw"],
         "declaration-property-value-disallowed-list": {
           "/^(margin|padding|inset|gap|row-gap|column-gap|top|right|bottom|left)/": ["/px/"],
-          "/^font(-size)?$/": ["/px/"]
+          "/^font(-size)?$/": ["/px/"],
+          "/^letter-spacing$/": ["/px/"]
         }
       }
     },
