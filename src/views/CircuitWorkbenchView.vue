@@ -17,7 +17,8 @@ defineProps<{
     <div class="workbench">
       <ScreenHeader
         title="Workbench"
-        :eyebrow="`Circuit // ${id}`"
+        eyebrow="Circuit"
+        :eyebrow-value="id"
         back-label="Circuits"
         :back-to="{ name: 'circuits' }"
       />

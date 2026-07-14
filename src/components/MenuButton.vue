@@ -30,9 +30,9 @@ defineSlots<{
   gap: var(--space-3);
   width: 100%;
   min-height: var(--tap-min);
-  padding: var(--space-4);
+  padding: var(--space-6);
   font-family: var(--font-mono);
-  font-size: var(--type-data);
+  font-size: var(--type-data-xl);
   font-weight: 700;
   text-align: left;
   color: var(--text);

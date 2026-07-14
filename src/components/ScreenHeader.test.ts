@@ -41,6 +41,19 @@ describe('ScreenHeader', () => {
     expect(wrapper.text()).toContain('Rotation // Order');
   });
 
+  it('appends the eyebrow value when passed as separate data', () => {
+    const wrapper = mount(ScreenHeader, {
+      props: {
+        title: 'Workbench',
+        eyebrow: 'Circuit',
+        eyebrowValue: 'abc-123',
+        backTo: { name: 'circuits' },
+      },
+    });
+
+    expect(wrapper.text()).toContain('Circuit // abc-123');
+  });
+
   it('omits the eyebrow element when the prop is not passed', () => {
     const wrapper = mount(ScreenHeader, {
       props: { title: 'Circuits', backTo: { name: 'home' } },

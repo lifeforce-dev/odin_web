@@ -30,7 +30,7 @@ function openCircuits(): void {
         <p class="home__tagline">Workout Tracker // v0.1.0</p>
       </div>
       <nav class="home__menu">
-        <MenuButton @click="openCircuits">Build Circuit</MenuButton>
+        <MenuButton @click="openCircuits">Manage Circuits</MenuButton>
       </nav>
     </div>
   </AppShell>

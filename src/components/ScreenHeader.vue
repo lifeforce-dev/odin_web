@@ -13,15 +13,21 @@ import type { RouteLocationRaw } from 'vue-router';
 // on-screen affordance replaces to the screen's declared parent instead
 // of silently doing nothing (a bare router.back() is a no-op there).
 
+// eyebrowValue is a separate prop, never string-interpolated into eyebrow
+// by the caller: keeps the static copy and the dynamic value apart at the
+// call site so a future i18n pass can key off "eyebrow" alone instead of
+// unpicking baked-in data from every screen's template.
 const props = withDefaults(
   defineProps<{
     title: string;
     backTo: RouteLocationRaw;
     eyebrow?: string;
+    eyebrowValue?: string | number;
     backLabel?: string;
   }>(),
   {
     eyebrow: undefined,
+    eyebrowValue: undefined,
     backLabel: 'Back',
   },
 );
@@ -44,7 +50,9 @@ function goBack(): void {
       &#8592; {{ backLabel }}
     </button>
     <h1 class="screen-header__title">{{ title }}</h1>
-    <p v-if="eyebrow" class="screen-header__eyebrow">{{ eyebrow }}</p>
+    <p v-if="eyebrow" class="screen-header__eyebrow">
+      {{ eyebrow }}<template v-if="eyebrowValue !== undefined"> // {{ eyebrowValue }}</template>
+    </p>
   </header>
 </template>
 
