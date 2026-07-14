@@ -1,0 +1,73 @@
+import { mount } from '@vue/test-utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { HistoryState } from 'vue-router';
+
+import ScreenHeader from './ScreenHeader.vue';
+
+// The back fallback reads the router's history position via
+// router.options.history.state, so the router is stubbed at the
+// composable seam: createMemoryHistory never writes a back entry, which
+// would make the pop-history branch untestable with a real router.
+const router = {
+  back: vi.fn(),
+  replace: vi.fn().mockResolvedValue(undefined),
+  options: { history: { state: {} as HistoryState } },
+};
+
+vi.mock('vue-router', () => ({
+  useRouter: () => router,
+}));
+
+function mountHeader() {
+  return mount(ScreenHeader, {
+    props: {
+      title: 'Circuits',
+      eyebrow: 'Rotation // Order',
+      backTo: { name: 'home' },
+    },
+  });
+}
+
+describe('ScreenHeader', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    router.options.history.state = {};
+  });
+
+  it('renders the title and eyebrow', () => {
+    const wrapper = mountHeader();
+
+    expect(wrapper.get('h1').text()).toBe('Circuits');
+    expect(wrapper.text()).toContain('Rotation // Order');
+  });
+
+  it('omits the eyebrow element when the prop is not passed', () => {
+    const wrapper = mount(ScreenHeader, {
+      props: { title: 'Circuits', backTo: { name: 'home' } },
+    });
+
+    expect(wrapper.find('p').exists()).toBe(false);
+  });
+
+  it('pops history when there is an entry to go back to', async () => {
+    router.options.history.state = { back: '/' };
+    const wrapper = mountHeader();
+
+    await wrapper.get('button').trigger('click');
+
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it('replaces to the declared parent at the history bottom', async () => {
+    // vue-router writes back: null on a fresh load of the route; hardware
+    // back minimizes there, so the on-screen button must not be a no-op.
+    router.options.history.state = { back: null };
+    const wrapper = mountHeader();
+
+    await wrapper.get('button').trigger('click');
+
+    expect(router.replace).toHaveBeenCalledWith({ name: 'home' });
+    expect(router.back).not.toHaveBeenCalled();
+  });
+});

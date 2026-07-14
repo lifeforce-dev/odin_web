@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from 'vue';
 import AppShell from '@/components/AppShell.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
+import ScreenHeader from '@/components/ScreenHeader.vue';
 import { useTheme } from '@/composables/useTheme';
 import { CONTRACT_COLOR_TOKENS, type ThemeName } from '@/styles/contract';
 
@@ -198,6 +199,11 @@ onMounted(() => {
         <h2 class="board-eyebrow">Menu button (default / disabled)</h2>
         <MenuButton>Build Circuit</MenuButton>
         <MenuButton disabled>Stats</MenuButton>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Screen header</h2>
+        <ScreenHeader title="Circuits" eyebrow="Rotation // Order" :back-to="{ name: 'gallery' }" />
       </section>
     </div>
 

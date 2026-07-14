@@ -1,0 +1,100 @@
+<script setup lang="ts">
+import { useRouter } from 'vue-router';
+import type { RouteLocationRaw } from 'vue-router';
+
+// Shared flow-screen header: back affordance + title + eyebrow, per the
+// canonical refs (circuits.html, circuit-workbench.html). Extracted in the
+// 02-02 review fix leg: the block was byte-identical across the stub views
+// and every epic-02+ screen repeats it.
+//
+// Back matches hardware back wherever the stack has somewhere to pop. At
+// the history bottom (dev reload straight onto the route, WebView state
+// restore, a future deep link) hardware back minimizes the app, so the
+// on-screen affordance replaces to the screen's declared parent instead
+// of silently doing nothing (a bare router.back() is a no-op there).
+
+const props = withDefaults(
+  defineProps<{
+    title: string;
+    backTo: RouteLocationRaw;
+    eyebrow?: string;
+    backLabel?: string;
+  }>(),
+  {
+    eyebrow: undefined,
+    backLabel: 'Back',
+  },
+);
+
+const router = useRouter();
+
+function goBack(): void {
+  // vue-router writes back: null into history.state at the stack bottom.
+  if (router.options.history.state.back == null) {
+    void router.replace(props.backTo);
+    return;
+  }
+  router.back();
+}
+</script>
+
+<template>
+  <header class="screen-header">
+    <button type="button" class="screen-header__back" @click="goBack">
+      &#8592; {{ backLabel }}
+    </button>
+    <h1 class="screen-header__title">{{ title }}</h1>
+    <p v-if="eyebrow" class="screen-header__eyebrow">{{ eyebrow }}</p>
+  </header>
+</template>
+
+<style scoped>
+.screen-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Ref back-btn, lifted to the tap floor: same small type, but the
+   transparent button box carries the full 48px hit area. */
+.screen-header__back {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: var(--tap-min);
+  padding: 0;
+  color: var(--text-soft);
+  font-family: var(--font-mono);
+  font-size: var(--type-body);
+  font-weight: 700;
+  letter-spacing: var(--tracking-1);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.screen-header__back:active {
+  color: var(--text);
+}
+
+/* Titles are identity and stay WHITE (STYLEGUIDE section 9): red is
+   reserved for state and action, never identity. */
+.screen-header__title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--type-display-title);
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: var(--tracking-2);
+}
+
+.screen-header__eyebrow {
+  margin: var(--space-3) 0 var(--space-6);
+  color: var(--text-dim);
+  font-size: var(--type-label);
+  font-weight: 700;
+  letter-spacing: var(--tracking-3);
+  text-transform: uppercase;
+}
+</style>
