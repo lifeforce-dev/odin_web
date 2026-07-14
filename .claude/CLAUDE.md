@@ -45,7 +45,7 @@ not a per-feature choice.
 # Feature Workflow
 
 Feature work in this repo follows the feature-builder workflow; working notes live
-in `copilot/features/` (git-ignored). When the user starts, continues, resumes, or
+in `.claude/features/` (git-ignored). When the user starts, continues, resumes, or
 picks back up feature work in any phrasing, names a task or epic of a feature, or
 asks to checkpoint feature notes, load the `feature-builder` skill FIRST, before
 acting on anything else in the message. The user's name for a feature may not match
