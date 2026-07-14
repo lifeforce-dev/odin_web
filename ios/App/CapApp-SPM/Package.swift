@@ -12,8 +12,8 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.4.1"),
-        .package(name: "CapacitorCommunitySqlite", path: "..\..\..\node_modules\@capacitor-community\sqlite"),
-        .package(name: "CapacitorPreferences", path: "..\..\..\node_modules\@capacitor\preferences")
+        .package(name: "CapacitorCommunitySqlite", path: "../../../node_modules/@capacitor-community/sqlite"),
+        .package(name: "CapacitorPreferences", path: "../../../node_modules/@capacitor/preferences")
     ],
     targets: [
         .target(
