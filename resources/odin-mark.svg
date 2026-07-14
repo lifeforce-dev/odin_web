@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>Odin brand mark - Huginn and Muninn (Scallop x Tomoe)</title>
+<desc>Twin ravens circling within double rings. MARK ONLY: no background field.
+The reusable, themeable brand asset; the launcher's cream plate rendition lives
+only in the icon build inputs (resources/icon-*.svg), never here.
+Three color custom properties (baked fallbacks in parentheses):
+--logo-ink (#1F2125) raven 1 body plus its two rings;
+--logo-slate (#35455F) raven 2 body plus its two rings;
+--logo-field (transparent) the carved plumage / eye / seam detail.
+The carving is field-colored by construction: the detail strokes are painted
+over the solid ravens in --logo-field so they read as cut-outs of the surface
+behind the mark. There is no real punch-out, so a consumer MUST set --logo-field
+to the color of the surface the mark sits on for the carving to appear. Unset,
+the field is transparent and the ravens read as solid silhouettes. Never bake
+the launcher's cream field color into this file.</desc>
+<path d="M 241,84.7 L 258.2,85.8 L 275.1,88.7 L 291.3,93.2 L 306.9,99.3 L 321.6,106.8 L 335.4,115.7 L 348.1,125.7 L 359.5,136.9 L 369.7,149 L 378.5,162 L 385.9,175.6 L 391.9,189.7 L 396.3,204.2 L 399.3,218.9 L 400.8,233.7 L 400.8,248.4 L 399.4,262.9 L 396.7,277 L 392.7,290.7 L 387.6,303.9 L 387.6,303.9 L 390.7,290.2 L 392.2,276.4 L 392.2,262.5 L 390.8,248.9 L 387.9,235.7 L 383.8,223 L 378.4,210.9 L 371.8,199.5 L 364.2,189.1 L 355.6,179.6 L 346.3,171.1 L 336.2,163.8 L 325.5,157.6 L 314.5,152.6 L 303.1,148.9 L 291.6,146.4 L 280.1,145.1 L 268.6,145.1 L 257.4,146.2 L 246.6,148.4 Z" fill="var(--logo-ink, #1F2125)"/>
+<polygon points="241,84.7 191.7,79.3 162.7,106.7 142.5,167.3 178.4,156.7 207,159.8 246.6,148.4" fill="var(--logo-ink, #1F2125)"/>
+<polygon points="186.7,107.4 213,106 193.8,128.4" fill="var(--logo-field, transparent)"/>
+<path d="M 152.9,159.8 L 181.4,141.1" stroke="var(--logo-field, transparent)" stroke-width="2" fill="none"/>
+<circle cx="159.6" cy="145.1" r="2" fill="var(--logo-field, transparent)"/>
+<path d="M 247.2,88.2 Q 258.4,116 250.1,144.2" stroke="var(--logo-field, transparent)" stroke-width="2.5" fill="none"/>
+<path d="M 222.3,109.8 L 231.3,99.9 M 220.5,123.7 L 228.3,113.7 M 226,135.7 L 233.1,126 M 232.9,147.4 L 239.4,138.2" stroke="var(--logo-field, transparent)" stroke-width="2" fill="none"/>
+<path d="M 278.4,114.7 L 288.2,104.5 L 293,117.8 M 300.3,119.6 L 311.4,111.7 L 314.3,125 M 321.2,127.9 L 333.1,122.4 L 334.3,135.5 M 340.7,139.5 L 352.9,136.3 L 352.4,149 M 358.1,153.9 L 370.2,153.2 L 368.2,165.2 M 285.2,134.2 L 294.8,124.9 L 297.8,137.9 M 304.1,140 L 314.7,132.9 L 315.9,145.7 M 321.8,148.7 L 333.1,143.8 L 332.6,156.1 M 338,160 L 349.5,157.5 L 347.5,169.1 M 358.3,167.1 L 369.9,167 L 367,178.3 M 368.3,180.2 L 379.9,181.6 L 375.6,192.4 M 376.7,194.5 L 388,197.2 L 382.5,207.4 M 383.3,209.7 L 394.2,213.8 L 387.5,223.2" stroke="var(--logo-field, transparent)" stroke-width="2.2" fill="none"/>
+<path d="M 264.8,130.3 A 126 126 0 0 1 346.6,168.5" fill="none" stroke="var(--logo-field, transparent)" stroke-width="2.5"/>
+<path d="M 337.6,158.7 L 347.9,178.9 M 332.4,150.8 L 345.2,169.9 M 326.5,143.2 L 341.6,160.9 M 319.8,135.9 L 336.7,152.8" stroke="var(--logo-field, transparent)" stroke-width="2" fill="none"/>
+<polygon points="264.5,134.3 275.7,131.6 265.1,126.3" fill="var(--logo-field, transparent)"/>
+<path d="M 399.2,271.1 L 393.9,280.3 L 391.3,270.2 M 396.9,285.9 L 390.6,294.6 L 389,284.3" stroke="var(--logo-field, transparent)" stroke-width="2" fill="none"/>
+<path d="M 275.5,117.4 A 140 140 0 0 1 369.3,173.7" fill="none" stroke="var(--logo-field, transparent)" stroke-width="2" opacity="0.85"/>
+<path d="M 137,49.9 A 238 238 0 0 1 482.4,329.5" fill="none" stroke="var(--logo-ink, #1F2125)" stroke-width="5"/>
+<path d="M 171.3,46.5 A 226 226 0 0 1 478.6,295.2" fill="none" stroke="var(--logo-ink, #1F2125)" stroke-width="2"/>
+<path d="M 271,427.3 L 253.8,426.2 L 236.9,423.3 L 220.7,418.8 L 205.1,412.7 L 190.4,405.2 L 176.6,396.3 L 163.9,386.3 L 152.5,375.1 L 142.3,363 L 133.5,350 L 126.1,336.4 L 120.1,322.3 L 115.7,307.8 L 112.7,293.1 L 111.2,278.3 L 111.2,263.6 L 112.6,249.1 L 115.3,235 L 119.3,221.3 L 124.4,208.1 L 124.4,208.1 L 121.3,221.8 L 119.8,235.6 L 119.8,249.5 L 121.2,263.1 L 124.1,276.3 L 128.2,289 L 133.6,301.1 L 140.2,312.5 L 147.8,322.9 L 156.4,332.4 L 165.7,340.9 L 175.8,348.2 L 186.5,354.4 L 197.5,359.4 L 208.9,363.1 L 220.4,365.6 L 231.9,366.9 L 243.4,366.9 L 254.6,365.8 L 265.4,363.6 Z" fill="var(--logo-slate, #35455F)"/>
+<polygon points="271,427.3 320.3,432.7 349.3,405.3 369.5,344.7 333.6,355.3 305,352.2 265.4,363.6" fill="var(--logo-slate, #35455F)"/>
+<polygon points="325.3,404.6 299,406 318.2,383.6" fill="var(--logo-field, transparent)"/>
+<path d="M 359.1,352.2 L 330.6,370.9" stroke="var(--logo-field, transparent)" stroke-width="2" fill="none"/>
+<circle cx="352.4" cy="366.9" r="2" fill="var(--logo-field, transparent)"/>
+<path d="M 264.8,423.8 Q 253.6,396 261.9,367.8" stroke="var(--logo-field, transparent)" stroke-width="2.5" fill="none"/>
+<path d="M 289.7,402.2 L 280.7,412.1 M 291.5,388.3 L 283.7,398.3 M 286,376.3 L 278.9,386 M 279.1,364.6 L 272.6,373.8" stroke="var(--logo-field, transparent)" stroke-width="2" fill="none"/>
+<path d="M 223.8,395.6 L 213.3,404.8 L 209.4,391.4 M 202.2,389.1 L 190.7,396 L 188.6,382.7 M 181.9,379.3 L 169.8,383.8 L 169.4,370.9 M 163.3,366.4 L 151.1,368.5 L 152.3,356.1 M 218.3,375.6 L 208.2,384 L 206,371 M 199.9,368.5 L 188.9,374.6 L 188.5,362 M 182.8,358.6 L 171.3,362.4 L 172.5,350.4 M 167.5,346.1 L 156,347.7 L 158.5,336.4 M 147.8,337.5 L 136.2,336.8 L 139.9,325.8 M 138.7,323.8 L 127.2,321.6 L 132.2,311.1 M 131.3,308.9 L 120.2,305.4 L 126.4,295.6 M 125.7,293.3 L 115.2,288.5 L 122.6,279.5" stroke="var(--logo-field, transparent)" stroke-width="2.2" fill="none"/>
+<path d="M 247.2,381.7 A 126 126 0 0 1 165.4,343.5" fill="none" stroke="var(--logo-field, transparent)" stroke-width="2.5"/>
+<path d="M 174.4,353.3 L 164.1,333.1 M 179.6,361.2 L 166.8,342.1 M 185.5,368.8 L 170.4,351.1 M 192.2,376.1 L 175.3,359.2" stroke="var(--logo-field, transparent)" stroke-width="2" fill="none"/>
+<polygon points="247.5,377.7 236.3,380.4 246.9,385.7" fill="var(--logo-field, transparent)"/>
+<path d="M 112.8,240.9 L 118.1,231.7 L 120.7,241.8 M 115.1,226.1 L 121.4,217.4 L 123,227.7" stroke="var(--logo-field, transparent)" stroke-width="2" fill="none"/>
+<path d="M 236.5,394.6 A 140 140 0 0 1 142.7,338.3" fill="none" stroke="var(--logo-field, transparent)" stroke-width="2" opacity="0.85"/>
+<path d="M 375,462.1 A 238 238 0 0 1 29.6,182.5" fill="none" stroke="var(--logo-slate, #35455F)" stroke-width="5"/>
+<path d="M 340.7,465.5 A 226 226 0 0 1 33.4,216.8" fill="none" stroke="var(--logo-slate, #35455F)" stroke-width="2"/>
+</svg>
