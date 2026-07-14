@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
+import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
 import { useTheme } from '@/composables/useTheme';
 import { CONTRACT_COLOR_TOKENS, type ThemeName } from '@/styles/contract';
@@ -194,10 +195,9 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Components</h2>
-        <p class="board-note">
-          Component states appear here as real components land (epic 02 onward).
-        </p>
+        <h2 class="board-eyebrow">Menu button (default / disabled)</h2>
+        <MenuButton>Build Circuit</MenuButton>
+        <MenuButton disabled>Stats</MenuButton>
       </section>
     </div>
 
