@@ -1,13 +1,22 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
+
 import AppShell from '@/components/AppShell.vue';
+import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
 
-// Bare home screen (epic 01 capstone): brand block only. The lockup is
-// exploration v3 direction 01 "Instrument Lockup" (task 01-08): the mark
-// sits left of the ODIN wordmark on one axis, a hairline rule between
-// them like a machined insignia plate. Red stays on the wordmark alone.
-// Menu buttons arrive with their flows in later epics. AppShell owns
-// background, grain, and scanlines.
+// Home screen. The lockup is exploration v3 direction 01 "Instrument
+// Lockup" (task 01-08): the mark sits left of the ODIN wordmark on one
+// axis, a hairline rule between them like a machined insignia plate.
+// Red stays on the wordmark alone. Each flow epic adds its own menu
+// button as its flow becomes walkable (BUILD CIRCUIT landed with task
+// 02-02). AppShell owns background, grain, and scanlines.
+
+const router = useRouter();
+
+function openCircuits(): void {
+  void router.push({ name: 'circuits' });
+}
 </script>
 
 <template>
@@ -20,6 +29,9 @@ import OdinMark from '@/components/OdinMark.vue';
         </div>
         <p class="home__tagline">Workout Tracker // v0.1.0</p>
       </div>
+      <nav class="home__menu">
+        <MenuButton @click="openCircuits">Build Circuit</MenuButton>
+      </nav>
     </div>
   </AppShell>
 </template>
@@ -66,5 +78,12 @@ import OdinMark from '@/components/OdinMark.vue';
   font-weight: 700;
   letter-spacing: var(--tracking-3);
   text-transform: uppercase;
+}
+
+/* Ref rhythm: roomy brand-to-menu gap, tight 8px stack between rows. */
+.home__menu {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-12);
 }
 </style>
