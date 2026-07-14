@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
+import OdinMark from '@/components/OdinMark.vue';
 import { useTheme } from '@/composables/useTheme';
 import { CONTRACT_COLOR_TOKENS, type ThemeName } from '@/styles/contract';
 
@@ -83,6 +84,18 @@ onMounted(() => {
     </template>
 
     <div class="board">
+      <section class="board-section">
+        <h2 class="board-eyebrow">Brand mark</h2>
+        <div class="brand-sample">
+          <OdinMark class="brand-sample__mark" />
+          <h3 class="brand-sample__word">ODIN</h3>
+        </div>
+        <div class="brand-scales">
+          <OdinMark class="brand-scales__mark brand-scales__mark--nav" />
+          <OdinMark class="brand-scales__mark brand-scales__mark--solo" />
+        </div>
+      </section>
+
       <section class="board-section">
         <h2 class="board-eyebrow">Color roles</h2>
         <div class="swatch-grid">
@@ -250,6 +263,50 @@ onMounted(() => {
   margin: 0;
   font-size: var(--type-body);
   color: var(--text-soft);
+}
+
+.brand-sample {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.brand-sample__mark {
+  flex: none;
+  width: var(--type-display-wordmark);
+  height: var(--type-display-wordmark);
+}
+
+.brand-sample__word {
+  margin: 0;
+  padding-left: var(--space-4);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: var(--type-display-wordmark);
+  line-height: 0.82;
+  letter-spacing: 3px;
+  text-shadow: var(--glow-display-accent);
+  border-left: var(--hairline) solid var(--border-strong);
+}
+
+.brand-scales {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.brand-scales__mark {
+  flex: none;
+}
+
+.brand-scales__mark--nav {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+.brand-scales__mark--solo {
+  width: var(--space-12);
+  height: var(--space-12);
 }
 
 .swatch-grid {
