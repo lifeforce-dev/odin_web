@@ -462,7 +462,8 @@ onMounted(() => {
   border-top: var(--hairline) solid var(--border);
 }
 
-/* The STYLEGUIDE section 5 primary CTA recipe + game-UI feel block. */
+/* The STYLEGUIDE section 5 primary CTA recipe (game-UI interaction reset
+   comes from base.css button wiring). */
 .gallery-cta {
   width: 100%;
   min-height: var(--tap-min);
@@ -474,14 +475,9 @@ onMounted(() => {
   color: var(--accent);
   text-transform: uppercase;
   cursor: pointer;
-  user-select: none;
   background: var(--accent-soft);
   border: var(--rule) solid var(--accent);
   box-shadow: var(--glow-cta);
-  -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  touch-action: manipulation;
 }
 
 .gallery-cta:active {

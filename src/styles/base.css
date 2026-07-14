@@ -17,3 +17,16 @@ body {
   font-size: var(--type-body);
   -webkit-font-smoothing: antialiased;
 }
+
+/* Game-UI feel, not a web form (STYLEGUIDE section 5, an app-wide policy
+   for every tappable surface): no text selection or drag-highlight, no
+   tap flash, no long-press callout, no double-tap zoom delay. Wired here
+   once so a new button cannot forget it and silently regress to
+   web-form behavior on device. */
+button {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
