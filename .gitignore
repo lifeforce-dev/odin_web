@@ -2,7 +2,7 @@
 /docs/mock/pwa-context-*.txt
 
 # Feature-builder working notes (not tracked)
-copilot/features/
+.claude/features/
 
 # Design references and explorations are working material, not shipped
 # product code; they stay local to whoever is iterating on them.
