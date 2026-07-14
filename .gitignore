@@ -56,6 +56,14 @@ npm-debug.log*
 # Claude Code per-machine permission overrides (CLAUDE.md itself IS committed)
 .claude/settings.local.json
 
+# Generated launcher-icon build inputs. resources/odin-mark.svg is the committed
+# source of truth; these are derived from it by scripts/build-icon-inputs.mjs and
+# rebuilt by `npm run icons:generate`. The platform outputs under android/ and
+# ios/ ARE committed.
+resources/icon-only.svg
+resources/icon-foreground.svg
+resources/icon-background.svg
+
 # Capacitor native build output (Task 2+). android/ and ios/ PROJECT FILES are
 # committed once `cap add` runs; only generated build output is excluded
 # (capacitor-builder skill's Sync and Build Workflow section).

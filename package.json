@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "check:themes": "vitest run --project node src/styles/contract.test.ts",
     "db:generate": "drizzle-kit generate",
+    "icons:generate": "node scripts/build-icon-inputs.mjs && capacitor-assets generate --assetPath resources --android --ios && node scripts/patch-adaptive-icons.mjs",
     "typecheck": "vue-tsc --build",
     "lint": "eslint . && depcruise --config .dependency-cruiser.json src && stylelint \"src/**/*.{css,vue}\"",
     "lint:fix": "eslint . --fix",
@@ -37,6 +38,7 @@
     "vue-router": "5.1.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "3.0.5",
     "@capacitor/cli": "8.4.1",
     "@fast-check/vitest": "0.4.1",
     "@pinia/testing": "1.0.3",
@@ -59,6 +61,7 @@
     "postcss": "8.5.17",
     "postcss-html": "1.8.1",
     "prettier": "3.9.5",
+    "sharp": "0.32.6",
     "stylelint": "17.14.0",
     "stylelint-config-standard": "40.0.0",
     "typescript": "6.0.3",
