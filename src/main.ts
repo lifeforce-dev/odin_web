@@ -17,6 +17,7 @@ import App from './App.vue';
 import { initTheme } from './composables/useTheme';
 import { initDatabase, isNative } from './native';
 import router from './router';
+import { installHardwareBack } from './router/hardware-back';
 
 async function bootstrap(): Promise<void> {
   if (isNative) {
@@ -43,6 +44,14 @@ async function bootstrap(): Promise<void> {
   await initTheme();
 
   createApp(App).use(createPinia()).use(router).mount('#app');
+
+  // Android hardware back: pop router history, minimize at the root
+  // (src/router/hardware-back.ts). An enhancement, not a boot
+  // dependency - a registration failure must never block mount, so it
+  // is not awaited.
+  void installHardwareBack(router).catch((error: unknown) => {
+    console.error('[odin] hardware back registration failed', error);
+  });
 }
 
 // Plain DOM on purpose: this runs when startup already failed, so it must
