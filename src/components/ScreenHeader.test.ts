@@ -62,6 +62,15 @@ describe('ScreenHeader', () => {
     expect(wrapper.find('p').exists()).toBe(false);
   });
 
+  it('renders slot-provided eyebrow content for fully computed copy', () => {
+    const wrapper = mount(ScreenHeader, {
+      props: { title: 'Legs', backTo: { name: 'circuits' } },
+      slots: { eyebrow: '3 Workouts' },
+    });
+
+    expect(wrapper.get('.screen-header__eyebrow').text()).toBe('3 Workouts');
+  });
+
   it('pops history when there is an entry to go back to', async () => {
     router.options.history.state = { back: '/' };
     const wrapper = mountHeader();

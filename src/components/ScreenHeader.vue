@@ -16,7 +16,9 @@ import type { RouteLocationRaw } from 'vue-router';
 // eyebrowValue is a separate prop, never string-interpolated into eyebrow
 // by the caller: keeps the static copy and the dynamic value apart at the
 // call site so a future i18n pass can key off "eyebrow" alone instead of
-// unpicking baked-in data from every screen's template.
+// unpicking baked-in data from every screen's template. Screens whose
+// eyebrow is fully computed copy (the workbench's "N Workouts") pass the
+// eyebrow slot instead.
 const props = withDefaults(
   defineProps<{
     title: string;
@@ -31,6 +33,10 @@ const props = withDefaults(
     backLabel: 'Back',
   },
 );
+
+defineSlots<{
+  eyebrow?: () => unknown;
+}>();
 
 const router = useRouter();
 
@@ -50,8 +56,10 @@ function goBack(): void {
       &#8592; {{ backLabel }}
     </button>
     <h1 class="screen-header__title">{{ title }}</h1>
-    <p v-if="eyebrow" class="screen-header__eyebrow">
-      {{ eyebrow }}<template v-if="eyebrowValue !== undefined"> // {{ eyebrowValue }}</template>
+    <p v-if="eyebrow || $slots.eyebrow" class="screen-header__eyebrow">
+      <slot name="eyebrow">
+        {{ eyebrow }}<template v-if="eyebrowValue !== undefined"> // {{ eyebrowValue }}</template>
+      </slot>
     </p>
   </header>
 </template>
