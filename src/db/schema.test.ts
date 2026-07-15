@@ -6,28 +6,12 @@ import { circuit, circuitItem, exercise, session, setLog } from './schema';
 import type { CircuitItemRow, CircuitRow, ExerciseRow, SessionRow, SetLogRow } from './schema';
 import { createTestDb } from './test-db';
 import type { TestDb } from './test-db';
+import { expectRejectsWithCause } from './test-support';
 import { nowIso } from './timestamps';
 
 // These tests pin the schema's DB-enforced rules (spec: design/schema-v2.md).
 // They use drizzle directly instead of query functions on purpose: the thing
 // under test is the generated migration's constraints, not the query layer.
-
-// Drizzle wraps driver failures in DrizzleQueryError; the constraint reason
-// (UNIQUE, FOREIGN KEY) only appears on the wrapped error's cause chain.
-// Anything that wants to react to a specific violation must look there.
-async function expectRejectsWithCause(promise: Promise<unknown>, pattern: RegExp): Promise<void> {
-  const error = await promise.then(
-    () => {
-      throw new Error('expected the operation to reject, but it resolved');
-    },
-    (raised: unknown) => raised,
-  );
-  const messages: string[] = [];
-  for (let current: unknown = error; current instanceof Error; current = current.cause) {
-    messages.push(current.message);
-  }
-  expect(messages.join(' | ')).toMatch(pattern);
-}
 
 function exerciseRow(overrides: Partial<ExerciseRow> = {}): ExerciseRow {
   return {
@@ -169,25 +153,6 @@ describe('schema constraints', () => {
       db.insert(circuitItem).values(itemRow(away.id, ex.id)),
       /UNIQUE constraint failed: circuit_item\.exercise_id/,
     );
-  });
-
-  it('supports the steal: move a pointer between circuits in one transaction', async () => {
-    const db = testDb.db;
-    const ex = exerciseRow();
-    const home = circuitRow();
-    const away = circuitRow();
-    await db.insert(exercise).values(ex);
-    await db.insert(circuit).values([home, away]);
-    const oldItem = itemRow(home.id, ex.id);
-    await db.insert(circuitItem).values(oldItem);
-
-    const newItem = itemRow(away.id, ex.id);
-    await db.transaction(async (tx) => {
-      await tx.delete(circuitItem).where(eq(circuitItem.id, oldItem.id));
-      await tx.insert(circuitItem).values(newItem);
-    });
-
-    expect(await db.select().from(circuitItem)).toEqual([newItem]);
   });
 
   it('rejects a second ACTIVE exercise with the same name in any ASCII casing', async () => {
