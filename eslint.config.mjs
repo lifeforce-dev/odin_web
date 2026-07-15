@@ -2,6 +2,17 @@ import { withVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting';
 import pluginVue from 'eslint-plugin-vue';
 
+// Shared between the src-wide wall and the ids.ts carve-out below, which
+// lifts only the crypto selectors: a flat-config block REPLACES a rule id
+// wholesale, so the carve-out must restate every ban it keeps.
+const returningBan = {
+  selector: 'CallExpression[callee.property.name="returning"]',
+  message:
+    '.returning() is broken on the device SQLite plugin; ' +
+    'use separate read/write statements in a transaction instead ' +
+    '(see src/db/proxy-statements.ts).',
+};
+
 export default withVueTs(
   {
     name: 'odin/ignores',
@@ -103,25 +114,50 @@ export default withVueTs(
     },
   },
   {
-    // The device SQLite plugin cannot execute RETURNING: it fakes it by
-    // re-querying with the statement's extracted WHERE text and an empty
-    // bind list, silently returning wrong rows (verified in plugin 8.1.0
-    // Android + iOS sources; see src/db/proxy-statements.ts). Both drivers
-    // also reject row-returning writes at runtime; this rule moves the
-    // failure to save time.
-    name: 'odin/no-returning',
+    // Banned APIs, enforced at save time (one block: flat config replaces,
+    // not merges, a rule id across blocks, so every no-restricted-syntax
+    // entry for src/** must live together).
+    //
+    // .returning(): the device SQLite plugin cannot execute RETURNING - it
+    // fakes it by re-querying with the statement's extracted WHERE text and
+    // an empty bind list, silently returning wrong rows (verified in plugin
+    // 8.1.0 Android + iOS sources; see src/db/proxy-statements.ts). Both
+    // drivers also reject row-returning writes at runtime.
+    //
+    // crypto.randomUUID / crypto.subtle: SECURE-CONTEXT-ONLY. They exist in
+    // Node tests and installed builds but are undefined when the WebView
+    // loads from the LAN dev server (http://<ip>:5173) - so the wall stays
+    // green while dev:phone breaks at runtime (found on device, task 02-04).
+    name: 'odin/banned-apis',
     files: ['src/**'],
     rules: {
       'no-restricted-syntax': [
         'error',
+        returningBan,
         {
-          selector: 'CallExpression[callee.property.name="returning"]',
+          selector: 'MemberExpression[object.name="crypto"][property.name="randomUUID"]',
           message:
-            '.returning() is broken on the device SQLite plugin; ' +
-            'use separate read/write statements in a transaction instead ' +
-            '(see src/db/proxy-statements.ts).',
+            'crypto.randomUUID is secure-context-only and undefined in the ' +
+            'phone dev loop (http origin); use newId() from db/ids.ts.',
+        },
+        {
+          selector: 'MemberExpression[object.name="crypto"][property.name="subtle"]',
+          message:
+            'crypto.subtle is secure-context-only and undefined in the ' +
+            'phone dev loop (http origin); it cannot be relied on here.',
         },
       ],
+    },
+  },
+  {
+    // ids.ts IS the sanctioned wrapper: it feature-detects randomUUID and
+    // carries the insecure-context fallback. Only the crypto selectors
+    // are lifted - the .returning() ban stays live, so a query sneaking
+    // into ids.ts still hits the plugin-defect wall.
+    name: 'odin/banned-apis-carveout',
+    files: ['src/db/ids.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', returningBan],
     },
   },
 );
