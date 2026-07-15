@@ -1,12 +1,25 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
+import ScreenNote from '@/components/ScreenNote.vue';
+import WorkbenchSlot from '@/components/WorkbenchSlot.vue';
+import { DEVICE_ONLY_NOTE } from '@/composables/useDb';
 import { useTheme } from '@/composables/useTheme';
+import { clampPrescriptionValue } from '@/composables/useWorkbench';
+import type { PrescriptionField } from '@/composables/useWorkbench';
 import { CONTRACT_COLOR_TOKENS, type ThemeName } from '@/styles/contract';
+import {
+  BORDER_TOKENS,
+  DISPLAY_TYPE_TOKENS,
+  MONO_TYPE_TOKENS,
+  SAFE_AREA_TOKENS,
+  SPACING_TOKENS,
+  TRACKING_TOKENS,
+} from '@/styles/geometry';
 
 // The living component gallery + token board (epic 01 task 5): every
 // token rendered live so a theme can be judged on one screen, on device
@@ -22,37 +35,33 @@ const selectedTheme = computed({
   },
 });
 
-// The color board renders straight from the contract, so a token added
-// there appears here automatically. Fonts/textures/glows each need a
-// bespoke sample (a glow is not a swatch) and geometry tokens have no TS
-// source, so those lists are curated here; completeness of the contract
-// itself is check:themes' job.
+// Every token board derives from a TS source: colors from the contract,
+// geometry from styles/geometry.ts (whose parity test diffs it against
+// structure.css), so a minted token appears here automatically or fails
+// the suite - hand-curated lists went stale once (--tracking-05) and are
+// gone. Fonts/textures/glows still get bespoke samples below (a glow is
+// not a swatch); those are exempted BY NAME in geometry.ts.
 const colorTokens = CONTRACT_COLOR_TOKENS;
+const monoTypeTokens = MONO_TYPE_TOKENS;
+const displayTypeTokens = DISPLAY_TYPE_TOKENS;
+const trackingTokens = TRACKING_TOKENS;
+const spacingTokens = SPACING_TOKENS;
+const borderTokens = BORDER_TOKENS;
 
-const monoTypeTokens = [
-  '--type-micro',
-  '--type-label',
-  '--type-body',
-  '--type-data',
-  '--type-data-lg',
-  '--type-data-xl',
-];
+// Live workbench-slot sample: the real shipped component with working
+// steppers, sharing the composable's clamp so the board exercises what
+// ships (UI Maintainability Contract: no hand-copies).
+const demoSlot = reactive({ sets: 3, restSeconds: 60, open: true, flash: false });
 
-const displayTypeTokens = ['--type-display-title', '--type-display-wordmark'];
+function adjustDemoSlot(field: PrescriptionField, delta: number): void {
+  demoSlot[field] = clampPrescriptionValue(field, demoSlot[field] + delta);
+}
 
-const trackingTokens = ['--tracking-1', '--tracking-2', '--tracking-3'];
-
-const spacingTokens = [
-  '--space-1',
-  '--space-2',
-  '--space-3',
-  '--space-4',
-  '--space-6',
-  '--space-8',
-  '--space-12',
-];
-
-const borderTokens = ['--hairline', '--rule', '--stamp'];
+async function replayFlash(): Promise<void> {
+  demoSlot.flash = false;
+  await nextTick();
+  demoSlot.flash = true;
+}
 
 // env() values only resolve when applied to a property, so each token is
 // measured through a hidden probe element.
@@ -63,12 +72,10 @@ onMounted(() => {
   probe.style.position = 'absolute';
   probe.style.visibility = 'hidden';
   document.body.append(probe);
-  safeAreaReadout.value = ['--safe-top', '--safe-bottom', '--safe-left', '--safe-right'].map(
-    (token) => {
-      probe.style.width = `var(${token})`;
-      return { token, resolved: getComputedStyle(probe).width };
-    },
-  );
+  safeAreaReadout.value = SAFE_AREA_TOKENS.map((token) => {
+    probe.style.width = `var(${token})`;
+    return { token, resolved: getComputedStyle(probe).width };
+  });
   probe.remove();
 });
 </script>
@@ -185,6 +192,12 @@ onMounted(() => {
         <h2 class="board-eyebrow">Glow recipes</h2>
         <div class="glow-cta-sample">--glow-cta</div>
         <p class="glow-display-sample">--glow-display-accent</p>
+        <div class="zone-armed-sample">--glow-zone-armed</div>
+        <div class="ghost-sample">--glow-drag-ghost</div>
+        <div class="well-sample">--shadow-well</div>
+        <p class="board-note">
+          --glow-flash and --glow-rest-value render live in the workbench-slot section below.
+        </p>
       </section>
 
       <section class="board-section">
@@ -204,6 +217,28 @@ onMounted(() => {
       <section class="board-section">
         <h2 class="board-eyebrow">Screen header</h2>
         <ScreenHeader title="Circuits" eyebrow="Rotation // Order" :back-to="{ name: 'gallery' }" />
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Screen note (plain / with action)</h2>
+        <ScreenNote>{{ DEVICE_ONLY_NOTE }}</ScreenNote>
+        <ScreenNote action="Retry">Couldn't load this circuit</ScreenNote>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Workbench slot (closed / open editor, live)</h2>
+        <WorkbenchSlot name="Lat Pulldown" :sets="4" :rest-seconds="90" />
+        <WorkbenchSlot
+          name="Cable Row"
+          :sets="demoSlot.sets"
+          :rest-seconds="demoSlot.restSeconds"
+          :open="demoSlot.open"
+          :flash="demoSlot.flash"
+          @toggle="demoSlot.open = !demoSlot.open"
+          @adjust="adjustDemoSlot"
+          @flash-end="demoSlot.flash = false"
+        />
+        <MenuButton @click="() => void replayFlash()">Replay flash-on-add</MenuButton>
       </section>
     </div>
 
@@ -455,6 +490,42 @@ onMounted(() => {
   color: var(--accent);
   text-shadow: var(--glow-display-accent);
   text-transform: uppercase;
+}
+
+.well-sample {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  font-size: var(--type-body);
+  color: var(--text-soft);
+  background: var(--bg);
+  border: var(--hairline) solid var(--border);
+  box-shadow: var(--shadow-well);
+}
+
+.zone-armed-sample {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  font-size: var(--type-body);
+  color: var(--text-soft);
+  border: var(--hairline) solid var(--border);
+  box-shadow: var(--glow-zone-armed);
+}
+
+.ghost-sample {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--type-body);
+  color: var(--text-soft);
+  background: var(--surface);
+  border: var(--hairline) solid var(--accent);
+  box-shadow: var(--glow-drag-ghost);
 }
 
 .safe-row__value {
