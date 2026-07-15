@@ -128,7 +128,10 @@ describe('export contract', () => {
       setLogs: [],
     };
 
-    expect(deserialize(serialize(buildExport(rows)))).toEqual(buildExport(rows));
+    // exportedAt pinned: two bare buildExport calls each stamp their own
+    // nowIso() and flake apart across a millisecond boundary.
+    const built = buildExport(rows, '2026-07-13T20:00:00.000Z');
+    expect(deserialize(serialize(built))).toEqual(built);
   });
 
   it('rejects non-JSON input', () => {
