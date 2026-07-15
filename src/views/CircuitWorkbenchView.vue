@@ -86,17 +86,22 @@ const displayRows = computed<SlotListRow[]>(() => {
   return rows;
 });
 
+// Midpoints come from LAYOUT geometry (offsetTop), never from
+// getBoundingClientRect: rects include the in-flight FLIP slide
+// transforms, so measuring mid-animation fed animating positions back
+// into the insertion test - the gap flapped and rows replayed their
+// slides at drag start. offsetTop ignores transforms, so every
+// measurement describes the settled layout the rows are sliding toward.
+// The rows' offsetParent is the zone itself (position: relative).
 function measureSlotMidpoints(draggedId: string): number[] {
   const zone = circuitZoneEl.value;
   if (!zone) {
     return [];
   }
+  const zoneTop = zone.getBoundingClientRect().top - zone.scrollTop;
   return [...zone.querySelectorAll<HTMLElement>('[data-slot-id]')]
     .filter((element) => element.dataset.slotId !== draggedId)
-    .map((element) => {
-      const rect = element.getBoundingClientRect();
-      return rect.top + rect.height / 2;
-    });
+    .map((element) => zoneTop + element.offsetTop + element.offsetHeight / 2);
 }
 
 // The gap-to-permutation math is orderAfterDrop (pure, pinned in Node);
@@ -129,21 +134,33 @@ async function startDrag(slot: CircuitSlot, event: PointerEvent): Promise<void> 
   // guard listens on document, so it must ignore other fingers lifting.
   openSlotId.value = null;
   let released = false;
+  // The finger keeps moving through the measurement tick with no session
+  // listening yet: begin() from the original event painted the ghost 1-2
+  // frames behind the finger (a visible pop at drag start on device), so
+  // the freshest move is carried across the gap.
+  let liveEvent = event;
   const onEarlyRelease = (releaseEvent: PointerEvent): void => {
     if (releaseEvent.pointerId === event.pointerId) {
       released = true;
     }
   };
+  const onEarlyMove = (moveEvent: PointerEvent): void => {
+    if (moveEvent.pointerId === event.pointerId) {
+      liveEvent = moveEvent;
+    }
+  };
   document.addEventListener('pointerup', onEarlyRelease);
   document.addEventListener('pointercancel', onEarlyRelease);
+  document.addEventListener('pointermove', onEarlyMove);
   await nextTick();
   document.removeEventListener('pointerup', onEarlyRelease);
   document.removeEventListener('pointercancel', onEarlyRelease);
+  document.removeEventListener('pointermove', onEarlyMove);
   const card = circuitZoneEl.value?.querySelector<HTMLElement>(`[data-slot-id="${slot.id}"]`);
   if (released || !card) {
     return;
   }
-  drag.begin(slot.id, event, card.getBoundingClientRect());
+  drag.begin(slot.id, liveEvent, card.getBoundingClientRect());
 }
 
 // The lifted card: the REAL slot component rendered full-size under the
@@ -244,12 +261,16 @@ const draggedSlot = computed(
       </ScreenNote>
     </div>
 
+    <!-- Positioned by transform, never left/top: the ghost follows every
+         pointermove, and a transform stays on the compositor while
+         left/top would re-run layout+paint per move (the on-device
+         symptom was the ghost flashing at stale positions at drag start
+         and release). -->
     <div
       v-if="draggedSlot"
       class="workbench__drag-ghost"
       :style="{
-        left: `${drag.state.ghostX}px`,
-        top: `${drag.state.ghostY}px`,
+        transform: `translate3d(${drag.state.ghostX}px, ${drag.state.ghostY}px, 0)`,
         width: `${drag.state.ghostWidth}px`,
       }"
     >
@@ -324,6 +345,24 @@ const draggedSlot = computed(
   transition: transform var(--motion-slide) ease;
 }
 
+/* Leaving rows vacate the flow IMMEDIATELY. TransitionGroup keeps a
+   removed element in the DOM for ~2 rAF frames even with no leave
+   animation declared (its leave pipeline is frame-based), and in-flow
+   that phantom row inflated the zone by one slot at drag start (armed
+   ring flashed around 4 rows for ~25ms) and at release (rows painted a
+   row too low, then snapped). Leave classes apply before first paint,
+   so absolute + transparent means the leaver never affects layout or
+   pixels. Both names: shift covers the grabbed card leaving at begin,
+   settle covers the gap leaving at drop. This is the documented
+   TransitionGroup "Move Transitions" pattern (absolutely-position
+   leaving items so FLIP moves stay smooth):
+   https://vuejs.org/guide/built-ins/transition-group.html#move-transitions */
+.slot-shift-leave-active,
+.slot-settle-leave-active {
+  position: absolute;
+  opacity: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .slot-shift-move {
     transition: none;
@@ -389,12 +428,18 @@ const draggedSlot = computed(
 }
 
 /* The in-flight card: content is the real WorkbenchSlot (its own chrome),
-   this wrapper only positions it and adds the lifted glow. */
+   this wrapper only positions it and adds the lifted glow. Anchored at
+   the viewport origin and moved by the inline transform; will-change
+   promotes it to its own compositor layer at mount so the first frames
+   do not repaint mid-gesture. */
 .workbench__drag-ghost {
   position: fixed;
+  top: 0;
+  left: 0;
   z-index: var(--z-ghost);
   pointer-events: none;
   box-shadow: var(--glow-drag-ghost);
   opacity: 0.94;
+  will-change: transform;
 }
 </style>
