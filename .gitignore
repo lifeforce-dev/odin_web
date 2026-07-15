@@ -11,9 +11,13 @@
 /character_designs/
 /new_designs/
 
-# Personal AI-agent tooling ports (Codex/Copilot prompt mirrors of the
-# ~/.claude skills); local scratch config, not shipped product code.
+# Personal AI-agent tooling ports (Codex/Copilot mirrors of the ~/.claude
+# skills); local scratch config, not shipped product code. The root
+# copilot-instructions.md stays committed as deliberate repo binding,
+# parallel to .claude/CLAUDE.md.
 /.github/prompts/
+/.github/instructions/
+/.github/skills/
 
 # Python caches and bytecode
 __pycache__/
