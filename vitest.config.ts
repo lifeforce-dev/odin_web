@@ -35,7 +35,9 @@ export default defineConfig({
         },
       },
       {
-        plugins: [vue()],
+        // sqlRawPlugin here too: composable/view tests run against the real
+        // DB double (db/test-db.ts), whose migration bundle imports .sql.
+        plugins: [vue(), sqlRawPlugin()],
         resolve: { alias },
         test: {
           name: 'components',
