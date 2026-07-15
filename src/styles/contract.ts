@@ -37,6 +37,10 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   '--accent-glow',
   '--lock',
   '--warning',
+  '--warning-glow',
+  // The floating alarm plate (the workbench's RELEASE TO REMOVE flag):
+  // an opaque danger-tinted surface, not a translucent accent wash.
+  '--surface-alarm',
   // Brand mark fills (OdinMark.vue): raven 1 (Huginn) and raven 2
   // (Muninn). Themable per skin; the carve color is not a theme choice
   // (it tracks the surface the mark sits on) so it stays out of the
@@ -55,7 +59,21 @@ export const CONTRACT_TEXTURE_TOKENS: readonly string[] = [
   '--texture-scanline',
 ];
 
-export const CONTRACT_GLOW_TOKENS: readonly string[] = ['--glow-cta', '--glow-display-accent'];
+// Light/shade recipes. EVERY glow/shadow recipe is a full theme token -
+// components never write shadow geometry inline (the design refs do, but
+// refs are visual spec only, never pattern authority - feature.md
+// decision 2026-07-13). The glow-ink color tokens (--accent-glow,
+// --warning-glow) are the one-edit knobs these recipes derive from.
+export const CONTRACT_GLOW_TOKENS: readonly string[] = [
+  '--glow-cta',
+  '--glow-display-accent',
+  // Workbench drag feedback + editor (task 02-04).
+  '--glow-zone-armed',
+  '--glow-flash',
+  '--glow-drag-ghost',
+  '--glow-rest-value',
+  '--shadow-well',
+];
 
 // Derived from the groups above, so a token added to a group is part of
 // the check automatically and the groups can never drift from the whole.

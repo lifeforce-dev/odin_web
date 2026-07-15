@@ -41,13 +41,29 @@
   --type-display-wordmark: clamp(56px, 16vw, 64px);
   --type-display-hero: clamp(96px, 30vw, 120px);
 
+  /* Display-face data readout (workbench stepper values): static, not
+     fluid - at this size the 320-vs-430 gain is invisible and integer
+     rendering wins. */
+  --type-display-value: 26px;
+
   /* Tracking (letter-spacing) ramp: static px like all geometry, one
      token per ref value so retracking a recipe is a one-line edit.
      Extend deliberately when a design ref uses a value with no matching
-     token (refs also carry 0.5px / 1.5px / 4px on unbuilt screens). */
+     token (refs also carry 1.5px / 4px on unbuilt screens). The -05 step
+     reads as the decimal: 05 = 0.5px, half a step below -1. */
+  --tracking-05: 0.5px;
   --tracking-1: 1px;
   --tracking-2: 2px;
   --tracking-3: 3px;
+
+  /* Motion durations (STYLEGUIDE motion policy): crisp functional motion,
+     one token per recipe so "make press feedback snappier" is a one-line
+     edit, never a grep across components. Press = touch feedback on
+     buttons and armed flags; slide = rows making room during a drag;
+     flash = the add-confirmation sweep. */
+  --motion-press: 0.14s;
+  --motion-slide: 0.15s;
+  --motion-flash: 0.9s;
 
   /* Safe areas: indirection tokens consumed only by AppShell. If the
      Android WebView needs JS-injected inset values, only these four
@@ -57,8 +73,11 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
-  /* Z-layers. The scanline overlay sits above everything and ignores
-     pointer events (STYLEGUIDE.md section 2). */
+  /* Z-layers. The scanline overlay sits above everything except the drag
+     ghost and ignores pointer events (STYLEGUIDE.md section 2; the ghost
+     rides above the scanlines per circuit-workbench.html). */
   --z-docked: 10;
+  --z-float: 50;
   --z-scanline: 9999;
+  --z-ghost: 10001;
 }

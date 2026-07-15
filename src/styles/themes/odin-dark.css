@@ -29,6 +29,9 @@
   --raw-red-glow: rgb(255 80 80 / 30%);
   --raw-green: #46e08a;
   --raw-amber: #ffba3a;
+  --raw-amber-glow: rgb(255 186 58 / 25%);
+  --raw-red-iron: #170c0c;
+  --raw-well-ink: rgb(0 0 0 / 60%);
   --raw-scanline-ink: rgb(0 0 0 / 16%);
 
   /* Gritty iron film-grain (STYLEGUIDE.md section 2), copied from the
@@ -50,6 +53,8 @@
   --accent-glow: var(--raw-red-glow);
   --lock: var(--raw-green);
   --warning: var(--raw-amber);
+  --warning-glow: var(--raw-amber-glow);
+  --surface-alarm: var(--raw-red-iron);
 
   /* Brand mark: twin ravens split by value, not hue (STYLEGUIDE brand
      lockup). Red stays scarce, so the mark never spends the accent. */
@@ -67,4 +72,12 @@
   );
   --glow-cta: inset 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow);
   --glow-display-accent: 0 0 44px var(--accent-glow);
+
+  /* Workbench drag feedback: one armed-zone recipe for BOTH drop zones
+     (the refs carried 22px/26px variants; one recipe, one edit). */
+  --glow-zone-armed: inset 0 0 0 1px var(--accent), inset 0 0 24px var(--accent-glow);
+  --glow-flash: inset 0 0 0 1px var(--accent), 0 0 18px var(--accent-glow);
+  --glow-drag-ghost: 0 0 18px var(--accent-glow);
+  --glow-rest-value: 0 0 12px var(--warning-glow);
+  --shadow-well: inset 0 2px 6px var(--raw-well-ink);
 }

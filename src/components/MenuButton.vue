@@ -39,7 +39,7 @@ defineSlots<{
   cursor: pointer;
   background: var(--surface);
   border: var(--hairline) solid var(--border);
-  transition: transform 0.14s;
+  transition: transform var(--motion-press);
 }
 
 .menu-button:active {
