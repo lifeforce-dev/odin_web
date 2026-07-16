@@ -10,7 +10,9 @@ import { getExerciseById } from '@/db/exercises';
 // Placeholder for the lift (workout-set) screen: holds the route
 // contract the start grid navigates against - an exerciseId param
 // resolved against the pool - until the real three-zone screen
-// replaces the body.
+// replaces the body. The swallowed read failure below is stub-only:
+// the real screen adopts useScreenLoad (failure gets a Retry note on
+// the glass), do not copy this load shape.
 
 const props = defineProps<{
   exerciseId: string;
