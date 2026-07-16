@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
+import ScreenNote from '@/components/ScreenNote.vue';
 import { useDb } from '@/composables/useDb';
+import { useScreenLoad } from '@/composables/useScreenLoad';
 import type { WorkoutStart } from '@/domain/workout';
 import { getWorkoutStart } from '@/domain/workout';
 
@@ -21,18 +23,16 @@ const db = useDb();
 // The workout CTA derives from persisted facts on every visit: an
 // in-flight session flips the label to Resume; nothing startable (no
 // circuit holds a workout, or no database in browser dev) disables it.
-// Manage Circuits never disables - it is the only way out of empty.
+// Manage Circuits never disables - it is the only way out of empty. A
+// failed read gets its own Retry note so it cannot masquerade as
+// "nothing startable".
 const workoutStart = ref<WorkoutStart | null>(null);
 
-onMounted(async () => {
+const { loadFailed, refresh } = useScreenLoad('home', async () => {
   if (!db) {
     return;
   }
-  try {
-    workoutStart.value = await getWorkoutStart(db);
-  } catch (error) {
-    console.error('[odin] home workout state load failed', error);
-  }
+  workoutStart.value = await getWorkoutStart(db);
 });
 
 const workoutLabel = computed(() => (workoutStart.value?.session ? 'Resume' : 'Start Workout'));
@@ -62,6 +62,14 @@ function openWorkout(): void {
           {{ workoutLabel }}
         </MenuButton>
       </nav>
+      <ScreenNote
+        v-if="loadFailed"
+        class="home__note"
+        action="Retry"
+        @action="() => void refresh()"
+      >
+        Couldn't load workout state
+      </ScreenNote>
     </div>
   </AppShell>
 </template>
@@ -115,5 +123,9 @@ function openWorkout(): void {
   display: grid;
   gap: var(--space-2);
   margin-top: var(--space-12);
+}
+
+.home__note {
+  margin-top: var(--space-4);
 }
 </style>

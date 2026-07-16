@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
@@ -7,6 +7,7 @@ import MenuButton from '@/components/MenuButton.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
+import { useScreenLoad } from '@/composables/useScreenLoad';
 import type { CircuitRow } from '@/db/schema';
 import {
   addExerciseToCircuit,
@@ -25,8 +26,13 @@ const router = useRouter();
 const db = useDb();
 
 const circuits = ref<CircuitRow[]>([]);
-const hasLoaded = ref(false);
-const loadFailed = ref(false);
+
+const { hasLoaded, loadFailed, refresh } = useScreenLoad('circuits', async () => {
+  if (!db) {
+    return;
+  }
+  circuits.value = await listActiveCircuits(db, 'workout');
+});
 
 const DEMO_CIRCUIT_NAME = 'Legs';
 const DEMO_WORKOUTS = [
@@ -34,25 +40,6 @@ const DEMO_WORKOUTS = [
   { name: 'Cable Row', prescription: { sets: 3, restSeconds: 60 } },
   { name: 'Cable Face Pull', prescription: { sets: 3, restSeconds: 45 } },
 ];
-
-async function refresh(): Promise<void> {
-  if (!db) {
-    return;
-  }
-  try {
-    circuits.value = await listActiveCircuits(db, 'workout');
-    hasLoaded.value = true;
-    loadFailed.value = false;
-  } catch (error) {
-    // A failed read must fail on the glass, not only in the log.
-    console.error('[odin] circuits load failed', error);
-    loadFailed.value = true;
-  }
-}
-
-onMounted(() => {
-  void refresh();
-});
 
 // Dev-only and only while the rotation is empty: seeding twice would
 // create a duplicate circuit whose adds then fail on the exclusivity

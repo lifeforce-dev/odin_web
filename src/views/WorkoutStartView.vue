@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
@@ -8,6 +8,7 @@ import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import TotalTime from '@/components/TotalTime.vue';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
+import { useScreenLoad } from '@/composables/useScreenLoad';
 import type { WorkoutStart } from '@/domain/workout';
 import { getWorkoutStart } from '@/domain/workout';
 
@@ -21,26 +22,12 @@ const router = useRouter();
 const db = useDb();
 
 const start = ref<WorkoutStart | null>(null);
-const hasLoaded = ref(false);
-const loadFailed = ref(false);
 
-async function refresh(): Promise<void> {
+const { hasLoaded, loadFailed, refresh } = useScreenLoad('workout start', async () => {
   if (!db) {
     return;
   }
-  try {
-    start.value = await getWorkoutStart(db);
-    hasLoaded.value = true;
-    loadFailed.value = false;
-  } catch (error) {
-    // A failed read must fail on the glass, not only in the log.
-    console.error('[odin] workout start load failed', error);
-    loadFailed.value = true;
-  }
-}
-
-onMounted(() => {
-  void refresh();
+  start.value = await getWorkoutStart(db);
 });
 
 function openExercise(exerciseId: string): void {
@@ -86,6 +73,8 @@ function openExercise(exerciseId: string): void {
   padding: var(--space-6) var(--space-4) 0;
 }
 
+/* Moves together with the gallery's .board-card-grid, which renders
+   the tiles at this shipped shape on the component board. */
 .workout-start__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
