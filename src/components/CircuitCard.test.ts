@@ -19,6 +19,17 @@ describe('CircuitCard', () => {
     expect(wrapper.emitted('select')).toHaveLength(1);
   });
 
+  it('stays tappable while in progress: done, and only done, is inert', async () => {
+    const wrapper = mount(CircuitCard, {
+      props: { name: 'Lat Pulldown', sets: 4, loggedSets: 2, progress: 'in-progress' as const },
+    });
+
+    await wrapper.trigger('click');
+
+    expect(wrapper.attributes('disabled')).toBeUndefined();
+    expect(wrapper.emitted('select')).toHaveLength(1);
+  });
+
   it('shows the logged fraction while in progress', () => {
     const wrapper = mount(CircuitCard, {
       props: { name: 'Lat Pulldown', sets: 4, loggedSets: 2, progress: 'in-progress' as const },
@@ -37,6 +48,8 @@ describe('CircuitCard', () => {
     expect(wrapper.attributes('disabled')).toBeDefined();
     expect(wrapper.emitted('select')).toBeUndefined();
     expect(wrapper.text()).toContain('Done');
+    // The stamp is aria-hidden; the state must be spoken instead.
+    expect(wrapper.attributes('aria-label')).toBe('Lat Pulldown, done');
   });
 
   it('shows no stamp before the exercise is done', () => {
