@@ -29,6 +29,21 @@ const router = createRouter({
       props: true,
     },
     {
+      // Workout flow. The circuit is auto-selected (up-next rule in
+      // domain/workout.ts), so the start route carries no params; the
+      // set route keys to the exercise, everything else derives from
+      // session facts.
+      path: '/workout',
+      name: 'workout-start',
+      component: () => import('@/views/WorkoutStartView.vue'),
+    },
+    {
+      path: '/workout/:exerciseId',
+      name: 'workout-set',
+      component: () => import('@/views/WorkoutSetView.vue'),
+      props: true,
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue'),

@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
+import { useDb } from '@/composables/useDb';
+import type { WorkoutStart } from '@/domain/workout';
+import { getWorkoutStart } from '@/domain/workout';
 
 // Home screen. The lockup puts the mark left of the ODIN wordmark on
 // one axis, a hairline rule between them like a machined insignia
@@ -12,9 +16,33 @@ import OdinMark from '@/components/OdinMark.vue';
 // scanlines.
 
 const router = useRouter();
+const db = useDb();
+
+// The workout CTA derives from persisted facts on every visit: an
+// in-flight session flips the label to Resume; nothing startable (no
+// circuit holds a workout, or no database in browser dev) disables it.
+// Manage Circuits never disables - it is the only way out of empty.
+const workoutStart = ref<WorkoutStart | null>(null);
+
+onMounted(async () => {
+  if (!db) {
+    return;
+  }
+  try {
+    workoutStart.value = await getWorkoutStart(db);
+  } catch (error) {
+    console.error('[odin] home workout state load failed', error);
+  }
+});
+
+const workoutLabel = computed(() => (workoutStart.value?.session ? 'Resume' : 'Start Workout'));
 
 function openCircuits(): void {
   void router.push({ name: 'circuits' });
+}
+
+function openWorkout(): void {
+  void router.push({ name: 'workout-start' });
 }
 </script>
 
@@ -30,6 +58,9 @@ function openCircuits(): void {
       </div>
       <nav class="home__menu">
         <MenuButton @click="openCircuits">Manage Circuits</MenuButton>
+        <MenuButton primary :disabled="workoutStart === null" @click="openWorkout">
+          {{ workoutLabel }}
+        </MenuButton>
       </nav>
     </div>
   </AppShell>
