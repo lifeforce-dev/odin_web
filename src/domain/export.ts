@@ -10,7 +10,9 @@ export const EXPORT_FORMAT = 'odin-export';
 
 // The DB schema version the rows conform to. The Phase 2 importer branches on
 // it; bump it in the same change as any migration that alters an exported shape.
-export const EXPORT_SCHEMA_VERSION = 1;
+// v2 (2026-07-15): prescription moved onto the exercise row (sets,
+// restSeconds); circuit_item became a pure association and lost both.
+export const EXPORT_SCHEMA_VERSION = 2;
 
 export interface ExportRows {
   exercises: ExerciseRow[];

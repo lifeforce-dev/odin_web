@@ -18,6 +18,8 @@ function exerciseRow(overrides: Partial<ExerciseRow> = {}): ExerciseRow {
     id: newId(),
     kind: 'workout',
     name: `Exercise ${newId()}`,
+    sets: 3,
+    restSeconds: 60,
     createdAt: nowIso(),
     archivedAt: null,
     ...overrides,
@@ -37,7 +39,7 @@ function circuitRow(overrides: Partial<CircuitRow> = {}): CircuitRow {
 }
 
 function itemRow(circuitId: string, exerciseId: string): CircuitItemRow {
-  return { id: newId(), circuitId, exerciseId, position: 0, sets: 3, restSeconds: 60 };
+  return { id: newId(), circuitId, exerciseId, position: 0 };
 }
 
 function sessionRow(circuitId: string): SessionRow {

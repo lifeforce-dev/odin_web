@@ -36,6 +36,8 @@ const exerciseArb: fc.Arbitrary<ExerciseRow> = fc.record({
   id: fc.uuid(),
   kind,
   name,
+  sets: fc.integer({ min: 1, max: 99 }),
+  restSeconds: fc.integer({ min: 0, max: 3600 }),
   createdAt: isoDate,
   archivedAt: fc.option(isoDate, { nil: null }),
 });
@@ -54,8 +56,6 @@ const circuitItemArb: fc.Arbitrary<CircuitItemRow> = fc.record({
   circuitId: fc.uuid(),
   exerciseId: fc.uuid(),
   position: fc.integer({ min: 0, max: 99 }),
-  sets: fc.integer({ min: 1, max: 99 }),
-  restSeconds: fc.integer({ min: 0, max: 3600 }),
 });
 
 const sessionArb: fc.Arbitrary<SessionRow> = fc.record({
@@ -101,7 +101,7 @@ describe('export contract', () => {
 
     expect(data).toEqual({
       format: 'odin-export',
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: '2026-07-11T20:00:00.000Z',
       exercises: [],
       circuits: [],
@@ -118,6 +118,8 @@ describe('export contract', () => {
           id: '1c7cbe5f-6da8-40a5-a2a5-4b0b9ee2a111',
           kind: 'workout',
           name: 'Pushups // Über 💪',
+          sets: 3,
+          restSeconds: 60,
           createdAt: '2026-07-11T20:00:00.000Z',
           archivedAt: null,
         },
@@ -145,7 +147,7 @@ describe('export contract', () => {
   });
 
   it('rejects a schemaVersion this app does not understand', () => {
-    const data = { ...buildExport(emptyRows()), schemaVersion: 2 };
+    const data = { ...buildExport(emptyRows()), schemaVersion: 99 };
     expect(() => deserialize(JSON.stringify(data))).toThrow('unsupported export schemaVersion');
   });
 

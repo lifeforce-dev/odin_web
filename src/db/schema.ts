@@ -17,6 +17,10 @@ import {
 // Indexes encode access shape (screen-by-screen table in the spec), not perf
 // necessity.
 
+// A fresh workout's prescription; the storage default for the columns
+// below and the value domain/builder re-exports as DEFAULT_PRESCRIPTION.
+export const DEFAULT_PRESCRIPTION = { sets: 3, restSeconds: 60 } as const;
+
 // The exercise pool: one exercise = one durable identity = ONE history
 // stream, no matter which circuit points at it.
 export const exercise = sqliteTable(
@@ -25,6 +29,14 @@ export const exercise = sqliteTable(
     id: text('id').primaryKey(),
     kind: text('kind', { enum: ['workout', 'stretch'] }).notNull(),
     name: text('name').notNull(),
+    // The workout's own prescription (2026-07-15 amendment): sets/rest
+    // are properties of the identity, not the slot - membership is
+    // exclusive (one circuit per exercise), so a per-slot copy could
+    // never legitimately diverge, and the workout is editable wherever
+    // it sits. No reps target, by design: reps exist only as logged
+    // actuals.
+    sets: integer('sets').notNull().default(DEFAULT_PRESCRIPTION.sets),
+    restSeconds: integer('rest_seconds').notNull().default(DEFAULT_PRESCRIPTION.restSeconds),
     createdAt: text('created_at').notNull(),
     // Non-null means soft-deleted. Exercises soft-delete because set_log rows
     // reference them; hard delete is only legal when nothing references the row.
@@ -68,8 +80,9 @@ export const circuit = sqliteTable(
   ],
 );
 
-// A slot: circuit -> exercise pointer plus the per-slot prescription.
-// No reps target, by design: reps exist only as logged actuals.
+// A slot: a pure circuit -> exercise association plus its position.
+// The prescription lives on the exercise itself (2026-07-15 amendment);
+// this row only says "this circuit, this order".
 export const circuitItem = sqliteTable(
   'circuit_item',
   {
@@ -83,8 +96,6 @@ export const circuitItem = sqliteTable(
       .notNull()
       .references(() => exercise.id, { onDelete: 'restrict' }),
     position: integer('position').notNull(),
-    sets: integer('sets').notNull(),
-    restSeconds: integer('rest_seconds').notNull(),
   },
   (table) => [
     // Exclusive membership (2026-07-12 amendment): one circuit per exercise,

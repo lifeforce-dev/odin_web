@@ -2,7 +2,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import type { DbHandle } from './client';
 import { newId } from './ids';
-import { exercise } from './schema';
+import { DEFAULT_PRESCRIPTION, exercise } from './schema';
 import type { ExerciseRow } from './schema';
 import { nowIso } from './timestamps';
 
@@ -13,9 +13,9 @@ export interface NewExercise {
   name: string;
 }
 
-// Stores the user's casing; surrounding whitespace is never data.
-// (Find-or-create matching on the normalized name arrives with the
-// builder screens, epic 02.)
+// Stores the user's casing; surrounding whitespace is never data. A new
+// exercise starts on the default prescription (sets/rest live on the
+// identity, 2026-07-15 amendment) and gets edited in place from there.
 export async function createExercise(
   db: DbHandle,
   input: NewExercise,
@@ -25,6 +25,8 @@ export async function createExercise(
     id: newId(),
     kind: input.kind,
     name: input.name.trim(),
+    sets: DEFAULT_PRESCRIPTION.sets,
+    restSeconds: DEFAULT_PRESCRIPTION.restSeconds,
     createdAt,
     archivedAt: null,
   };
