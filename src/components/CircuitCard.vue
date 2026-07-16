@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 import type { ExerciseProgress } from '@/domain/workout';
 
 // The styleguide's circuit card: one exercise tile on the workout
@@ -30,6 +32,18 @@ function handleSelect(): void {
     emit('select');
   }
 }
+
+// The DONE stamp and the fraction styling are aria-hidden visuals, so
+// assistive tech gets the progress spoken here instead.
+const ariaLabel = computed(() => {
+  if (props.progress === 'done') {
+    return `${props.name}, done`;
+  }
+  if (props.progress === 'in-progress') {
+    return `${props.name}, ${props.loggedSets} of ${props.sets} sets logged`;
+  }
+  return undefined;
+});
 </script>
 
 <template>
@@ -41,6 +55,7 @@ function handleSelect(): void {
       'circuit-card--done': progress === 'done',
     }"
     :disabled="progress === 'done'"
+    :aria-label="ariaLabel"
     @click="handleSelect"
   >
     <span
