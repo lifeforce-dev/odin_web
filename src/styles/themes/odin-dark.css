@@ -31,6 +31,7 @@
   --raw-amber: #ffba3a;
   --raw-amber-glow: rgb(255 186 58 / 25%);
   --raw-red-iron: #170c0c;
+  --raw-green-iron: #1f2a22;
   --raw-well-ink: rgb(0 0 0 / 60%);
   --raw-scanline-ink: rgb(0 0 0 / 16%);
   --raw-white-glow: rgb(242 242 242 / 50%);
@@ -52,6 +53,7 @@
   --accent-soft: var(--raw-red-soft);
   --accent-glow: var(--raw-red-glow);
   --lock: var(--raw-green);
+  --border-lock: var(--raw-green-iron);
   --warning: var(--raw-amber);
   --warning-glow: var(--raw-amber-glow);
   --surface-alarm: var(--raw-red-iron);

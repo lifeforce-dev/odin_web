@@ -36,6 +36,9 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   '--accent-soft',
   '--accent-glow',
   '--lock',
+  // The done card's recede border: lock-tinted iron, quiet on purpose
+  // (the DONE stamp is the only element that reads).
+  '--border-lock',
   '--warning',
   '--warning-glow',
   // The floating alarm plate (the workbench's RELEASE TO REMOVE flag):

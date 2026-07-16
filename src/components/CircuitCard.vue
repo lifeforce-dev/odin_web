@@ -63,6 +63,14 @@ function handleSelect(): void {
 
 <style scoped>
 .circuit-card {
+  /* The registration reticle's knobs: the whole four-corner recipe
+     hangs off these (same idiom as LastCircuitData's --reg-mark), and
+     the Lock On press retunes them in one place below. */
+  --tick-size: var(--space-2);
+  --tick-inset: var(--space-1);
+  --tick-weight: var(--hairline);
+  --tick-ink: var(--border-strong);
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -80,42 +88,45 @@ function handleSelect(): void {
 }
 
 /* Registration reticle: four corner ticks that read as a targeting
-   frame at rest and lock on under the finger. */
+   frame at rest and lock on under the finger. The zeroed border
+   carries style + ink for every side, so the corner rules set widths
+   only - a border SHORTHAND here would silently reset the ink to
+   currentcolor. */
 .circuit-card__tick {
   position: absolute;
-  width: var(--space-2);
-  height: var(--space-2);
+  width: var(--tick-size);
+  height: var(--tick-size);
   pointer-events: none;
-  border-color: var(--border-strong);
+  border: 0 solid var(--tick-ink);
   transition: all var(--motion-press);
 }
 
 .circuit-card__tick--tl {
-  top: var(--space-1);
-  left: var(--space-1);
-  border-top: var(--hairline) solid;
-  border-left: var(--hairline) solid;
+  top: var(--tick-inset);
+  left: var(--tick-inset);
+  border-top-width: var(--tick-weight);
+  border-left-width: var(--tick-weight);
 }
 
 .circuit-card__tick--tr {
-  top: var(--space-1);
-  right: var(--space-1);
-  border-top: var(--hairline) solid;
-  border-right: var(--hairline) solid;
+  top: var(--tick-inset);
+  right: var(--tick-inset);
+  border-top-width: var(--tick-weight);
+  border-right-width: var(--tick-weight);
 }
 
 .circuit-card__tick--bl {
-  bottom: var(--space-1);
-  left: var(--space-1);
-  border-bottom: var(--hairline) solid;
-  border-left: var(--hairline) solid;
+  bottom: var(--tick-inset);
+  left: var(--tick-inset);
+  border-bottom-width: var(--tick-weight);
+  border-left-width: var(--tick-weight);
 }
 
 .circuit-card__tick--br {
-  bottom: var(--space-1);
-  right: var(--space-1);
-  border-bottom: var(--hairline) solid;
-  border-right: var(--hairline) solid;
+  bottom: var(--tick-inset);
+  right: var(--tick-inset);
+  border-bottom-width: var(--tick-weight);
+  border-right-width: var(--tick-weight);
 }
 
 .circuit-card__name {
@@ -155,7 +166,7 @@ function handleSelect(): void {
    presses.) */
 .circuit-card--done {
   cursor: default;
-  border-color: var(--border);
+  border-color: var(--border-lock);
 }
 
 .circuit-card--done .circuit-card__tick {
@@ -168,37 +179,16 @@ function handleSelect(): void {
 }
 
 /* Lock On: ticks snap inward, thicken, and go accent while an inset
-   glow lights the card. No scale - the reticle is the press. */
+   glow lights the card. No scale - the reticle is the press. The tick
+   knobs cascade into the corner rules, so the press IS this retune. */
 .circuit-card:active {
+  --tick-size: var(--space-3);
+  --tick-inset: var(--space-2);
+  --tick-weight: var(--rule);
+  --tick-ink: var(--accent);
+
   border-color: var(--accent);
   box-shadow: var(--glow-lock-on);
-}
-
-.circuit-card:active .circuit-card__tick {
-  width: var(--space-3);
-  height: var(--space-3);
-  border-color: var(--accent);
-  border-width: var(--rule);
-}
-
-.circuit-card:active .circuit-card__tick--tl {
-  top: var(--space-2);
-  left: var(--space-2);
-}
-
-.circuit-card:active .circuit-card__tick--tr {
-  top: var(--space-2);
-  right: var(--space-2);
-}
-
-.circuit-card:active .circuit-card__tick--bl {
-  bottom: var(--space-2);
-  left: var(--space-2);
-}
-
-.circuit-card:active .circuit-card__tick--br {
-  bottom: var(--space-2);
-  right: var(--space-2);
 }
 
 .circuit-card__stamp {

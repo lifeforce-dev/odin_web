@@ -69,7 +69,8 @@
   --rack-index: 34px;
 
   /* The exercise-select tile's floor: keeps a one-line card reading as
-     a chunky set button instead of collapsing to its text height. */
+     a chunky set button instead of collapsing to its text height. The
+     design ref draws 94px; shipped rounds up to the 8px rhythm. */
   --circuit-card-min: 96px;
 
   /* Verdict-notice leading: the one line-height uppercase micro notices

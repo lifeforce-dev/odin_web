@@ -39,7 +39,9 @@ withDefaults(
 <style scoped>
 .last-circuit {
   /* Registration-mark size and the divider's height: local knobs, same
-     idiom as the pool group header's 7px chip. */
+     idiom as the pool group header's 7px chip. The divider is sized
+     against the --type-display-stat numerals (40px + breathing room);
+     retune them together. */
   --reg-mark: 7px;
   --divider-height: 42px;
 
@@ -49,28 +51,31 @@ withDefaults(
   border: var(--hairline) solid var(--border);
 }
 
-/* Redline registration marks, opposite corners. */
+/* Redline registration marks, opposite corners. The zeroed border
+   carries style + ink for every side, so the corner rules set widths
+   only - a border SHORTHAND here would silently reset the ink to
+   currentcolor. */
 .last-circuit::before,
 .last-circuit::after {
   position: absolute;
   width: var(--reg-mark);
   height: var(--reg-mark);
   content: '';
-  border-color: var(--border-strong);
+  border: 0 solid var(--border-strong);
 }
 
 .last-circuit::before {
   top: var(--space-1);
   right: var(--space-1);
-  border-top: var(--hairline) solid;
-  border-right: var(--hairline) solid;
+  border-top-width: var(--hairline);
+  border-right-width: var(--hairline);
 }
 
 .last-circuit::after {
   bottom: var(--space-1);
   left: var(--space-1);
-  border-bottom: var(--hairline) solid;
-  border-left: var(--hairline) solid;
+  border-bottom-width: var(--hairline);
+  border-left-width: var(--hairline);
 }
 
 .last-circuit__eyebrow {
