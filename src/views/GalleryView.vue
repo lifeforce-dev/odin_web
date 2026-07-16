@@ -4,9 +4,12 @@ import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import AppShell from '@/components/AppShell.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
+import PoolCreateRow from '@/components/PoolCreateRow.vue';
+import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
+import PoolGroupHeader from '@/components/PoolGroupHeader.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
-import WorkbenchSlot from '@/components/WorkbenchSlot.vue';
+import WorkoutCard from '@/components/WorkoutCard.vue';
 import { DEVICE_ONLY_NOTE } from '@/composables/useDb';
 import { useTheme } from '@/composables/useTheme';
 import { clampPrescriptionValue } from '@/composables/useWorkbench';
@@ -48,20 +51,33 @@ const trackingTokens = TRACKING_TOKENS;
 const spacingTokens = SPACING_TOKENS;
 const borderTokens = BORDER_TOKENS;
 
-// Live workbench-slot sample: the real shipped component with working
+// Live workout-card sample: the real shipped component with working
 // steppers, sharing the composable's clamp so the board exercises what
-// ships (UI Maintainability Contract: no hand-copies).
-const demoSlot = reactive({ sets: 3, restSeconds: 60, open: true, flash: false });
+// ships (UI Maintainability Contract: no hand-copies). One control for
+// both zones; the pool placement adds the + chip.
+const demoCard = reactive({
+  name: 'Cable Row',
+  sets: 3,
+  restSeconds: 60,
+  open: true,
+  flash: false,
+});
 
-function adjustDemoSlot(field: PrescriptionField, delta: number): void {
-  demoSlot[field] = clampPrescriptionValue(field, demoSlot[field] + delta);
+function adjustDemoCard(field: PrescriptionField, delta: number): void {
+  demoCard[field] = clampPrescriptionValue(field, demoCard[field] + delta);
 }
 
 async function replayFlash(): Promise<void> {
-  demoSlot.flash = false;
+  demoCard.flash = false;
   await nextTick();
-  demoSlot.flash = true;
+  demoCard.flash = true;
 }
+
+// Live pool samples: steal-strip toggle and inline create; emits echo
+// below the rows so every path is visibly exercised.
+const demoStealOpen = ref(false);
+const demoPoolEvent = ref<string | null>(null);
+const demoCreatedName = ref<string | null>(null);
 
 // env() values only resolve when applied to a property, so each token is
 // measured through a hidden probe element.
@@ -196,7 +212,8 @@ onMounted(() => {
         <div class="ghost-sample">--glow-drag-ghost</div>
         <div class="well-sample">--shadow-well</div>
         <p class="board-note">
-          --glow-flash and --glow-rest-value render live in the workbench-slot section below.
+          --glow-flash and --glow-rest-value render live in the workout-card section below;
+          --glow-group-mark on the pool group headers.
         </p>
       </section>
 
@@ -226,19 +243,44 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Workbench slot (closed / open editor, live)</h2>
-        <WorkbenchSlot name="Lat Pulldown" :sets="4" :rest-seconds="90" />
-        <WorkbenchSlot
-          name="Cable Row"
-          :sets="demoSlot.sets"
-          :rest-seconds="demoSlot.restSeconds"
-          :open="demoSlot.open"
-          :flash="demoSlot.flash"
-          @toggle="demoSlot.open = !demoSlot.open"
-          @adjust="adjustDemoSlot"
-          @flash-end="demoSlot.flash = false"
+        <h2 class="board-eyebrow">Workout card (circuit / pool placement, live)</h2>
+        <WorkoutCard name="Lat Pulldown" :sets="4" :rest-seconds="90" addable open />
+        <WorkoutCard
+          :name="demoCard.name"
+          :sets="demoCard.sets"
+          :rest-seconds="demoCard.restSeconds"
+          removable
+          :open="demoCard.open"
+          :flash="demoCard.flash"
+          @toggle="demoCard.open = !demoCard.open"
+          @adjust="adjustDemoCard"
+          @rename="(name) => (demoCard.name = name)"
+          @flash-end="demoCard.flash = false"
         />
+        <p class="board-note">
+          One control, both zones: closed they are the same card, and the fold carries the one
+          action the placement earns - ADD TO CIRCUIT in the pool (above), REMOVE FROM CIRCUIT in a
+          circuit (live below). Press-and-hold the name to rename.
+        </p>
         <MenuButton @click="() => void replayFlash()">Replay flash-on-add</MenuButton>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Pool chrome (headers / steal strip / inline create, live)</h2>
+        <PoolGroupHeader label="Available" variant="available" />
+        <PoolCreateRow @create="(name) => (demoCreatedName = name)" />
+        <p v-if="demoCreatedName" class="board-note">create emitted: {{ demoCreatedName }}</p>
+        <PoolGroupHeader label="In Other Circuits" variant="elsewhere" />
+        <PoolElsewhereRow
+          name="Pushups"
+          owner="Upper Body"
+          :open="demoStealOpen"
+          @toggle="demoStealOpen = !demoStealOpen"
+          @close="demoStealOpen = false"
+          @steal="demoStealOpen = false"
+          @drag-start="demoPoolEvent = 'drag-start emitted'"
+        />
+        <p v-if="demoPoolEvent" class="board-note">{{ demoPoolEvent }}</p>
       </section>
     </div>
 
