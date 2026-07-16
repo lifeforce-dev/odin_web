@@ -13,6 +13,7 @@ import {
   createCircuit,
   findOrCreateExercise,
   listActiveCircuits,
+  setPrescription,
 } from '@/domain/builder';
 
 // The rotation list, minimally real (task 02-04): actual circuits from
@@ -72,7 +73,9 @@ async function seedDemoCircuit(): Promise<void> {
     const circuit = await createCircuit(db, { kind: 'workout', name: DEMO_CIRCUIT_NAME });
     for (const workout of DEMO_WORKOUTS) {
       const exercise = await findOrCreateExercise(db, 'workout', workout.name);
-      await addExerciseToCircuit(db, circuit.id, exercise.id, workout.prescription);
+      // Prescription lives on the workout itself (2026-07-15 amendment).
+      await setPrescription(db, exercise.id, workout.prescription);
+      await addExerciseToCircuit(db, circuit.id, exercise.id);
     }
   } catch (error) {
     console.error('[odin] demo seed failed', error);

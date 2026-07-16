@@ -46,10 +46,13 @@ export interface Prescription {
   restSeconds: number;
 }
 
-// Canonical workbench default for a fresh slot (STYLEGUIDE section 9). Both
-// add and steal re-default rather than copying a prior prescription; the
-// copy-most-recent idea was considered and dropped at implementation time.
-export const DEFAULT_PRESCRIPTION: Prescription = { sets: 3, restSeconds: 60 };
+// A fresh workout's starting prescription. The value source is the
+// schema (it is the columns' storage default); re-exported here because
+// the UI thinks in domain terms. Sets/rest belong to the WORKOUT
+// (2026-07-15 amendment): moving it between circuits carries them, and
+// it is editable wherever it sits - the 02-03 "re-default on add and
+// steal" rule is superseded.
+export { DEFAULT_PRESCRIPTION } from '@/db/schema';
 
 function requireValidName(name: string): string {
   const trimmed = name.trim();
@@ -236,9 +239,57 @@ export async function findOrCreateExercise(
   });
 }
 
+// The pool tray's rename. Returns false when the row is missing or
+// archived, mirroring renameCircuit's contract. A collision with another
+// active name is NOT pre-checked: the active-name unique index is the
+// rule, and the violation stays a DrizzleQueryError with the reason on
+// error.cause (01-04 decision).
+export async function renameExercise(db: DbHandle, id: string, name: string): Promise<boolean> {
+  const trimmed = requireValidName(name);
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ archivedAt: exercise.archivedAt })
+      .from(exercise)
+      .where(eq(exercise.id, id))
+      .get();
+    if (!existing || existing.archivedAt !== null) {
+      return false;
+    }
+    await tx.update(exercise).set({ name: trimmed }).where(eq(exercise.id, id));
+    return true;
+  });
+}
+
+// The drag-to-trash delete: the workout disappears entirely, from
+// wherever it was. One transaction frees its slot (if a circuit holds
+// it) and archives the identity - set_log history keeps referencing it,
+// and the active-name index frees the name for reuse. Deliberately NOT
+// guarded against held exercises: trashing is an explicit, whole-card
+// gesture, and leaving the slot behind would strand a pointer at an
+// archived identity. Returns false when missing/already archived.
+export async function trashExercise(
+  db: DbHandle,
+  exerciseId: string,
+  archivedAt = nowIso(),
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const pooled = await tx.select().from(exercise).where(eq(exercise.id, exerciseId)).get();
+    if (!pooled || pooled.archivedAt !== null) {
+      return false;
+    }
+    await tx.delete(circuitItem).where(eq(circuitItem.exerciseId, exerciseId));
+    await tx.update(exercise).set({ archivedAt }).where(eq(exercise.id, exerciseId));
+    return true;
+  });
+}
+
+// Available entries carry their prescription: the pool card is the same
+// editable control as the circuit's (2026-07-15 amendment).
 export interface PoolAvailableEntry {
   exerciseId: string;
   name: string;
+  sets: number;
+  restSeconds: number;
 }
 
 export interface PoolElsewhereEntry {
@@ -261,7 +312,12 @@ export interface PoolGroups {
 export async function getPool(db: DbHandle, circuitId: string): Promise<PoolGroups> {
   const viewing = await requireActiveCircuit(db, circuitId);
   const available = await db
-    .select({ exerciseId: exercise.id, name: exercise.name })
+    .select({
+      exerciseId: exercise.id,
+      name: exercise.name,
+      sets: exercise.sets,
+      restSeconds: exercise.restSeconds,
+    })
     .from(exercise)
     .where(
       and(
@@ -313,9 +369,11 @@ export interface CircuitSlot {
   restSeconds: number;
 }
 
-// The circuit zone's slot list. Selected bare column names stay distinct
-// (id, exercise_id, name, position, rest_seconds, sets) because the plugin's
-// object rows collapse same-named result columns (src/db/proxy-rows.ts).
+// The circuit zone's slot list; sets/rest read from the exercise (the
+// slot is a pure association). Selected bare column names stay distinct
+// (id, exercise_id, name, position, sets, rest_seconds) because the
+// plugin's object rows collapse same-named result columns
+// (src/db/proxy-rows.ts).
 export async function listCircuitSlots(db: DbHandle, circuitId: string): Promise<CircuitSlot[]> {
   return db
     .select({
@@ -323,8 +381,8 @@ export async function listCircuitSlots(db: DbHandle, circuitId: string): Promise
       exerciseId: circuitItem.exerciseId,
       exerciseName: exercise.name,
       position: circuitItem.position,
-      sets: circuitItem.sets,
-      restSeconds: circuitItem.restSeconds,
+      sets: exercise.sets,
+      restSeconds: exercise.restSeconds,
     })
     .from(circuitItem)
     .innerJoin(exercise, eq(exercise.id, circuitItem.exerciseId))
@@ -332,18 +390,17 @@ export async function listCircuitSlots(db: DbHandle, circuitId: string): Promise
     .orderBy(circuitItem.position);
 }
 
-// Adds an AVAILABLE exercise to the end of the circuit. There is no
-// held-elsewhere pre-check on purpose: the DB's UNIQUE(exercise_id) IS the
-// duplicate rule, and adding an exercise some circuit already holds fails
-// loudly as a constraint violation (reason on error.cause). Moving a held
-// exercise is stealExercise.
+// Adds an AVAILABLE exercise to the end of the circuit: a pure
+// association - the workout brings its own prescription with it. There
+// is no held-elsewhere pre-check on purpose: the DB's UNIQUE(exercise_id)
+// IS the duplicate rule, and adding an exercise some circuit already
+// holds fails loudly as a constraint violation (reason on error.cause).
+// Moving a held exercise is stealExercise.
 export async function addExerciseToCircuit(
   db: DbHandle,
   circuitId: string,
   exerciseId: string,
-  prescription: Prescription = DEFAULT_PRESCRIPTION,
 ): Promise<CircuitItemRow> {
-  requireValidPrescription(prescription);
   return db.transaction(async (tx) => {
     const target = await requireActiveCircuit(tx, circuitId);
     const pooled = await requireActiveExercise(tx, exerciseId);
@@ -353,8 +410,6 @@ export async function addExerciseToCircuit(
       circuitId,
       exerciseId,
       position: await nextPosition(tx, circuitId),
-      sets: prescription.sets,
-      restSeconds: prescription.restSeconds,
     };
     await tx.insert(circuitItem).values(row);
     return row;
@@ -380,21 +435,27 @@ export async function removeCircuitItem(db: DbHandle, itemId: string): Promise<b
   });
 }
 
-// The workbench's live-apply prescription edit. Partial on purpose: the
-// steppers change one number at a time. Validates the merged result so a
-// partial edit can never leave an invalid pair behind.
+// The live-apply prescription edit, keyed to the WORKOUT (2026-07-15
+// amendment): the same edit works from the circuit slot and the pool
+// card. Partial on purpose: the steppers change one number at a time.
+// Validates the merged result so a partial edit can never leave an
+// invalid pair behind. Returns false when missing or archived.
 export async function setPrescription(
   db: DbHandle,
-  itemId: string,
+  exerciseId: string,
   changes: Partial<Prescription>,
 ): Promise<boolean> {
   return db.transaction(async (tx) => {
     const existing = await tx
-      .select({ sets: circuitItem.sets, restSeconds: circuitItem.restSeconds })
-      .from(circuitItem)
-      .where(eq(circuitItem.id, itemId))
+      .select({
+        sets: exercise.sets,
+        restSeconds: exercise.restSeconds,
+        archivedAt: exercise.archivedAt,
+      })
+      .from(exercise)
+      .where(eq(exercise.id, exerciseId))
       .get();
-    if (!existing) {
+    if (!existing || existing.archivedAt !== null) {
       return false;
     }
     const next: Prescription = {
@@ -402,7 +463,7 @@ export async function setPrescription(
       restSeconds: changes.restSeconds ?? existing.restSeconds,
     };
     requireValidPrescription(next);
-    await tx.update(circuitItem).set(next).where(eq(circuitItem.id, itemId));
+    await tx.update(exercise).set(next).where(eq(exercise.id, exerciseId));
     return true;
   });
 }
@@ -442,9 +503,8 @@ export async function reorderCircuitItems(
 // The workbench steal: one transaction moves the exercise's single pointer
 // from its owner circuit to the target. UNIQUE(exercise_id) turns a
 // forgotten delete into a loud constraint failure instead of a silent
-// duplicate. The new slot re-defaults its prescription (see
-// DEFAULT_PRESCRIPTION); history is untouched because it keys to the
-// exercise, not the slot.
+// duplicate. The workout's prescription and history both ride along
+// automatically - they key to the exercise, not the slot.
 export async function stealExercise(
   db: DbHandle,
   exerciseId: string,
@@ -477,8 +537,6 @@ export async function stealExercise(
       circuitId: toCircuitId,
       exerciseId,
       position: await nextPosition(tx, toCircuitId),
-      sets: DEFAULT_PRESCRIPTION.sets,
-      restSeconds: DEFAULT_PRESCRIPTION.restSeconds,
     };
     await tx.insert(circuitItem).values(row);
     return row;

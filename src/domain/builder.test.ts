@@ -19,9 +19,11 @@ import {
   listCircuitSlots,
   removeCircuitItem,
   renameCircuit,
+  renameExercise,
   reorderCircuitItems,
   setPrescription,
   stealExercise,
+  trashExercise,
 } from './builder';
 
 // Passthrough by default; the steal-atomicity test overrides one call to
@@ -127,7 +129,9 @@ describe('builder', () => {
       await archiveCircuit(db, push.id);
 
       const pool = await getPool(db, legs.id);
-      expect(pool.available).toEqual([{ exerciseId: pushups.id, name: 'Pushups' }]);
+      expect(pool.available).toEqual([
+        { exerciseId: pushups.id, name: 'Pushups', sets: 3, restSeconds: 60 },
+      ]);
       expect(pool.heldElsewhere).toEqual([]);
       // The released exercise is addable again - no orphaned pointer blocks it.
       await expect(addExerciseToCircuit(db, legs.id, pushups.id)).resolves.toMatchObject({
@@ -202,7 +206,9 @@ describe('builder', () => {
       const first = await addExerciseToCircuit(db, push.id, pushups.id);
       const second = await addExerciseToCircuit(db, push.id, dips.id);
 
-      expect(first).toMatchObject({ position: 0, sets: 3, restSeconds: 60 });
+      // A pure association: the slot carries no prescription of its own;
+      // the listed sets/rest below come from the exercise rows.
+      expect(first).toMatchObject({ position: 0 });
       expect(second).toMatchObject({ position: 1 });
       expect(await listCircuitSlots(db, push.id)).toEqual([
         {
@@ -279,42 +285,51 @@ describe('builder', () => {
       expect(await removeCircuitItem(db, item.id)).toBe(true);
       expect(await listCircuitSlots(db, push.id)).toEqual([]);
       expect((await getPool(db, push.id)).available).toEqual([
-        { exerciseId: pushups.id, name: 'Pushups' },
+        { exerciseId: pushups.id, name: 'Pushups', sets: 3, restSeconds: 60 },
       ]);
       expect(await removeCircuitItem(db, item.id)).toBe(false);
     });
 
-    it('applies partial prescription edits and validates the merged result', async () => {
+    it('applies partial prescription edits to the WORKOUT and validates the merged result', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
       const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
-      const item = await addExerciseToCircuit(db, push.id, pushups.id);
+      await addExerciseToCircuit(db, push.id, pushups.id);
 
-      expect(await setPrescription(db, item.id, { sets: 5 })).toBe(true);
-      expect(await setPrescription(db, item.id, { restSeconds: 90 })).toBe(true);
+      expect(await setPrescription(db, pushups.id, { sets: 5 })).toBe(true);
+      expect(await setPrescription(db, pushups.id, { restSeconds: 90 })).toBe(true);
+      // The slot reads the workout's values.
       expect(await listCircuitSlots(db, push.id)).toMatchObject([{ sets: 5, restSeconds: 90 }]);
 
-      await expectBuilderError(setPrescription(db, item.id, { sets: 0 }), 'invalid-prescription');
       await expectBuilderError(
-        setPrescription(db, item.id, { restSeconds: -1 }),
+        setPrescription(db, pushups.id, { sets: 0 }),
         'invalid-prescription',
       );
-      await expectBuilderError(setPrescription(db, item.id, { sets: 2.5 }), 'invalid-prescription');
-      expect(await setPrescription(db, 'no-such-item', { sets: 4 })).toBe(false);
+      await expectBuilderError(
+        setPrescription(db, pushups.id, { restSeconds: -1 }),
+        'invalid-prescription',
+      );
+      await expectBuilderError(
+        setPrescription(db, pushups.id, { sets: 2.5 }),
+        'invalid-prescription',
+      );
+      expect(await setPrescription(db, 'no-such-exercise', { sets: 4 })).toBe(false);
       // Failed edits left the stored prescription untouched.
       expect(await listCircuitSlots(db, push.id)).toMatchObject([{ sets: 5, restSeconds: 90 }]);
     });
 
-    it('rejects an invalid prescription on add before touching the DB', async () => {
+    it('edits an unheld (pool) workout the same way, refusing archived rows', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
-      const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
+      const dips = await findOrCreateExercise(db, 'workout', 'Dips');
 
-      await expectBuilderError(
-        addExerciseToCircuit(db, push.id, pushups.id, { sets: 0, restSeconds: 60 }),
-        'invalid-prescription',
-      );
-      expect(await listCircuitSlots(db, push.id)).toEqual([]);
+      expect(await setPrescription(db, dips.id, { sets: 4, restSeconds: 45 })).toBe(true);
+      expect((await getPool(db, push.id)).available).toMatchObject([
+        { name: 'Dips', sets: 4, restSeconds: 45 },
+      ]);
+
+      await archiveExercise(db, dips.id);
+      expect(await setPrescription(db, dips.id, { sets: 5 })).toBe(false);
     });
   });
 
@@ -376,13 +391,13 @@ describe('builder', () => {
   });
 
   describe('steal', () => {
-    it('moves the pointer in one step and re-defaults the prescription', async () => {
+    it('moves the pointer in one step; the prescription travels with the workout', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
       const legs = await createCircuit(db, { kind: 'workout', name: 'Leg Day' });
       const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
-      const oldItem = await addExerciseToCircuit(db, push.id, pushups.id);
-      await setPrescription(db, oldItem.id, { sets: 5, restSeconds: 90 });
+      await addExerciseToCircuit(db, push.id, pushups.id);
+      await setPrescription(db, pushups.id, { sets: 5, restSeconds: 90 });
       await addExerciseToCircuit(
         db,
         legs.id,
@@ -391,14 +406,14 @@ describe('builder', () => {
 
       const moved = await stealExercise(db, pushups.id, legs.id);
 
-      // Old pointer gone, new one appended at the target's end.
+      // Old pointer gone, new one appended at the target's end - and the
+      // 5x90 rides along (2026-07-15 amendment: sets/rest belong to the
+      // workout, so a move can never reset them).
       expect(await listCircuitSlots(db, push.id)).toEqual([]);
       expect(await listCircuitSlots(db, legs.id)).toMatchObject([
-        { exerciseName: 'Squats', position: 0 },
-        { id: moved.id, exerciseName: 'Pushups', position: 1 },
+        { exerciseName: 'Squats', position: 0, sets: 3, restSeconds: 60 },
+        { id: moved.id, exerciseName: 'Pushups', position: 1, sets: 5, restSeconds: 90 },
       ]);
-      // Canonical re-default: the 5x90 prescription does not travel.
-      expect(moved).toMatchObject({ sets: 3, restSeconds: 60 });
     });
 
     it('refuses stealing what is not held, already here, cross-kind, or into a dead circuit', async () => {
@@ -466,7 +481,9 @@ describe('builder', () => {
 
       // In this circuit -> a slot, not a pool row. Other kind and archived
       // rows never appear. Both groups order by the same lower(name) fold.
-      expect(pool.available).toEqual([{ exerciseId: dips.id, name: 'Dips' }]);
+      expect(pool.available).toEqual([
+        { exerciseId: dips.id, name: 'Dips', sets: 3, restSeconds: 60 },
+      ]);
       expect(pool.heldElsewhere).toEqual([
         {
           exerciseId: burpees.id,
@@ -491,6 +508,57 @@ describe('builder', () => {
 
       await expectBuilderError(getPool(db, 'no-such-id'), 'circuit-not-found');
       await expectBuilderError(getPool(db, push.id), 'circuit-not-found');
+    });
+  });
+
+  describe('workout rename / trash', () => {
+    it('renames an active exercise, trimmed; misses and archived rows report false', async () => {
+      const db = testDb.db;
+      const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
+
+      expect(await renameExercise(db, pushups.id, '  Pushups Heavy ')).toBe(true);
+      expect((await findOrCreateExercise(db, 'workout', 'pushups heavy')).id).toBe(pushups.id);
+
+      expect(await renameExercise(db, 'no-such-exercise', 'Anything')).toBe(false);
+      await archiveExercise(db, pushups.id);
+      expect(await renameExercise(db, pushups.id, 'Anything')).toBe(false);
+      await expectBuilderError(renameExercise(db, pushups.id, '   '), 'blank-name');
+    });
+
+    it('surfaces a rename collision as the active-name constraint, untranslated', async () => {
+      const db = testDb.db;
+      await findOrCreateExercise(db, 'workout', 'Dips');
+      const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
+
+      await expectRejectsWithCause(renameExercise(db, pushups.id, 'dips'), /UNIQUE constraint/);
+    });
+
+    it('trashes an unheld workout out of the pool; repeats and misses report false', async () => {
+      const db = testDb.db;
+      const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
+      const dips = await findOrCreateExercise(db, 'workout', 'Dips');
+
+      expect(await trashExercise(db, dips.id)).toBe(true);
+      expect((await getPool(db, push.id)).available).toEqual([]);
+      expect(await trashExercise(db, dips.id)).toBe(false);
+      expect(await trashExercise(db, 'no-such-exercise')).toBe(false);
+      // The archived identity frees its name: a re-create is a NEW
+      // identity (find-or-create matches active rows only), not a revival.
+      expect((await findOrCreateExercise(db, 'workout', 'Dips')).id).not.toBe(dips.id);
+    });
+
+    it('trashes a held workout in one step: the slot frees and the identity archives together', async () => {
+      const db = testDb.db;
+      const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
+      const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
+      await addExerciseToCircuit(db, push.id, pushups.id);
+
+      expect(await trashExercise(db, pushups.id)).toBe(true);
+
+      // No stranded pointer at an archived identity, no pool row left.
+      expect(await listCircuitSlots(db, push.id)).toEqual([]);
+      expect((await getPool(db, push.id)).available).toEqual([]);
+      expect((await getPool(db, push.id)).heldElsewhere).toEqual([]);
     });
   });
 });
