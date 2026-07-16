@@ -124,7 +124,7 @@ describe('useWorkbench', () => {
     expect(await workbench.createWorkout('anything')).toEqual({ kind: 'failed' });
     expect(await workbench.renameWorkout('anything', 'New Name')).toEqual({ kind: 'failed' });
     expect(await workbench.trashWorkout('anything')).toBeNull();
-    expect(await workbench.undoTrash({ exerciseId: 'anything', held: null })).toBe(false);
+    expect(await workbench.undoTrash({ exerciseId: 'anything', held: null })).toBe('failed');
 
     expect(workbench.status.value).toBe('unavailable');
   });
@@ -360,6 +360,63 @@ describe('useWorkbench / pool', () => {
     expect(itemId).toBeNull();
     expect(errorSpy).toHaveBeenCalled();
     expect(workbench.slots.value.map((slot) => slot.exerciseName)).not.toContain('Pushups');
+
+    // The chain survives the failure: the .catch placement is what lets
+    // later writes keep landing, and dropping it would leave the chain
+    // permanently rejected with every current test still green.
+    await workbench.adjustPrescription(exerciseIds[0], 'sets', 1);
+    const persisted = await listCircuitSlots(db, circuit.id);
+    expect(persisted[0].sets).toBe(4);
+  });
+
+  it('reloads an optimistic op that was queued behind a resync', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const workbench = useWorkbench(db, () => circuit.id);
+    await workbench.load();
+
+    // The add fails (exclusivity) and resyncs; the stepper tick was
+    // already queued behind it with its optimistic paint. Its success
+    // path skips the post-write load, so without the chain-generation
+    // check the resync's older repaint would bury the value it wrote.
+    void workbench.addFromPool(pushups.id);
+    await workbench.adjustPrescription(exerciseIds[0], 'sets', 1);
+
+    expect(errorSpy).toHaveBeenCalled();
+    expect(workbench.slots.value[0].sets).toBe(4);
+    const persisted = await listCircuitSlots(db, circuit.id);
+    expect(persisted[0].sets).toBe(4);
+  });
+
+  it('drops a queued op aimed at a circuit the screen has left', async () => {
+    let currentId = circuit.id;
+    const workbench = useWorkbench(db, () => currentId);
+    await workbench.load();
+
+    // The op captures its target at emit time; the screen moves on
+    // before the chain runs it. It must no-op, not write into the new
+    // circuit.
+    const queued = workbench.addFromPool(gobletSquat.id);
+    currentId = otherCircuit.id;
+
+    expect(await queued).toBeNull();
+    expect(await listCircuitSlots(db, circuit.id)).toHaveLength(3);
+    expect((await listCircuitSlots(db, otherCircuit.id)).map((slot) => slot.exerciseName)).toEqual([
+      'Pushups',
+    ]);
+  });
+
+  it('reload() flips to loading immediately and reads on the chain', async () => {
+    const workbench = useWorkbench(db, () => circuit.id);
+    await workbench.load();
+
+    const pending = workbench.reload();
+
+    // The flip is synchronous: the old circuit must not stay tappable
+    // while the read is queued.
+    expect(workbench.status.value).toBe('loading');
+    await pending;
+    expect(workbench.status.value).toBe('ready');
+    expect(workbench.circuitName.value).toBe('Legs');
   });
 
   it('creates a brand-new workout into AVAILABLE and leaves the circuit alone', async () => {
@@ -454,11 +511,11 @@ describe('useWorkbench / pool', () => {
       throw new Error('expected the trash to land');
     }
 
-    expect(await workbench.undoTrash(trashed)).toBe(true);
+    expect(await workbench.undoTrash(trashed)).toBe('restored');
 
     expect(workbench.slots.value.map((slot) => slot.exerciseId)).toEqual(exerciseIds);
     // A second tap finds the undo already spent and reports so.
-    expect(await workbench.undoTrash(trashed)).toBe(false);
+    expect(await workbench.undoTrash(trashed)).toBe('spent');
   });
 
   it('reports a spent undo when the freed name was retaken, and resyncs', async () => {
@@ -472,7 +529,7 @@ describe('useWorkbench / pool', () => {
 
     // The active-name constraint is the verdict; the screen reloads and
     // the new same-named identity keeps the pool row.
-    expect(await workbench.undoTrash(trashed)).toBe(false);
+    expect(await workbench.undoTrash(trashed)).toBe('spent');
     expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual([
       'Goblet Squat',
       'Kb Swing',

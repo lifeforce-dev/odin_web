@@ -1,27 +1,38 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
+import ForgeSlot from '@/components/ForgeSlot.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
 import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
 import PoolGroupHeader from '@/components/PoolGroupHeader.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
+import TransientCardGhost from '@/components/TransientCardGhost.vue';
+import TrashSnackbar from '@/components/TrashSnackbar.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
+import { useForgeChoreography } from '@/composables/useForgeChoreography';
+import type { TransientCard } from '@/composables/useForgeChoreography';
+import { useOneShot } from '@/composables/useOneShot';
 import { useOverflow } from '@/composables/useOverflow';
 import { orderAfterDrop, useWorkbenchDrag } from '@/composables/useWorkbenchDrag';
+import type { WorkbenchDragZone } from '@/composables/useWorkbenchDrag';
 import { useWorkbench } from '@/composables/useWorkbench';
 import type { PrescriptionField } from '@/composables/useWorkbench';
-import type { CircuitSlot, TrashedWorkout } from '@/domain/builder';
+import type { CircuitSlot, PoolAvailableEntry } from '@/domain/builder';
+import { MOTION_TICK_MS } from '@/styles/motion';
 
 // The circuit workbench (design_reference/circuit-workbench.html), both
 // zones. TOP: the circuit's ordered workout cards. BOTTOM: the WORKOUTS
 // pool - AVAILABLE and IN OTHER CIRCUITS groups, the steal flow, and a
 // create row docked below the list. One card control everywhere (a
 // workout is one thing wherever it sits - 02-07); one drag behavior
-// everywhere. The docked create row doubles as the trash while a card
-// is lifted (the forge rule, STYLEGUIDE section 9).
+// everywhere. The docked create row doubles as the forge - the delete
+// target - while a card is lifted (STYLEGUIDE section 9); the forge's
+// face and exit choreography live in ForgeSlot + useForgeChoreography,
+// this screen owns the drag session, zone layout, and persistence
+// wiring.
 
 const props = defineProps<{
   id: string;
@@ -45,7 +56,7 @@ const circuitContentEl = ref<HTMLElement | null>(null);
 const poolEl = ref<HTMLElement | null>(null);
 const poolListEl = ref<HTMLElement | null>(null);
 const poolContentEl = ref<HTMLElement | null>(null);
-const trashEl = ref<HTMLElement | null>(null);
+const forgeSlotRef = ref<InstanceType<typeof ForgeSlot> | null>(null);
 
 // The grip rule earns its keep only where a swipe has somewhere to go
 // (owner ruling 2026-07-15): a zone that scrolls needs the gesture, so
@@ -57,17 +68,19 @@ const circuitScrolls = useOverflow(circuitZoneEl, circuitContentEl);
 const poolScrolls = useOverflow(poolListEl, poolContentEl);
 
 // Whether the release just handled committed anything (reorder, remove,
-// add, trash). The exit watcher below reads it to tell a commit apart
-// from a put-back/cancel, which additionally flies the card home.
+// add, trash). The choreography's exit watcher reads it to tell a
+// commit apart from a put-back/cancel, which additionally flies the
+// card home. Reset when a lift begins (startCardDrag).
 let dropCommitted = false;
 
 const drag = useWorkbenchDrag({
   measureSlotMidpoints,
   measurePoolTop: () => poolEl.value?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
-  // The create slot doubles as the trash (the forge rule): it is always
-  // laid out and outside the pool's scroll, so its boundary is
-  // measurable at begin() before the trash face rewrites over it.
-  measureTrashTop: () => trashEl.value?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
+  // The forge (the create slot) is always laid out and outside the
+  // pool's scroll, so its boundary is measurable at begin() before the
+  // delete face rewrites over it.
+  measureForgeTop: () =>
+    forgeSlotRef.value?.rootEl?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
   onReorder: (draggedExerciseId, insertAt) => {
     dropCommitted = true;
     applyReorder(draggedExerciseId, insertAt);
@@ -83,238 +96,125 @@ const drag = useWorkbenchDrag({
     dropCommitted = true;
     applyPoolDrop(exerciseId, insertAt);
   },
-  onTrash: onTrashDrop,
+  onTrash: onForgeDrop,
 });
-
-// --- Forge choreography (signal-rewrite, 2026-07-15 owner pick) -------------
-// While a card is lifted the CSS owns MORPH / DORMANT / ARMED from
-// drag.state classes. The two EXIT choreographies play after the drag
-// session has already reset, so they need their own transient phase:
-// consume (tv-off collapse, line dart, white-hot impact, reverse
-// rewrite, undo snackbar) after a trash drop; abort (bare reverse
-// rewrite, and a fly-home when nothing was committed) after every other
-// release. The JS constants mirror the CSS envelope tokens
-// (--motion-morph / --motion-consume in structure.css) - the CSS reads
-// the tokens, these only decide when the transient phase state drops.
-const MOTION_MORPH_MS = 200;
-const MOTION_CONSUME_MS = 360;
-const FLY_HOME_MS = 150; // mirrors --motion-slide
-const TOAST_HOLD_MS = 5000;
-
-const forgeFx = ref<'idle' | 'consume' | 'abort'>('idle');
-let forgeFxTimer: ReturnType<typeof setTimeout> | null = null;
-
-// What a transient element renders: the same content model as the drag
-// ghost, resolved from either zone (or the elsewhere group).
-interface TransientCard {
-  name: string;
-  sets: number;
-  restSeconds: number;
-  variant: 'circuit' | 'pool';
-  owner: string | null;
-}
-
-// The drag session resets before its drop callbacks run, so the exit
-// choreographies snapshot the in-flight ghost while it still exists.
-interface GhostSnapshot {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-let ghostSnapshot: GhostSnapshot | null = null;
-watchEffect(() => {
-  if (drag.state.draggingId !== null) {
-    ghostSnapshot = {
-      x: drag.state.ghostX,
-      y: drag.state.ghostY,
-      width: drag.state.ghostWidth,
-      height: drag.state.ghostHeight,
-    };
-  }
-});
-
-// The tv-off transient (position via --cg-* custom props; the collapse
-// keyframes own transform, so the position must ride inside them).
-const consumeGhost = ref<(TransientCard & GhostSnapshot & { dartTo: number }) | null>(null);
-// The put-back transient: the lifted card flies back to its row.
-const flyGhost = ref<(TransientCard & GhostSnapshot & { toX: number; toY: number }) | null>(null);
-let flyTimer: ReturnType<typeof setTimeout> | null = null;
-
-// The consume snackbar. `undo` lands when the trash write settles;
-// `spent` marks an undo that expired underneath it (double tap, or the
-// freed name retaken).
-const trashToast = ref<{ name: string; undo: TrashedWorkout | null; spent: boolean } | null>(null);
-let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
 function cardContent(exerciseId: string): TransientCard | null {
   const slot = slots.value.find((entry) => entry.exerciseId === exerciseId);
   if (slot) {
     return {
+      kind: 'card',
       name: slot.exerciseName,
       sets: slot.sets,
       restSeconds: slot.restSeconds,
       variant: 'circuit',
-      owner: null,
     };
   }
   const free = pool.value.available.find((entry) => entry.exerciseId === exerciseId);
   if (free) {
     return {
+      kind: 'card',
       name: free.name,
       sets: free.sets,
       restSeconds: free.restSeconds,
       variant: 'pool',
-      owner: null,
     };
   }
   const held = pool.value.heldElsewhere.find((entry) => entry.exerciseId === exerciseId);
-  return held
-    ? { name: held.name, sets: 0, restSeconds: 0, variant: 'pool', owner: held.ownerCircuitName }
-    : null;
+  return held ? { kind: 'elsewhere', name: held.name, owner: held.ownerCircuitName } : null;
 }
 
-function playForgeFx(phase: 'consume' | 'abort', durationMs: number): void {
-  forgeFx.value = phase;
-  if (forgeFxTimer !== null) {
-    clearTimeout(forgeFxTimer);
-  }
-  forgeFxTimer = setTimeout(() => {
-    forgeFx.value = 'idle';
-    consumeGhost.value = null;
-    forgeFxTimer = null;
-  }, durationMs);
-}
+// The forge exit choreography (consume/abort transients, fly-home, the
+// undo snackbar) - extracted whole; this screen only feeds it geometry
+// and persistence.
+const forge = useForgeChoreography({
+  dragState: drag.state,
+  cardContent,
+  findRowEl: (exerciseId) =>
+    workbenchEl.value?.querySelector<HTMLElement>(`[data-card-id="${exerciseId}"]`) ?? null,
+  measureDartTarget: () => forgeSlotRef.value?.rootEl?.getBoundingClientRect().top ?? null,
+  wasDropCommitted: () => dropCommitted,
+  trashWorkout: workbench.trashWorkout,
+  undoTrash: workbench.undoTrash,
+});
+const { forgeFx, consumeGhost, flyGhost, trashToast, undoTrashTapped } = forge;
 
-function dismissToast(): void {
-  if (toastTimer !== null) {
-    clearTimeout(toastTimer);
-    toastTimer = null;
-  }
-  trashToast.value = null;
-}
-
-function onTrashDrop(exerciseId: string): void {
+function onForgeDrop(exerciseId: string): void {
   dropCommitted = true;
-  const content = cardContent(exerciseId);
-  const from = ghostSnapshot;
-  if (content && from) {
-    const dartTo = trashEl.value?.getBoundingClientRect().top ?? from.y;
-    consumeGhost.value = { ...content, ...from, dartTo };
-    dismissToast();
-    trashToast.value = { name: content.name, undo: null, spent: false };
-    toastTimer = setTimeout(dismissToast, MOTION_CONSUME_MS + TOAST_HOLD_MS);
-  }
-  playForgeFx('consume', MOTION_CONSUME_MS + 60);
-  void workbench.trashWorkout(exerciseId).then((undo) => {
-    if (trashToast.value && trashToast.value.name === content?.name) {
-      trashToast.value.undo = undo;
-    }
-  });
+  forge.onTrashDrop(exerciseId);
 }
 
-async function undoTrashTapped(): Promise<void> {
-  const toast = trashToast.value;
-  if (!toast || !toast.undo || toast.spent) {
+// --- Relight + seam tick (crossing-tick pick, 2026-07-16) -------------------
+// The armed zone is the LIT one: while a card is lifted every region
+// steps DOWN one luminance grade except the one the drop would land in.
+// Relighting is the ABSENCE of the recede class, so arming snaps a
+// region bright (the response) while the disarmed one steps down (the
+// transient) - there is deliberately no "relit" style to keep in sync.
+// Three independently filtered regions (circuit zone, pool stock, forge
+// slot) replace the old single zones-wrapper filter; the ghost and
+// transients render outside all three, so no filter ever becomes their
+// containing block. This retired the red armed-zone rings: red now
+// rides only the lifted card and the armed forge.
+
+// The zone armed when the drag ended: the exit restore must skip the
+// one region that is already lit (region-restore animates FROM the
+// receded grade, so playing it there would flash the lit region dark).
+const lastArmedZone = ref<WorkbenchDragZone | null>(null);
+
+// The seam tick renders while > 0; the count keys the element, so a
+// recross mid-flash remounts and restarts it cleanly.
+const seamTickCount = ref(0);
+const seamTickShot = useOneShot();
+
+watch(drag.armedZone, (zone, previous) => {
+  if (zone !== null) {
+    lastArmedZone.value = zone;
+  }
+  // The tick marks the CROSSING, not the state, and only the
+  // circuit/pool seam wears it - the forge boundary keeps its own armed
+  // language, and lift/release are not crossings.
+  const crossed =
+    (zone === 'pool' && previous === 'circuit') || (zone === 'circuit' && previous === 'pool');
+  if (!crossed) {
     return;
   }
-  if (await workbench.undoTrash(toast.undo)) {
-    dismissToast();
-    return;
-  }
-  // Expired underneath the snackbar (the freed name was retaken); the
-  // reload already told the screen the truth - say so, briefly.
-  toast.spent = true;
-  if (toastTimer !== null) {
-    clearTimeout(toastTimer);
-  }
-  toastTimer = setTimeout(dismissToast, 2000);
+  seamTickCount.value += 1;
+  seamTickShot.set(() => {
+    seamTickCount.value = 0;
+  }, MOTION_TICK_MS);
+});
+
+// The per-region filter classes; the armed region gets none and simply
+// stays (or snaps back to) full luminance.
+function regionClasses(region: WorkbenchDragZone): Record<string, boolean> {
+  const lifted = drag.state.draggingId !== null;
+  const restoring = !lifted && forgeFx.value !== 'idle' && lastArmedZone.value !== region;
+  return {
+    'workbench__region--receded': lifted && drag.armedZone.value !== region,
+    'workbench__region--restoring': restoring,
+    'workbench__region--restoring-late': restoring && forgeFx.value === 'consume',
+  };
 }
-
-// A put-back (or cancel) flies the card home: functional motion, the
-// exit states where the card went. Commits deliberately do not animate
-// (release is the preview); consume owns its own exit.
-async function flyHome(exerciseId: string): Promise<void> {
-  const from = ghostSnapshot;
-  const content = cardContent(exerciseId);
-  if (!from || !content) {
-    return;
-  }
-  await nextTick();
-  const row = workbenchEl.value?.querySelector<HTMLElement>(`[data-card-id="${exerciseId}"]`);
-  if (!row) {
-    return;
-  }
-  const rect = row.getBoundingClientRect();
-  flyGhost.value = { ...content, ...from, toX: rect.left, toY: rect.top };
-  if (flyTimer !== null) {
-    clearTimeout(flyTimer);
-  }
-  flyTimer = setTimeout(() => {
-    flyGhost.value = null;
-    flyTimer = null;
-  }, FLY_HOME_MS);
-}
-
-// The exit watcher: every release that is not a consume plays the
-// reverse rewrite (the grammar covers every exit); a release that
-// committed nothing also flies the card home. A new lift cancels any
-// exit still playing.
-watch(
-  () => drag.state.draggingId,
-  (draggingId, previous) => {
-    if (draggingId !== null) {
-      dropCommitted = false;
-      forgeFx.value = 'idle';
-      consumeGhost.value = null;
-      if (forgeFxTimer !== null) {
-        clearTimeout(forgeFxTimer);
-        forgeFxTimer = null;
-      }
-      return;
-    }
-    if (previous === null || forgeFx.value === 'consume') {
-      return;
-    }
-    playForgeFx('abort', MOTION_MORPH_MS);
-    if (!dropCommitted) {
-      void flyHome(previous);
-    }
-  },
-);
-
-function clearForgeTimers(): void {
-  for (const timer of [forgeFxTimer, flyTimer, toastTimer]) {
-    if (timer !== null) {
-      clearTimeout(timer);
-    }
-  }
-  forgeFxTimer = null;
-  flyTimer = null;
-  toastTimer = null;
-}
-
-onBeforeUnmount(clearForgeTimers);
 
 onMounted(() => {
-  void workbench.load();
+  void workbench.reload();
 });
 watch(
   () => props.id,
   () => {
     // A different circuit is a fresh screen: per-circuit UI state must
     // not leak across (an open fold, notice, running flash, or a forge
-    // exit/undo keyed to the old circuit's ids).
+    // exit/undo keyed to the old circuit's ids), and reload() flips the
+    // status to loading NOW so the old circuit cannot take a stale tap
+    // while the new one loads.
     openCardId.value = null;
     flashExerciseId.value = null;
     createNotice.value = null;
     renameNotice.value = null;
-    forgeFx.value = 'idle';
-    consumeGhost.value = null;
-    flyGhost.value = null;
-    dismissToast();
-    clearForgeTimers();
-    void workbench.load();
+    forge.reset();
+    seamTickShot.cancel();
+    seamTickCount.value = 0;
+    void workbench.reload();
   },
 );
 
@@ -341,7 +241,7 @@ const eyebrowText = computed(() => {
 // Standard reorder model: while a lifted CIRCUIT card is over the
 // circuit it LEAVES the list (it never appears twice) and a landing gap
 // opens at the insertion point - rows slide to make room, and the gap is
-// the drop preview. Over the pool or trash the gap closes and the origin
+// the drop preview. Over the pool or forge the gap closes and the origin
 // row returns, dimmed. A lifted POOL card is not in this list at all, so
 // the same code previews its insertion among ALL cards. The gap index
 // counts non-dragged rows only, matching what measureSlotMidpoints
@@ -488,6 +388,7 @@ async function startCardDrag(
   // Lifting a card closes every open fold: one live interaction at a
   // time, and closed-card geometry for the measurements.
   openCardId.value = null;
+  dropCommitted = false;
   const liveEvent = await settleGeometry(event);
   const card = workbenchEl.value?.querySelector<HTMLElement>(`[data-card-id="${exerciseId}"]`);
   if (!liveEvent || !card) {
@@ -500,42 +401,66 @@ async function startCardDrag(
 // (grab-point anchored), so the ghost is exactly the row being moved.
 // It keeps its origin's dress in flight (loaded-rack: a stock row stays
 // cold; the vermilion arrives WITH membership, via the landing flash).
-const draggedCard = computed<{
-  name: string;
-  sets: number;
-  restSeconds: number;
-  variant: 'circuit' | 'pool';
-} | null>(() => {
-  const draggedId = drag.state.draggingId;
-  if (draggedId === null) {
-    return null;
-  }
-  if (drag.state.origin === 'circuit') {
-    const slot = slots.value.find((entry) => entry.exerciseId === draggedId);
-    return slot
-      ? {
-          name: slot.exerciseName,
-          sets: slot.sets,
-          restSeconds: slot.restSeconds,
-          variant: 'circuit',
-        }
-      : null;
-  }
-  const free = pool.value.available.find((entry) => entry.exerciseId === draggedId);
-  return free
-    ? { name: free.name, sets: free.sets, restSeconds: free.restSeconds, variant: 'pool' }
-    : null;
-});
-
-// A lifted elsewhere row carries a FROM <owner> strip - the move's
-// consequence stays stated even on the drag path.
-const draggedElsewhere = computed(() =>
-  drag.state.origin === 'pool'
-    ? (pool.value.heldElsewhere.find((entry) => entry.exerciseId === drag.state.draggingId) ?? null)
-    : null,
+// ONE lookup for everything the transients render - the drag ghost, the
+// berth test, and the choreography all read the same content model.
+const draggedContent = computed<TransientCard | null>(() =>
+  drag.state.draggingId !== null ? cardContent(drag.state.draggingId) : null,
 );
 
+// The pool's landing preview: while the pool is armed a BERTH opens
+// where releasing sends the card. A lifted pool card's own row becomes
+// the berth (the put-back preview); a circuit-origin card docks at the
+// TOP of the stock (owner pick, 2026-07-16 - a fixed, always-visible
+// spot beats the honest sorted position, which read as random and could
+// open below the scroll; the stock still reloads sorted, so the row
+// settles to its alphabetical place after the drop). An
+// elsewhere-origin card returns to the ELSEWHERE group on a put-back,
+// so it opens no berth among the stock (that group's design belongs to
+// 02-06).
+type PoolRow = { kind: 'card'; entry: PoolAvailableEntry } | { kind: 'berth' };
+
+// True while the top-docked berth is open (only a card NOT already in
+// the stock earns it); also what the scroll watcher below keys on.
+const topBerthOpen = computed(
+  () =>
+    drag.state.poolArmed &&
+    draggedContent.value?.kind === 'card' &&
+    !pool.value.available.some((entry) => entry.exerciseId === drag.state.draggingId),
+);
+
+const poolRows = computed<PoolRow[]>(() => {
+  const rows: PoolRow[] = pool.value.available.map((entry) => ({ kind: 'card', entry }));
+  const draggedId = drag.state.draggingId;
+  if (!drag.state.poolArmed || draggedId === null) {
+    return rows;
+  }
+  const ownIndex = pool.value.available.findIndex((entry) => entry.exerciseId === draggedId);
+  if (ownIndex !== -1) {
+    rows.splice(ownIndex, 1, { kind: 'berth' });
+    return rows;
+  }
+  if (topBerthOpen.value) {
+    rows.unshift({ kind: 'berth' });
+  }
+  return rows;
+});
+
+// The top berth must be IN VIEW to preview anything: a pool scrolled
+// down would open it above the fold, which is the exact complaint the
+// fixed top spot exists to fix.
+watch(topBerthOpen, (open) => {
+  if (open && poolListEl.value) {
+    poolListEl.value.scrollTop = 0;
+  }
+});
+
+// The add-confirmation flash. Toggling through null re-arms it even
+// when the same card flashes twice in a row (re-add after an undo), and
+// un-sticks a flash whose animationend never fired (unmounted
+// mid-flash, display: none ancestor, reduced motion).
 async function flashCard(exerciseId: string): Promise<void> {
+  flashExerciseId.value = null;
+  await nextTick();
   flashExerciseId.value = exerciseId;
   await nextTick();
   revealCard(exerciseId);
@@ -555,12 +480,22 @@ async function confirmSteal(exerciseId: string): Promise<void> {
 }
 
 // Rename verdicts stay on the card that asked: a rejected rename shows
-// its notice there; a success flows back down as the new name prop.
+// its notice there; a success flows back down as the new name prop. A
+// failed write says so too (the loud-on-device rule: the name reverting
+// with no word is a silent failure).
 async function handleRename(exerciseId: string, name: string): Promise<void> {
+  const target = props.id;
   renameNotice.value = null;
   const outcome = await workbench.renameWorkout(exerciseId, name);
+  if (target !== props.id) {
+    // The screen moved to another circuit while the write was queued;
+    // the verdict belongs to the old one.
+    return;
+  }
   if (outcome.kind === 'rejected') {
     renameNotice.value = { exerciseId, message: outcome.message };
+  } else if (outcome.kind === 'failed') {
+    renameNotice.value = { exerciseId, message: "Couldn't save // try again" };
   }
 }
 
@@ -586,10 +521,16 @@ function applyPoolDrop(exerciseId: string, insertAt: number): void {
 // Inline create routes by outcome: reveal the new pool card (create
 // stays in the pool - no auto-add), flash the card when the name is
 // already in this circuit, open the owner's steal strip (create never
-// silently steals), or surface the domain's verdict on the name.
+// silently steals), surface the domain's verdict on the name, or say a
+// failed write failed (the entry already folded and took the typed name
+// with it - silence here loses the user's work without a word).
 async function handleCreate(name: string): Promise<void> {
+  const target = props.id;
   createNotice.value = null;
   const outcome = await workbench.createWorkout(name);
+  if (target !== props.id) {
+    return;
+  }
   if (outcome.kind === 'in-pool') {
     await nextTick();
     revealCard(outcome.exerciseId);
@@ -607,13 +548,19 @@ async function handleCreate(name: string): Promise<void> {
   }
   if (outcome.kind === 'rejected') {
     createNotice.value = outcome.message;
+    return;
   }
+  createNotice.value = "Couldn't save // try again";
 }
 </script>
 
 <template>
   <AppShell>
-    <div ref="workbenchEl" class="workbench">
+    <div
+      ref="workbenchEl"
+      class="workbench"
+      :class="{ 'workbench--lifted': drag.state.draggingId !== null }"
+    >
       <ScreenHeader :title="headerTitle" back-label="Circuits" :back-to="{ name: 'circuits' }">
         <template #eyebrow>{{ eyebrowText }}</template>
       </ScreenHeader>
@@ -621,24 +568,19 @@ async function handleCreate(name: string): Promise<void> {
       <template v-if="status === 'ready'">
         <!-- The zones own the space below the header and nothing else,
              so --zone-circuit's split is measured against exactly what
-             the eye measures it against. While a card is lifted the
-             page steps DOWN one luminance grade (figure/ground: the
-             ghost, outside this wrapper, steps up) and steps back on
-             the exit - all in steps(), a display losing a grade, never
-             a fade. The drag ghost must never be a descendant: the
-             filter would become its containing block. -->
-        <div
-          class="workbench__zones"
-          :class="{
-            'workbench__zones--receded': drag.state.draggingId !== null,
-            'workbench__zones--restoring': forgeFx !== 'idle',
-            'workbench__zones--restoring-late': forgeFx === 'consume',
-          }"
-        >
+             the eye measures it against. While a card is lifted each
+             filter REGION inside (circuit zone, pool stock, forge slot)
+             steps DOWN one luminance grade EXCEPT the armed one - the
+             lit region IS the armed tell (crossing-tick pick,
+             2026-07-16) - and steps back on the exit, all in steps(), a
+             display losing a grade, never a fade. The drag ghost and
+             transients must never be a filtered region's descendant:
+             the filter would become their containing block. -->
+        <div class="workbench__zones">
           <div
             ref="circuitZoneEl"
             class="workbench__circuit-zone scrolly"
-            :class="{ 'workbench__circuit-zone--armed': drag.state.circuitArmed }"
+            :class="regionClasses('circuit')"
           >
             <!-- These content wrappers exist to be measured: a scroll
                  container's own box never resizes when a card lands in
@@ -698,114 +640,112 @@ async function handleCreate(name: string): Promise<void> {
             </div>
           </div>
 
-          <div
-            ref="poolEl"
-            class="workbench__pool"
-            :class="{ 'workbench__pool--armed': drag.state.poolArmed }"
-          >
-            <p class="workbench__pool-label">Workouts</p>
-            <!-- AVAILABLE docks with the label, outside the scroll: it
-                 names the list's default group, so it must stay put
-                 while the cards scroll (owner ruling, 2026-07-15). IN
-                 OTHER CIRCUITS stays in the flow - it marks a boundary
-                 inside the scrolled content. -->
-            <PoolGroupHeader
-              class="workbench__pool-available"
-              label="Available"
-              variant="available"
-            />
-            <div ref="poolListEl" class="workbench__pool-list scrolly">
-              <div ref="poolContentEl" class="workbench__pool-items">
-                <WorkoutCard
-                  v-for="entry in pool.available"
-                  :key="entry.exerciseId"
-                  :data-card-id="entry.exerciseId"
-                  :name="entry.name"
-                  :sets="entry.sets"
-                  :rest-seconds="entry.restSeconds"
-                  variant="pool"
-                  addable
-                  :drag-anywhere="!poolScrolls"
-                  :open="openCardId === entry.exerciseId"
-                  :dragging="drag.state.draggingId === entry.exerciseId"
-                  :notice="noticeFor(entry.exerciseId)"
-                  @toggle="toggleCard(entry.exerciseId)"
-                  @adjust="(field, delta) => adjust(entry.exerciseId, field, delta)"
-                  @add="() => void addTapped(entry.exerciseId)"
-                  @rename="(name) => void handleRename(entry.exerciseId, name)"
-                  @drag-start="(event) => void startCardDrag('pool', entry.exerciseId, event)"
-                />
-                <template v-if="pool.heldElsewhere.length > 0">
-                  <PoolGroupHeader label="In Other Circuits" variant="elsewhere" />
-                  <PoolElsewhereRow
-                    v-for="entry in pool.heldElsewhere"
-                    :key="entry.exerciseId"
-                    :data-card-id="entry.exerciseId"
-                    :name="entry.name"
-                    :owner="entry.ownerCircuitName"
-                    :drag-anywhere="!poolScrolls"
-                    :open="openCardId === entry.exerciseId"
-                    @toggle="toggleCard(entry.exerciseId)"
-                    @close="openCardId = null"
-                    @steal="() => void confirmSteal(entry.exerciseId)"
-                    @drag-start="(event) => void startCardDrag('pool', entry.exerciseId, event)"
-                  />
-                </template>
+          <div ref="poolEl" class="workbench__pool">
+            <!-- The seam tick: a one-shot flash of the white raster
+                 line on the circuit/pool seam the finger just crossed
+                 (crossing-tick pick). The count keys it, so a recross
+                 mid-flash restarts the flash instead of stalling it. -->
+            <span
+              v-if="seamTickCount > 0"
+              :key="seamTickCount"
+              class="workbench__seam-tick"
+              aria-hidden="true"
+            ></span>
+            <div class="workbench__pool-stock" :class="regionClasses('pool')">
+              <p class="workbench__pool-label">Workouts</p>
+              <!-- AVAILABLE docks with the label, outside the scroll: it
+                   names the list's default group, so it must stay put
+                   while the cards scroll (owner ruling, 2026-07-15). IN
+                   OTHER CIRCUITS stays in the flow - it marks a boundary
+                   inside the scrolled content. -->
+              <PoolGroupHeader
+                class="workbench__pool-available"
+                label="Available"
+                variant="available"
+              />
+              <div ref="poolListEl" class="workbench__pool-list scrolly">
+                <!-- The content wrapper exists to be measured (see the
+                     circuit zone's twin); the TransitionGroup inside
+                     slides stock rows around the berth while a card is
+                     lifted, and swaps to the settle name post-drop so
+                     commits snap (the rack's pattern). -->
+                <div ref="poolContentEl">
+                  <TransitionGroup
+                    tag="div"
+                    :name="drag.state.draggingId ? 'pool-shift' : 'pool-settle'"
+                    class="workbench__pool-items"
+                  >
+                    <template
+                      v-for="row in poolRows"
+                      :key="row.kind === 'card' ? row.entry.exerciseId : 'pool-berth'"
+                    >
+                      <div v-if="row.kind === 'berth'" class="workbench__berth"></div>
+                      <WorkoutCard
+                        v-else
+                        :data-card-id="row.entry.exerciseId"
+                        :name="row.entry.name"
+                        :sets="row.entry.sets"
+                        :rest-seconds="row.entry.restSeconds"
+                        variant="pool"
+                        addable
+                        :drag-anywhere="!poolScrolls"
+                        :open="openCardId === row.entry.exerciseId"
+                        :dragging="drag.state.draggingId === row.entry.exerciseId"
+                        :notice="noticeFor(row.entry.exerciseId)"
+                        @toggle="toggleCard(row.entry.exerciseId)"
+                        @adjust="(field, delta) => adjust(row.entry.exerciseId, field, delta)"
+                        @add="() => void addTapped(row.entry.exerciseId)"
+                        @rename="(name) => void handleRename(row.entry.exerciseId, name)"
+                        @drag-start="
+                          (event) => void startCardDrag('pool', row.entry.exerciseId, event)
+                        "
+                      />
+                    </template>
+                    <PoolGroupHeader
+                      v-if="pool.heldElsewhere.length > 0"
+                      key="elsewhere-header"
+                      label="In Other Circuits"
+                      variant="elsewhere"
+                    />
+                    <PoolElsewhereRow
+                      v-for="entry in pool.heldElsewhere"
+                      :key="entry.exerciseId"
+                      :data-card-id="entry.exerciseId"
+                      :name="entry.name"
+                      :owner="entry.ownerCircuitName"
+                      :drag-anywhere="!poolScrolls"
+                      :open="openCardId === entry.exerciseId"
+                      @toggle="toggleCard(entry.exerciseId)"
+                      @close="openCardId = null"
+                      @steal="() => void confirmSteal(entry.exerciseId)"
+                      @drag-start="(event) => void startCardDrag('pool', entry.exerciseId, event)"
+                    />
+                  </TransitionGroup>
+                </div>
               </div>
             </div>
-            <!-- The forge (02-07): the create row docked below the list
-                 doubles as the delete target. Its face is a SIGNAL
-                 (signal-rewrite, 2026-07-15 pick): a drag begins and a
-                 white raster line REWRITES it top-to-bottom to the
-                 dormant x DELETE (the create row stays painted beneath -
-                 the split face mid-sweep is the tell); the ghost on it
-                 arms the energized double rail; release plays the
-                 reverse rewrite (consume adds the tv-off, dart, and
-                 white-hot impact first). Always laid out, so the
-                 boundary is measurable at drag start. Dropping here
-                 deletes the workout entirely, from either zone. -->
-            <div
-              ref="trashEl"
-              class="workbench__create-slot"
-              :class="{
-                'workbench__create-slot--lifted': drag.state.draggingId !== null,
-                'workbench__create-slot--consume': forgeFx === 'consume',
-                'workbench__create-slot--abort': forgeFx === 'abort',
-              }"
+            <!-- The forge docks below the pool list, outside its scroll:
+                 always in view however long the pool grows, and always
+                 laid out so the drag can measure its boundary. The place
+                 that makes workouts is the place that unmakes them
+                 (STYLEGUIDE section 9). -->
+            <ForgeSlot
+              ref="forgeSlotRef"
+              class="workbench__forge-dock"
+              :class="regionClasses('forge')"
+              :fx="forgeFx"
+              :lifted="drag.state.draggingId !== null"
+              :armed="drag.state.forgeArmed"
             >
-              <PoolCreateRow
-                class="workbench__create"
-                :notice="createNotice"
-                @create="(name) => void handleCreate(name)"
-              />
-              <p
-                class="workbench__trash-face"
-                :class="{ 'workbench__trash-face--armed': drag.state.trashArmed }"
-                aria-hidden="true"
-              >
-                <span class="workbench__trash-x">x</span> DELETE
-              </p>
-              <span class="workbench__raster" aria-hidden="true"></span>
-            </div>
-            <!-- The consume snackbar: the one recovery path for a
-                 gesture with no confirm. Snaps in after the reverse
-                 rewrite lands; auto-dismisses. -->
-            <div v-if="trashToast" class="workbench__snack" role="status">
-              <p class="workbench__snack-msg">
-                {{
-                  trashToast.spent
-                    ? "Couldn't restore // name back in use"
-                    : `${trashToast.name} deleted`
-                }}
-              </p>
-              <button
-                type="button"
-                class="workbench__snack-undo"
-                @click="() => void undoTrashTapped()"
-              >
-                Undo
-              </button>
-            </div>
+              <PoolCreateRow :notice="createNotice" @create="(name) => void handleCreate(name)" />
+            </ForgeSlot>
+            <TrashSnackbar
+              v-if="trashToast"
+              class="workbench__snack-dock"
+              :message="trashToast.verdict ?? `${trashToast.name} deleted`"
+              :undoable="trashToast.verdict === null"
+              @undo="() => void undoTrashTapped()"
+            />
           </div>
         </div>
       </template>
@@ -830,38 +770,21 @@ async function handleCreate(name: string): Promise<void> {
          symptom was the ghost flashing at stale positions at drag start
          and release). -->
     <div
-      v-if="draggedCard"
+      v-if="draggedContent"
       class="workbench__drag-ghost"
-      :class="{ 'workbench__drag-ghost--yield': drag.state.trashArmed }"
+      :class="{ 'workbench__drag-ghost--yield': drag.state.forgeArmed }"
       :style="{
         transform: `translate3d(${drag.state.ghostX}px, ${drag.state.ghostY}px, 0)`,
         width: `${drag.state.ghostWidth}px`,
       }"
     >
       <div class="workbench__ghost-card">
-        <WorkoutCard
-          :name="draggedCard.name"
-          :sets="draggedCard.sets"
-          :rest-seconds="draggedCard.restSeconds"
-          :variant="draggedCard.variant"
-        />
-      </div>
-    </div>
-    <div
-      v-else-if="draggedElsewhere"
-      class="workbench__drag-ghost"
-      :class="{ 'workbench__drag-ghost--yield': drag.state.trashArmed }"
-      :style="{
-        transform: `translate3d(${drag.state.ghostX}px, ${drag.state.ghostY}px, 0)`,
-        width: `${drag.state.ghostWidth}px`,
-      }"
-    >
-      <div class="workbench__ghost-card">
-        <PoolElsewhereRow
-          :name="draggedElsewhere.name"
-          :owner="draggedElsewhere.ownerCircuitName"
-        />
-        <p class="workbench__ghost-from">From {{ draggedElsewhere.ownerCircuitName }}</p>
+        <TransientCardGhost :content="draggedContent" />
+        <!-- A lifted elsewhere row carries a FROM <owner> strip - the
+             move's consequence stays stated even on the drag path. -->
+        <p v-if="draggedContent.kind === 'elsewhere'" class="workbench__ghost-from">
+          From {{ draggedContent.owner }}
+        </p>
       </div>
     </div>
 
@@ -879,18 +802,7 @@ async function handleCreate(name: string): Promise<void> {
       }"
       aria-hidden="true"
     >
-      <PoolElsewhereRow
-        v-if="consumeGhost.owner"
-        :name="consumeGhost.name"
-        :owner="consumeGhost.owner"
-      />
-      <WorkoutCard
-        v-else
-        :name="consumeGhost.name"
-        :sets="consumeGhost.sets"
-        :rest-seconds="consumeGhost.restSeconds"
-        :variant="consumeGhost.variant"
-      />
+      <TransientCardGhost :content="consumeGhost.content" />
     </div>
     <span
       v-if="consumeGhost"
@@ -918,14 +830,7 @@ async function handleCreate(name: string): Promise<void> {
       }"
       aria-hidden="true"
     >
-      <PoolElsewhereRow v-if="flyGhost.owner" :name="flyGhost.name" :owner="flyGhost.owner" />
-      <WorkoutCard
-        v-else
-        :name="flyGhost.name"
-        :sets="flyGhost.sets"
-        :rest-seconds="flyGhost.restSeconds"
-        :variant="flyGhost.variant"
-      />
+      <TransientCardGhost :content="flyGhost.content" />
     </div>
   </AppShell>
 </template>
@@ -965,31 +870,36 @@ async function handleCreate(name: string): Promise<void> {
   min-height: 0;
 }
 
-/* The page's luminance grammar (signal-rewrite): one grade DOWN in two
-   hard steps while a card is lifted, back UP in two on the exit - late
-   on a consume (the impact plays first). steps(), never a fade: a
-   display losing a grade is a transient, and peripheral vision keys on
-   transients. */
-.workbench__zones--receded {
-  animation: zones-recede calc(var(--motion-morph) * 0.6) steps(2, end) forwards;
+/* The page's luminance grammar (signal-rewrite; re-scoped per REGION by
+   the crossing-tick pick, 2026-07-16): while a card is lifted every
+   region steps one grade DOWN in two hard steps EXCEPT the armed one,
+   which simply keeps - or, on a zone handoff, snaps back to - full
+   luminance. Arming is instant, disarming is the stepped transient, and
+   the lit region IS the armed tell (the red zone rings are retired). On
+   the exit the still-receded regions step back UP - late on a consume
+   (the impact plays first); the region armed at release is already lit
+   and plays nothing. steps(), never a fade: a display losing a grade is
+   a transient, and peripheral vision keys on transients. */
+.workbench__region--receded {
+  animation: region-recede calc(var(--motion-morph) * 0.6) steps(2, end) forwards;
 }
 
-.workbench__zones--restoring {
-  animation: zones-restore calc(var(--motion-morph) * 0.5) steps(2, end) both;
+.workbench__region--restoring {
+  animation: region-restore calc(var(--motion-morph) * 0.5) steps(2, end) both;
 }
 
-.workbench__zones--restoring-late {
+.workbench__region--restoring-late {
   animation-duration: calc(var(--motion-consume) * 0.28);
   animation-delay: calc(var(--motion-consume) * 0.72);
 }
 
-@keyframes zones-recede {
+@keyframes region-recede {
   to {
     filter: var(--lift-recede);
   }
 }
 
-@keyframes zones-restore {
+@keyframes region-restore {
   from {
     filter: var(--lift-recede);
   }
@@ -1004,13 +914,9 @@ async function handleCreate(name: string): Promise<void> {
   flex: var(--zone-circuit) 1 0;
   min-height: 0;
 
-  /* Breathing room so the armed inset ring is not clipped by overflow. */
+  /* Breathing room between the cards and the zone edge. */
   padding: var(--space-1);
   overflow-y: auto;
-}
-
-.workbench__circuit-zone--armed {
-  box-shadow: var(--glow-zone-armed);
 }
 
 .workbench__slot-list {
@@ -1060,9 +966,10 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 /* The landing gap: an open socket wearing the index it previews, sized
-   to the lifted card. Passive (neutral dashes, no accent) - the armed
-   zone ring and the lifted card carry the red; red means the action,
-   not the destination. */
+   to the lifted card. Passive (neutral dashes, no accent) - the lifted
+   card alone carries the red (the armed zone states itself by staying
+   LIT, crossing-tick pick); red means the action, not the
+   destination. */
 .workbench__rack-slot--gap .workbench__rack-index {
   color: var(--text-dim);
   border-style: dashed;
@@ -1099,7 +1006,8 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .slot-shift-move {
+  .slot-shift-move,
+  .pool-shift-move {
     transition: none;
   }
 }
@@ -1114,9 +1022,43 @@ async function handleCreate(name: string): Promise<void> {
   border-top: var(--rule) solid var(--border-strong);
 }
 
-.workbench__pool--armed {
-  border-top-color: var(--accent);
-  box-shadow: var(--glow-zone-armed);
+/* The pool's filter region (relight): the stock only - the forge below
+   is its own region (an armed pool must not light the forge face), and
+   the snackbar, outside both, never dims. Takes over the pool's column
+   flow so the list geometry is unchanged. */
+.workbench__pool-stock {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The seam-crossing tick: one flash of the white raster line ON the
+   pool's top border - the seam the finger just crossed. White is the
+   EVENT channel (signal-rewrite): the crossing is marked without
+   spending red, one shot, never a loop. Only this seam wears it; the
+   forge boundary keeps its own armed language. */
+.workbench__seam-tick {
+  position: absolute;
+  top: calc(-1 * var(--rule));
+  right: 0;
+  left: 0;
+  z-index: var(--z-float);
+  height: var(--rule);
+  pointer-events: none;
+  background: var(--text);
+  box-shadow: var(--raster);
+  animation: seam-tick var(--motion-tick) steps(3, end) both;
+}
+
+@keyframes seam-tick {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 .workbench__pool-label {
@@ -1159,291 +1101,61 @@ async function handleCreate(name: string): Promise<void> {
   margin-top: 0;
 }
 
-/* The create slot docks below the pool list, outside its scroll: always
-   in view however long the pool grows. It is also the trash (the forge
-   rule, STYLEGUIDE section 9): this wrapper is what the drag measures,
-   and the face below swaps in over the create row while a card is
-   lifted - the place that makes workouts is the place that unmakes
-   them, and no chrome is added to the screen during a drag. */
-.workbench__create-slot {
-  position: relative;
+/* The berth: the pool's landing preview - an anonymous open slot in the
+   stock at stock-row height, dashed steel. No number (loose stock is
+   unordered where the rack is numbered), no accent, no glow (supply
+   does not emit light): the rack's numbered gap and this berth are one
+   slot-grammar in two dresses. */
+.workbench__berth {
+  min-height: var(--tap-min);
+  border: var(--hairline) dashed var(--supply);
+}
+
+/* Stock rows slide to make room for the berth while a card is lifted:
+   functional motion (the berth previews the drop outcome). Same
+   leave-active trick as the rack: TransitionGroup keeps leavers in the
+   DOM ~2 frames, and in-flow they would inflate the pool by a row at
+   the berth swap. Post-drop renders swap to the settle name (no move
+   transition), so commits snap. */
+.pool-shift-move {
+  transition: transform var(--motion-slide) ease;
+}
+
+.pool-shift-leave-active,
+.pool-settle-leave-active {
+  position: absolute;
+  opacity: 0;
+}
+
+/* The forge's dock below the pool list; the slot itself (face, raster,
+   exit keyframes) is ForgeSlot's. */
+.workbench__forge-dock {
   flex: none;
   margin: var(--space-2) 0 var(--space-3);
 }
 
-/* The forge's afterglow: one two-step flicker as the rewrite lands (the
-   phosphor settling) - the peripheral event for anyone who missed the
-   sweep. */
-.workbench__create-slot--lifted {
-  animation: forge-afterglow calc(var(--motion-morph) * 0.2) steps(2, end)
-    calc(var(--motion-morph) * 0.8);
-}
-
-/* The trash face - DORMANT dress. No red: dashes and dim ink (dashes
-   already mean "a row can land here", and red is reserved for the
-   pending action); the x rides one step brighter as a colorless aiming
-   point. Opaque bg plate: the raster rewrite reveals this face over the
-   still-painted create row, and the split face mid-sweep is the tell.
-   Never interactive: drops resolve by coordinates, not events. */
-.workbench__trash-face {
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-float);
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  color: var(--text-dim);
-  font-size: var(--type-body);
-  font-weight: 800;
-  letter-spacing: var(--tracking-1);
-  pointer-events: none;
-  background: var(--bg);
-  border: var(--rule) dashed var(--border-strong);
-  opacity: 0;
-}
-
-.workbench__trash-x {
-  color: var(--text-soft);
-}
-
-/* MORPH: the drag begins and the raster line rewrites the signal
-   top-to-bottom once - above the line the delete face is already
-   painted, below it create still shows. */
-.workbench__create-slot--lifted .workbench__trash-face {
-  opacity: 1;
-  animation: forge-rewrite calc(var(--motion-morph) * 0.7) linear calc(var(--motion-morph) * 0.1)
-    both;
-}
-
-/* ARMED: the energized double rail - solid accent border PLUS an inner
-   accent rail (two live wires, a signature no other zone wears), charge
-   tint over the alarm plate, label at full accent with widened tracking
-   (flex layout: no geometry shift). The glow pulses shallowly at the
-   --motion-flash cadence via the overlay below - a functional loop on a
-   live destructive state, sanctioned with the dnd-03 pick. */
-.workbench__trash-face--armed,
-.workbench__create-slot--consume .workbench__trash-face {
-  color: var(--accent);
-  letter-spacing: var(--tracking-15);
-  background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--surface-alarm);
-  border-style: solid;
-  border-color: var(--accent);
-  outline: var(--hairline) solid var(--accent);
-  outline-offset: calc(-1 * (var(--space-1) + var(--rule)));
-}
-
-.workbench__trash-face--armed .workbench__trash-x,
-.workbench__create-slot--consume .workbench__trash-x {
-  color: inherit;
-}
-
-.workbench__trash-face--armed::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  box-shadow: var(--glow-zone-armed);
-  animation: forge-charge var(--motion-flash) ease-in-out infinite;
-}
-
-/* CONSUME: release while armed. The face holds the armed dress, takes
-   the white-hot impact when the tv-off line lands, then the reverse
-   sweep rewrites create back bottom-to-top. */
-.workbench__create-slot--consume .workbench__trash-face {
-  opacity: 1;
-  box-shadow: var(--glow-zone-armed);
-  animation:
-    forge-impact calc(var(--motion-consume) / 6) linear calc(var(--motion-consume) * 0.55) both,
-    forge-unwrite calc(var(--motion-consume) * 0.39) linear calc(var(--motion-consume) * 0.61) both;
-}
-
-/* ABORT: any other release - the bare reverse sweep, no impact, no
-   flicker. The rewrite grammar covers every exit. */
-.workbench__create-slot--abort .workbench__trash-face {
-  opacity: 1;
-  animation: forge-unwrite calc(var(--motion-morph) * 0.7) linear both;
-}
-
-/* The raster line: 2px of white with the white event glow - the one
-   bright event, entirely off the red channel (the ambient scanlines'
-   language turned into an EVENT). Sits after the face in the DOM, so it
-   paints above at the same z. */
-.workbench__raster {
-  position: absolute;
-  right: 0;
-  left: 0;
-  z-index: var(--z-float);
-  height: var(--rule);
-  pointer-events: none;
-  background: var(--text);
-  box-shadow: var(--raster);
-  opacity: 0;
-}
-
-.workbench__create-slot--lifted .workbench__raster {
-  animation: raster-down calc(var(--motion-morph) * 0.7) linear calc(var(--motion-morph) * 0.1) both;
-}
-
-.workbench__create-slot--consume .workbench__raster {
-  animation: raster-up calc(var(--motion-consume) * 0.39) linear calc(var(--motion-consume) * 0.61)
-    both;
-}
-
-.workbench__create-slot--abort .workbench__raster {
-  animation: raster-up calc(var(--motion-morph) * 0.7) linear both;
-}
-
-@keyframes forge-rewrite {
-  from {
-    clip-path: inset(0 0 100% 0);
-  }
-
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@keyframes forge-unwrite {
-  from {
-    clip-path: inset(0 0 0 0);
-  }
-
-  to {
-    clip-path: inset(0 0 100% 0);
-  }
-}
-
-@keyframes raster-down {
-  0% {
-    top: 0;
-    opacity: 1;
-  }
-
-  95% {
-    opacity: 1;
-  }
-
-  100% {
-    top: calc(100% - var(--rule));
-    opacity: 0;
-  }
-}
-
-@keyframes raster-up {
-  0% {
-    top: calc(100% - var(--rule));
-    opacity: 1;
-  }
-
-  95% {
-    opacity: 1;
-  }
-
-  100% {
-    top: 0;
-    opacity: 0;
-  }
-}
-
-@keyframes forge-afterglow {
-  0% {
-    filter: brightness(0.8);
-  }
-
-  50% {
-    filter: brightness(1.08);
-  }
-
-  100% {
-    filter: brightness(1);
-  }
-}
-
-@keyframes forge-charge {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.62;
-  }
-}
-
-@keyframes forge-impact {
-  0% {
-    color: var(--accent);
-    border-color: var(--accent);
-    box-shadow: var(--glow-zone-armed);
-  }
-
-  35% {
-    color: var(--text);
-    border-color: var(--text);
-    box-shadow: var(--raster);
-  }
-
-  100% {
-    color: var(--accent);
-    border-color: var(--accent);
-    box-shadow: var(--glow-flash);
-  }
-}
-
-/* The consume snackbar, docked over the forge region; UNDO is the one
-   recovery path for a gesture that deliberately has no confirm. */
-.workbench__snack {
+/* The consume snackbar's dock, over the forge region; the snackbar owns
+   its dress and entrance. */
+.workbench__snack-dock {
   position: absolute;
   right: 0;
   bottom: var(--space-3);
   left: 0;
   z-index: var(--z-float);
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  padding: 0 var(--space-2) 0 var(--space-3);
-  background: var(--surface-raise);
-  border: var(--hairline) solid var(--border-strong);
-  animation: snack-in calc(var(--motion-consume) * 0.28) steps(2, end)
-    calc(var(--motion-consume) + 0.06s) both;
 }
 
-.workbench__snack-msg {
-  flex: 1;
-  margin: 0;
-  color: var(--text-soft);
-  font-size: var(--type-label);
-  font-weight: 700;
-  letter-spacing: var(--tracking-1);
-  text-transform: uppercase;
-}
-
-.workbench__snack-undo {
-  min-width: var(--tap-min);
-  min-height: var(--tap-min);
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: var(--type-label);
-  font-weight: 800;
-  letter-spacing: var(--tracking-2);
-  text-transform: uppercase;
-  cursor: pointer;
-  background: none;
-  border: none;
-}
-
-@keyframes snack-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-2));
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
+/* While a card is lifted the rest of the screen goes inert: the drag
+   itself listens on document, but a second finger must not click the
+   covered create row (focusing its entry pops the keyboard, which
+   resizes the viewport and invalidates the FROZEN zone boundaries),
+   fold cards, tick steppers, or tap Undo under the pending drop.
+   Multi-touch discipline for the tap surfaces, matching the pointer-id
+   filtering the listeners already do. */
+.workbench--lifted .workbench__circuit-zone,
+.workbench--lifted .workbench__pool-stock,
+.workbench--lifted .workbench__forge-dock,
+.workbench--lifted .workbench__snack-dock {
+  pointer-events: none;
 }
 
 /* The in-flight card: content is the real card component (its own
@@ -1603,32 +1315,25 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 /* Reduced motion: every choreography collapses to an instant state
-   jump - the receded page applies statically, faces and transients
-   simply appear/disappear, and the charge pulse holds still. */
+   jump - the receded page applies statically and transients simply
+   appear/disappear (ForgeSlot and TrashSnackbar carry their own
+   carve-outs). */
 @media (prefers-reduced-motion: reduce) {
-  .workbench__zones--receded,
-  .workbench__zones--restoring,
-  .workbench__create-slot--lifted,
-  .workbench__create-slot--lifted .workbench__trash-face,
-  .workbench__create-slot--consume .workbench__trash-face,
-  .workbench__create-slot--abort .workbench__trash-face,
-  .workbench__raster,
-  .workbench__trash-face--armed::after,
+  .workbench__region--receded,
+  .workbench__region--restoring,
   .workbench__drag-ghost,
   .workbench__ghost-card,
-  .workbench__snack,
   .workbench__fly-ghost {
     transition: none;
     animation: none;
   }
 
-  .workbench__zones--receded {
+  .workbench__region--receded {
     filter: var(--lift-recede);
   }
 
-  .workbench__create-slot--consume .workbench__trash-face,
-  .workbench__create-slot--abort .workbench__trash-face {
-    opacity: 0;
+  .workbench__seam-tick {
+    display: none;
   }
 
   .workbench__consume-ghost,

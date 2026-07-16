@@ -6,9 +6,9 @@ import type { WorkbenchDragOptions } from './useWorkbenchDrag';
 
 // Geometry is injected (measure callbacks), so the whole session runs on
 // synthetic numbers: three circuit cards with midpoints at 100/200/300,
-// the pool starting at y=500, and the trash band at y=700. Every
-// synthetic event carries a pointerId (the session must ignore other
-// fingers); the drag finger is pointer 1 unless a test says otherwise.
+// the pool starting at y=500, and the forge at y=700. Every synthetic
+// event carries a pointerId (the session must ignore other fingers);
+// the drag finger is pointer 1 unless a test says otherwise.
 
 function firePointer(
   type: string,
@@ -37,7 +37,7 @@ function makeDrag(overrides: Partial<WorkbenchDragOptions> = {}) {
   const options: WorkbenchDragOptions = {
     measureSlotMidpoints: vi.fn(() => [100, 200, 300]),
     measurePoolTop: vi.fn(() => 500),
-    measureTrashTop: vi.fn(() => 700),
+    measureForgeTop: vi.fn(() => 700),
     onReorder: vi.fn(),
     onRemove: vi.fn(),
     onAdd: vi.fn(),
@@ -97,6 +97,29 @@ describe('orderAfterDrop', () => {
 });
 
 describe('useWorkbenchDrag / shared session mechanics', () => {
+  it('reports the armed zone as one observable, null at idle', () => {
+    const { drag } = makeDrag();
+
+    expect(drag.armedZone.value).toBeNull();
+
+    drag.begin(
+      'circuit',
+      'item-1',
+      pointerEvent({ clientX: 40, clientY: 150 }),
+      cardRect(20, 140, 380),
+    );
+    expect(drag.armedZone.value).toBe('circuit');
+
+    firePointer('pointermove', { clientX: 40, clientY: 560 });
+    expect(drag.armedZone.value).toBe('pool');
+
+    firePointer('pointermove', { clientX: 40, clientY: 720 });
+    expect(drag.armedZone.value).toBe('forge');
+
+    firePointer('pointerup', { clientX: 40, clientY: 720 });
+    expect(drag.armedZone.value).toBeNull();
+  });
+
   it('arms the circuit zone and opens the landing gap over the cards', () => {
     const { drag } = makeDrag();
 
@@ -111,7 +134,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     expect(drag.state.draggingId).toBe('item-1');
     expect(drag.state.circuitArmed).toBe(true);
     expect(drag.state.poolArmed).toBe(false);
-    expect(drag.state.trashArmed).toBe(false);
+    expect(drag.state.forgeArmed).toBe(false);
     expect(drag.state.gapIndex).toBe(1);
   });
 
@@ -185,12 +208,12 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     );
     const heldGhostY = drag.state.ghostY;
 
-    // A second finger moves, cancels, and lifts deep in the trash band:
+    // A second finger moves, cancels, and lifts deep over the forge:
     // the ghost must not jump to it, the session must not end, and above
     // all its lift must not fire the (destructive) drop.
     firePointer('pointermove', { clientX: 300, clientY: 750 }, 2);
     expect(drag.state.ghostY).toBe(heldGhostY);
-    expect(drag.state.trashArmed).toBe(false);
+    expect(drag.state.forgeArmed).toBe(false);
 
     firePointer('pointercancel', { clientX: 300, clientY: 750 }, 2);
     expect(drag.state.draggingId).toBe('item-1');
@@ -219,11 +242,11 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
 
     expect(drag.state.poolArmed).toBe(true);
     expect(drag.state.circuitArmed).toBe(false);
-    expect(drag.state.trashArmed).toBe(false);
+    expect(drag.state.forgeArmed).toBe(false);
     expect(drag.state.gapIndex).toBeNull();
   });
 
-  it('arms the trash band under the pool, exactly one zone at a time', () => {
+  it('arms the forge under the pool, exactly one zone at a time', () => {
     const { drag } = makeDrag();
 
     drag.begin(
@@ -234,7 +257,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     );
     firePointer('pointermove', { clientX: 40, clientY: 720 });
 
-    expect(drag.state.trashArmed).toBe(true);
+    expect(drag.state.forgeArmed).toBe(true);
     expect(drag.state.poolArmed).toBe(false);
     expect(drag.state.circuitArmed).toBe(false);
     expect(drag.state.gapIndex).toBeNull();
@@ -258,21 +281,21 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     expect(drag.state.poolArmed).toBe(false);
     expect(drag.state.circuitArmed).toBe(true);
 
-    // Trash seam behaves the same: tremor stays deleted-armed, retreat
+    // Forge seam behaves the same: tremor stays deleted-armed, retreat
     // falls back to the pool.
     firePointer('pointermove', { clientX: 40, clientY: 700 });
-    expect(drag.state.trashArmed).toBe(true);
+    expect(drag.state.forgeArmed).toBe(true);
     firePointer('pointermove', { clientX: 40, clientY: 695 });
-    expect(drag.state.trashArmed).toBe(true);
+    expect(drag.state.forgeArmed).toBe(true);
     firePointer('pointermove', { clientX: 40, clientY: 680 });
-    expect(drag.state.trashArmed).toBe(false);
+    expect(drag.state.forgeArmed).toBe(false);
     expect(drag.state.poolArmed).toBe(true);
   });
 
   it('freezes both zone boundaries at grab time so state swaps cannot move them', () => {
     const measurePoolTop = vi.fn(() => 500);
-    const measureTrashTop = vi.fn(() => 700);
-    const { drag } = makeDrag({ measurePoolTop, measureTrashTop });
+    const measureForgeTop = vi.fn(() => 700);
+    const { drag } = makeDrag({ measurePoolTop, measureForgeTop });
 
     drag.begin(
       'circuit',
@@ -283,11 +306,11 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     // The list restructure after arming would report shifted boundaries;
     // a live re-measure here would oscillate at the seams.
     measurePoolTop.mockReturnValue(560);
-    measureTrashTop.mockReturnValue(760);
+    measureForgeTop.mockReturnValue(760);
     firePointer('pointermove', { clientX: 40, clientY: 520 });
 
     expect(measurePoolTop).toHaveBeenCalledTimes(1);
-    expect(measureTrashTop).toHaveBeenCalledTimes(1);
+    expect(measureForgeTop).toHaveBeenCalledTimes(1);
     expect(drag.state.poolArmed).toBe(true);
   });
 
@@ -387,7 +410,7 @@ describe('useWorkbenchDrag / drop outcomes by origin', () => {
     expect(drag.state.draggingId).toBeNull();
   });
 
-  it('any card released on the trash band is deleted, wherever it came from', () => {
+  it('any card released on the forge is deleted, wherever it came from', () => {
     const first = makeDrag();
     first.drag.begin(
       'circuit',
@@ -425,7 +448,7 @@ describe('useWorkbenchDrag / drop outcomes by origin', () => {
     firePointer('pointermove', { clientX: 40, clientY: 250 });
 
     // The lifting finger rolls: the release event lands deep in the
-    // trash band. The preview is the contract - reorder at 2, never a
+    // forge. The preview is the contract - reorder at 2, never a
     // remove and NEVER a delete.
     firePointer('pointerup', { clientX: 40, clientY: 750 });
 

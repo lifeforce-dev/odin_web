@@ -5,7 +5,7 @@ import PoolElsewhereRow from './PoolElsewhereRow.vue';
 
 // Render + emit wiring only; the grip's press-to-drag decision logic is
 // pinned in useDragHandle.test.ts. Pointer interactions use the jsdom
-// expando pattern (see PoolAvailableRow.test.ts).
+// expando pattern (see WorkoutCard.test.ts).
 
 function firePointer(
   target: EventTarget,
@@ -24,7 +24,7 @@ describe('PoolElsewhereRow', () => {
 
     expect(wrapper.get('.pool-elsewhere__name').text()).toBe('Pushups');
     expect(wrapper.get('.pool-elsewhere__owner').text()).toBe('Upper Body');
-    expect(wrapper.find('.pool-elsewhere__grip').exists()).toBe(true);
+    expect(wrapper.find('.grip-handle').exists()).toBe(true);
     expect(wrapper.find('.pool-elsewhere__strip').exists()).toBe(false);
   });
 
@@ -64,7 +64,7 @@ describe('PoolElsewhereRow', () => {
   it('emits drag-start from the grip once past the threshold', () => {
     const wrapper = mount(PoolElsewhereRow, { props: { name: 'Pushups', owner: 'Upper Body' } });
 
-    firePointer(wrapper.get('.pool-elsewhere__grip').element, 'pointerdown', {
+    firePointer(wrapper.get('.grip-handle').element, 'pointerdown', {
       clientX: 40,
       clientY: 600,
     });

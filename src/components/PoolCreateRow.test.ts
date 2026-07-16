@@ -8,24 +8,24 @@ describe('PoolCreateRow', () => {
     const wrapper = mount(PoolCreateRow);
 
     expect(wrapper.text()).toContain('+ New workout');
-    expect(wrapper.find('.pool-create__entry').exists()).toBe(false);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
 
     await wrapper.get('button').trigger('click');
 
-    expect(wrapper.find('.pool-create__entry').exists()).toBe(true);
-    expect(wrapper.get('.pool-create__entry').attributes('data-placeholder')).toBe('Name');
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(true);
+    expect(wrapper.get('.name-entry__entry').attributes('data-placeholder')).toBe('Name');
   });
 
   it('commits the trimmed name on Enter and folds back to idle', async () => {
     const wrapper = mount(PoolCreateRow);
     await wrapper.get('button').trigger('click');
 
-    const entry = wrapper.get('.pool-create__entry');
+    const entry = wrapper.get('.name-entry__entry');
     entry.element.textContent = '  Goblet Squat  ';
     await entry.trigger('keydown', { key: 'Enter' });
 
     expect(wrapper.emitted('create')).toEqual([['Goblet Squat']]);
-    expect(wrapper.find('.pool-create__entry').exists()).toBe(false);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
     expect(wrapper.text()).toContain('+ New workout');
   });
 
@@ -33,8 +33,8 @@ describe('PoolCreateRow', () => {
     const wrapper = mount(PoolCreateRow);
     await wrapper.get('button').trigger('click');
 
-    wrapper.get('.pool-create__entry').element.textContent = 'Kb Swing';
-    await wrapper.get('.pool-create__confirm').trigger('click');
+    wrapper.get('.name-entry__entry').element.textContent = 'Kb Swing';
+    await wrapper.get('.name-entry__confirm').trigger('click');
 
     expect(wrapper.emitted('create')).toEqual([['Kb Swing']]);
   });
@@ -43,33 +43,33 @@ describe('PoolCreateRow', () => {
     const wrapper = mount(PoolCreateRow);
     await wrapper.get('button').trigger('click');
 
-    wrapper.get('.pool-create__entry').element.textContent = '   ';
-    await wrapper.get('.pool-create__entry').trigger('keydown', { key: 'Enter' });
+    wrapper.get('.name-entry__entry').element.textContent = '   ';
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
 
     expect(wrapper.emitted('create')).toBeUndefined();
-    expect(wrapper.find('.pool-create__entry').exists()).toBe(false);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
   });
 
   it('cancels on Escape without emitting', async () => {
     const wrapper = mount(PoolCreateRow);
     await wrapper.get('button').trigger('click');
 
-    wrapper.get('.pool-create__entry').element.textContent = 'Dead Bug';
-    await wrapper.get('.pool-create__entry').trigger('keydown', { key: 'Escape' });
+    wrapper.get('.name-entry__entry').element.textContent = 'Dead Bug';
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Escape' });
 
     expect(wrapper.emitted('create')).toBeUndefined();
-    expect(wrapper.find('.pool-create__entry').exists()).toBe(false);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
   });
 
   it('abandons the entry when focus leaves the row (tap-off)', async () => {
     const wrapper = mount(PoolCreateRow);
     await wrapper.get('button').trigger('click');
 
-    wrapper.get('.pool-create__entry').element.textContent = 'Dead Bug';
-    await wrapper.get('.pool-create__row--entering').trigger('focusout', { relatedTarget: null });
+    wrapper.get('.name-entry__entry').element.textContent = 'Dead Bug';
+    await wrapper.get('.name-entry').trigger('focusout', { relatedTarget: null });
 
     expect(wrapper.emitted('create')).toBeUndefined();
-    expect(wrapper.find('.pool-create__entry').exists()).toBe(false);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
     expect(wrapper.text()).toContain('+ New workout');
   });
 
@@ -77,12 +77,12 @@ describe('PoolCreateRow', () => {
     const wrapper = mount(PoolCreateRow);
     await wrapper.get('button').trigger('click');
 
-    const confirm = wrapper.get('.pool-create__confirm').element;
-    await wrapper.get('.pool-create__row--entering').trigger('focusout', {
+    const confirm = wrapper.get('.name-entry__confirm').element;
+    await wrapper.get('.name-entry').trigger('focusout', {
       relatedTarget: confirm,
     });
 
-    expect(wrapper.find('.pool-create__entry').exists()).toBe(true);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(true);
   });
 
   it('renders the parent verdict when a name was rejected', () => {

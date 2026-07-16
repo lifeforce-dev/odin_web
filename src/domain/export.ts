@@ -69,6 +69,11 @@ export function deserialize(text: string): OdinExport {
     );
   }
   if (envelope.schemaVersion !== EXPORT_SCHEMA_VERSION) {
+    // Deliberately hard: only the version this app writes. When a
+    // device-side restore ships it needs a v1 -> v2 upgrade branch here
+    // (hoist each held slot's sets/restSeconds onto its exercise row),
+    // not a bigger error message - v1 files exist in the wild the
+    // moment anyone exported before migration 0001.
     throw new Error(
       `unsupported export schemaVersion: expected ${EXPORT_SCHEMA_VERSION}, ` +
         `got ${String(envelope.schemaVersion)}`,

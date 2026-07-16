@@ -9,8 +9,9 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
-// Domain schema v1. Spec: copilot/features/odin-design/design/schema-v2.md
-// (pool model + the 2026-07-12 exclusive-membership amendment).
+// Domain schema v2. Spec: .claude/features/odin-design/design/schema-v2.md
+// (pool model + the 2026-07-12 exclusive-membership amendment + the
+// 2026-07-15 workout-owns-its-prescription amendment, migration 0001).
 // TEXT UUID primary keys (device-generated) and TEXT ISO8601 UTC timestamps
 // are standing decisions carried from schema v1: exported FKs stay UUIDs with
 // zero translation, and the perf cost is irrelevant at one user's data volume.

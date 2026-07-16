@@ -94,7 +94,10 @@ describe('CircuitWorkbenchView', () => {
     const cards = circuitCards(wrapper);
     expect(cards).toHaveLength(2);
     expect(cards[0].text()).toContain('Lat Pulldown');
-    expect(cards[0].text()).toContain('4 sets // rest 90s');
+    // The VALUES prove the prop wiring; the sentence format is
+    // WorkoutCard.test.ts's contract, pinned once there.
+    expect(cards[0].text()).toMatch(/4 sets/);
+    expect(cards[0].text()).toMatch(/90s/);
   });
 
   it('renders a blank title while loading, never a placeholder flash', async () => {
@@ -175,6 +178,27 @@ describe('CircuitWorkbenchView', () => {
     expect(rackIds.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
   });
 
+  it('keeps the drop feedback transients out of the idle screen', async () => {
+    const circuitId = await seedCircuit();
+    await seedPool();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    // Crossing-tick pick (2026-07-16): the berth, the seam tick, and
+    // the receded-region filters exist only while a card is lifted - at
+    // idle the pool is plain stock and nothing is dimmed.
+    expect(wrapper.find('.workbench__berth').exists()).toBe(false);
+    expect(wrapper.find('.workbench__seam-tick').exists()).toBe(false);
+    expect(wrapper.find('.workbench__region--receded').exists()).toBe(false);
+    // The retired zone-ring classes by name (a blanket [class*="--armed"]
+    // ban would fail any future component legitimately carrying an
+    // --armed modifier at idle): armed is stated by the LIT region, and
+    // the only --armed dress left is the forge face's, mid-drag.
+    expect(wrapper.find('.workbench__circuit-zone--armed').exists()).toBe(false);
+    expect(wrapper.find('.workbench__pool--armed').exists()).toBe(false);
+    expect(wrapper.find('.forge-slot__face--armed').exists()).toBe(false);
+  });
+
   it('dresses pool cards as stock and circuit cards as committed', async () => {
     const circuitId = await seedCircuit();
     await seedPool();
@@ -183,7 +207,8 @@ describe('CircuitWorkbenchView', () => {
 
     const poolCard = wrapper.get('.workbench__pool-list .workout-card');
     expect(poolCard.classes()).toContain('workout-card--pool');
-    expect(poolCard.text()).toContain('3x // 60s');
+    expect(poolCard.text()).toMatch(/3x/);
+    expect(poolCard.text()).toMatch(/60s/);
     for (const card of circuitCards(wrapper)) {
       expect(card.classes()).not.toContain('workout-card--pool');
     }
@@ -229,7 +254,8 @@ describe('CircuitWorkbenchView', () => {
     expect(cards).toHaveLength(3);
     expect(cards[2].text()).toContain('Goblet Squat');
     // The workout brings its own prescription; nothing re-defaults.
-    expect(cards[2].text()).toContain('5 sets // rest 45s');
+    expect(cards[2].text()).toMatch(/5 sets/);
+    expect(cards[2].text()).toMatch(/45s/);
     expect(wrapper.find('.workbench__pool-list .workout-card').exists()).toBe(false);
     const persisted = await listCircuitSlots(testDb.db, circuitId);
     expect(persisted.map((slot) => slot.exerciseName)).toContain('Goblet Squat');
@@ -245,7 +271,7 @@ describe('CircuitWorkbenchView', () => {
 
     const poolCard = wrapper.get(`[data-card-id="${freeId}"]`);
     expect(poolCard.find('.workout-card__editor').exists()).toBe(true);
-    expect(poolCard.findAll('.workout-card__step')).toHaveLength(4);
+    expect(poolCard.findAll('.stepper-field__step')).toHaveLength(4);
     expect(poolCard.find('.workout-card__remove').exists()).toBe(false);
 
     // The circuit card's editor carries the remove; one control, one
@@ -284,8 +310,8 @@ describe('CircuitWorkbenchView', () => {
     await flushPromises();
 
     await wrapper.get('.pool-create__row').trigger('click');
-    wrapper.get('.pool-create__entry').element.textContent = 'Dead Bug';
-    await wrapper.get('.pool-create__entry').trigger('keydown', { key: 'Enter' });
+    wrapper.get('.name-entry__entry').element.textContent = 'Dead Bug';
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
     await flushPromises();
 
     // The created workout waits in the pool, fully editable there.
@@ -301,8 +327,8 @@ describe('CircuitWorkbenchView', () => {
     await flushPromises();
 
     await wrapper.get('.pool-create__row').trigger('click');
-    wrapper.get('.pool-create__entry').element.textContent = 'Pushups';
-    await wrapper.get('.pool-create__entry').trigger('keydown', { key: 'Enter' });
+    wrapper.get('.name-entry__entry').element.textContent = 'Pushups';
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
     await flushPromises();
 
     // Nothing moved; the owner's row is open on its warning instead.
@@ -340,7 +366,7 @@ describe('CircuitWorkbenchView', () => {
     );
   });
 
-  it('keeps the trash face laid out in the create slot, hidden until a drag begins', async () => {
+  it('keeps the delete face laid out in the forge slot, hidden until a drag begins', async () => {
     const circuitId = await seedCircuit();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
@@ -348,11 +374,179 @@ describe('CircuitWorkbenchView', () => {
     // The slot doubles as the delete target (the forge rule): the face
     // must exist in the idle DOM so the drag can measure its boundary,
     // and it only swaps in via the state-driven lifted class.
-    const slot = wrapper.get('.workbench__create-slot');
+    const slot = wrapper.get('.forge-slot');
     // The copy is exactly `x DELETE` (owner ruling: bare ASCII, both
     // dormant and armed - the visuals alone escalate).
-    expect(slot.get('.workbench__trash-face').text()).toBe('x DELETE');
+    expect(slot.get('.forge-slot__face').text()).toBe('x DELETE');
     expect(slot.text()).toContain('+ New workout');
-    expect(slot.classes()).not.toContain('workbench__create-slot--lifted');
+    expect(slot.classes()).not.toContain('forge-slot--lifted');
+  });
+
+  it('flips to loading the moment the circuit id changes', async () => {
+    const circuitId = await seedCircuit();
+    const other = await createCircuit(testDb.db, { kind: 'workout', name: 'Push Day' });
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+    expect(wrapper.get('h1').text()).toBe('Legs');
+
+    await wrapper.setProps({ id: other.id });
+
+    // The flip is synchronous: circuit A must not stay interactive (a
+    // stale tap would enqueue a wrong-circuit write) while B loads.
+    expect(wrapper.text()).toContain('Loading circuit');
+    await flushPromises();
+    expect(wrapper.get('h1').text()).toBe('Push Day');
+  });
+});
+
+// --- The drag seam: session ids are EXERCISE ids, persistence wants ---------
+// ITEM ids, and the drop callbacks translate between them. jsdom rects
+// are all zero, so every frozen boundary sits at y=0: negative clientY
+// is the circuit band, positive is the forge (or, with the forge seam
+// stubbed lower, the pool). Pointer events are plain Events with
+// coordinate expandos - the established jsdom workaround.
+
+function dragPointer(
+  type: string,
+  coords: { clientX: number; clientY: number },
+  pointerId = 7,
+): void {
+  const event = new Event(type, { bubbles: true });
+  Object.assign(event, coords, { pointerId });
+  document.dispatchEvent(event);
+}
+
+function syntheticPress(coords: { clientX: number; clientY: number }, pointerId = 7): PointerEvent {
+  const event = new Event('pointerdown', { bubbles: true });
+  Object.assign(event, coords, { pointerId, button: 0 });
+  return event as PointerEvent;
+}
+
+function cardByName(wrapper: ReturnType<typeof mount>, name: string) {
+  const card = wrapper.findAllComponents(WorkoutCard).find((entry) => entry.props('name') === name);
+  if (!card) {
+    throw new Error(`expected a rendered card named ${name}`);
+  }
+  return card;
+}
+
+describe('CircuitWorkbenchView / drag seams', () => {
+  it('persists a drag reorder through the exercise-to-item id translation', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+    const [first, second] = await listCircuitSlots(testDb.db, circuitId);
+
+    cardByName(wrapper, 'Cable Row').vm.$emit(
+      'drag-start',
+      syntheticPress({ clientX: 10, clientY: 5 }),
+    );
+    await flushPromises();
+    dragPointer('pointermove', { clientX: 10, clientY: -50 });
+    await flushPromises();
+
+    // The presence half of the transient contract: mid-drag the real
+    // ghost renders and the rack opens the landing gap.
+    expect(wrapper.find('.workbench__drag-ghost').exists()).toBe(true);
+    expect(wrapper.find('.workbench__rack-slot--gap').exists()).toBe(true);
+
+    dragPointer('pointerup', { clientX: 10, clientY: -50 });
+    await flushPromises();
+
+    // The reorder landed with ITEM ids (handing exercise ids to
+    // reorderSlots would reorder-mismatch into a silent resync no-op).
+    const persisted = await listCircuitSlots(testDb.db, circuitId);
+    expect(persisted.map((slot) => slot.id)).toEqual([second.id, first.id]);
+    wrapper.unmount();
+  });
+
+  it('a flick released before geometry settles never starts a drag', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    cardByName(wrapper, 'Cable Row').vm.$emit(
+      'drag-start',
+      syntheticPress({ clientX: 10, clientY: 5 }),
+    );
+    // The release lands inside the settle tick, before the session
+    // could begin: no session, no ghost (the stuck-ghost regression).
+    dragPointer('pointerup', { clientX: 10, clientY: 5 });
+    await flushPromises();
+
+    expect(wrapper.find('.workbench__drag-ghost').exists()).toBe(false);
+    const persisted = await listCircuitSlots(testDb.db, circuitId);
+    expect(persisted.map((slot) => slot.exerciseName)).toEqual(['Lat Pulldown', 'Cable Row']);
+    wrapper.unmount();
+  });
+
+  it('a forge drop deletes the workout and the snackbar undo restores it', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+    const [first] = await listCircuitSlots(testDb.db, circuitId);
+
+    cardByName(wrapper, 'Lat Pulldown').vm.$emit(
+      'drag-start',
+      syntheticPress({ clientX: 10, clientY: 5 }),
+    );
+    await flushPromises();
+    dragPointer('pointermove', { clientX: 10, clientY: 40 });
+    await flushPromises();
+
+    // Over the forge the face arms - the presence half of the armed
+    // dress the idle test bans.
+    expect(wrapper.get('.forge-slot__face').classes()).toContain('forge-slot__face--armed');
+
+    dragPointer('pointerup', { clientX: 10, clientY: 40 });
+    await flushPromises();
+
+    // The one destructive gesture: archived in the DB, gone from the
+    // rack, and the single recovery surface is up with the right name.
+    expect(circuitCards(wrapper)).toHaveLength(1);
+    expect(wrapper.get('.trash-snackbar__msg').text()).toBe('Lat Pulldown deleted');
+    expect(await listCircuitSlots(testDb.db, circuitId)).toHaveLength(1);
+
+    await wrapper.get('.trash-snackbar__undo').trigger('click');
+    await flushPromises();
+
+    // Undo restores the identity AND its held slot, and the toast is
+    // spent.
+    const restored = await listCircuitSlots(testDb.db, circuitId);
+    expect(restored.map((slot) => slot.exerciseId)[0]).toBe(first.exerciseId);
+    expect(circuitCards(wrapper)).toHaveLength(2);
+    expect(wrapper.find('.trash-snackbar').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('opens the pool berth at the TOP of the stock for a circuit card', async () => {
+    const circuitId = await seedCircuit();
+    await seedPool();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    // Push the forge seam down to y=100 so 0 <= y < 100 reads as the
+    // pool band (all other rects stay zero).
+    const forgeEl = wrapper.get('.forge-slot').element as HTMLElement;
+    forgeEl.getBoundingClientRect = () =>
+      ({ top: 100, left: 0, bottom: 148, right: 400, width: 400, height: 48 }) as DOMRect;
+
+    cardByName(wrapper, 'Cable Row').vm.$emit(
+      'drag-start',
+      syntheticPress({ clientX: 10, clientY: 5 }),
+    );
+    await flushPromises();
+    dragPointer('pointermove', { clientX: 10, clientY: 40 });
+    await flushPromises();
+
+    // Owner pick 2026-07-16: the berth is deterministic - always the
+    // top row of AVAILABLE, never the sorted spot mid-list (which could
+    // even open below the scroll).
+    const items = wrapper.get('.workbench__pool-items').element;
+    expect(items.children[0].className).toContain('workbench__berth');
+
+    dragPointer('pointerup', { clientX: 10, clientY: -50 });
+    await flushPromises();
+    wrapper.unmount();
   });
 });

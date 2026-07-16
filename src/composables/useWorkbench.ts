@@ -53,6 +53,12 @@ export type CreateWorkoutOutcome =
 export type RenameWorkoutOutcome =
   { kind: 'renamed' } | { kind: 'rejected'; message: string } | { kind: 'failed' };
 
+// What became of a snackbar undo: 'spent' means the undo expired
+// underneath the snackbar (double tap, or the freed name re-taken);
+// 'failed' means the restore itself blew up and the chain resynced.
+// The two need different copy, so they come back apart.
+export type UndoTrashOutcome = 'restored' | 'spent' | 'failed';
+
 // The SQLite reason only travels on the wrapped error's cause chain
 // (01-04 decision); reacting to a specific violation means walking it.
 function isUniqueConstraintViolation(error: unknown): boolean {
@@ -96,8 +102,31 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   // db.transaction calls cannot both succeed - the second BEGIN rejects.
   let writeChain: Promise<void> = Promise.resolve();
 
+  // Bumped by every resync. An op that was already queued when a resync
+  // repainted the screen must reload after it runs: the optimistic ops
+  // (adjustPrescription, an applied reorder) deliberately skip their
+  // post-write load, and without this check the resync's older paint
+  // would sit over the newer row those ops then write.
+  let chainGeneration = 0;
+
   function enqueue(operation: () => Promise<void>): Promise<void> {
-    writeChain = writeChain.then(operation).catch(resync);
+    // The circuit this op was aimed at, captured at emit time: the view
+    // instance is reused across circuits, so an op still queued when
+    // props.id flips would otherwise write into the NEW circuit
+    // (add/steal would land silently in the wrong list).
+    const target = circuitId();
+    const generation = chainGeneration;
+    writeChain = writeChain
+      .then(async () => {
+        if (circuitId() !== target) {
+          return;
+        }
+        await operation();
+        if (chainGeneration !== generation) {
+          await load();
+        }
+      })
+      .catch(resync);
     return writeChain;
   }
 
@@ -133,8 +162,22 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   // On any failed or stale write the DB is the truth: reload rather than
   // guess, so the screen can never drift from what is persisted.
   async function resync(error: unknown): Promise<void> {
+    chainGeneration += 1;
     console.error('[odin] workbench operation failed; reloading from DB', error);
     await load();
+  }
+
+  // The mount / id-change entry point: flips the screen to loading NOW
+  // (the old circuit must not stay interactive - a stale tap there
+  // would enqueue a wrong-circuit write) and rides the chain, so the
+  // read cannot interleave with an in-flight write transaction on the
+  // single shared connection.
+  function reload(): Promise<void> {
+    if (!db) {
+      return Promise.resolve();
+    }
+    status.value = 'loading';
+    return enqueue(load);
   }
 
   // Optimistic: the displayed value moves on the same tick as the tap so
@@ -276,6 +319,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     let outcome: CreateWorkoutOutcome = { kind: 'failed' };
     return enqueue(async () => {
       if (circuitKind === null) {
+        // Reachable only if a create fired before any load settled - an
+        // invariant violation worth a trace, not a silent 'failed'.
+        console.error('[odin] createWorkout before the circuit kind loaded; refusing');
         return;
       }
       let exerciseId: string;
@@ -349,25 +395,27 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }).then(() => trashed);
   }
 
-  // The snackbar's UNDO: restore the identity and its held slot. False
-  // when the undo has expired underneath the snackbar - a double tap, or
-  // the freed name re-taken (the constraint's verdict); either way the
-  // reload has already told the screen the truth.
-  function undoTrash(trashed: TrashedWorkout): Promise<boolean> {
+  // The snackbar's UNDO: restore the identity and its held slot. Either
+  // non-restored outcome means the reload has already told the screen
+  // the truth; see UndoTrashOutcome for what tells them apart.
+  function undoTrash(trashed: TrashedWorkout): Promise<UndoTrashOutcome> {
     if (!db) {
-      return Promise.resolve(false);
+      return Promise.resolve('failed');
     }
-    let restored = false;
+    let outcome: UndoTrashOutcome = 'failed';
     return enqueue(async () => {
       try {
-        restored = await restoreExercise(db, trashed);
+        outcome = (await restoreExercise(db, trashed)) ? 'restored' : 'spent';
       } catch (error) {
         if (!isUniqueConstraintViolation(error)) {
           throw error;
         }
+        // The freed name was re-taken: the constraint's verdict, not an
+        // I/O failure.
+        outcome = 'spent';
       }
       await load();
-    }).then(() => restored);
+    }).then(() => outcome);
   }
 
   return {
@@ -376,6 +424,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     slots,
     pool,
     load,
+    reload,
     adjustPrescription,
     removeSlot,
     reorderSlots,

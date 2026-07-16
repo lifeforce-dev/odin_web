@@ -80,9 +80,11 @@
   --glow-cta: inset 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow);
   --glow-display-accent: 0 0 44px var(--accent-glow);
 
-  /* Workbench drag feedback: one armed-zone recipe for BOTH drop zones
-     (the refs carried 22px/26px variants; one recipe, one edit). */
-  --glow-zone-armed: inset 0 0 0 1px var(--accent), inset 0 0 24px var(--accent-glow);
+  /* The armed forge (the one destructive destination). The drop ZONES
+     stopped glowing with the crossing-tick pick (2026-07-16): armed is
+     now stated by luminance (--lift-recede lifts off the armed region),
+     and red stays on the lifted card and the forge alone. */
+  --glow-forge-armed: inset 0 0 0 1px var(--accent), inset 0 0 24px var(--accent-glow);
   --glow-flash: inset 0 0 0 1px var(--accent), 0 0 18px var(--accent-glow);
   --glow-drag-ghost: 0 0 18px var(--accent-glow);
   --glow-rest-value: 0 0 12px var(--warning-glow);

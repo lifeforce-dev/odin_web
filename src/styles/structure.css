@@ -54,6 +54,11 @@
      badge needs; deliberately the one width the name column pays. */
   --rack-index: 34px;
 
+  /* Verdict-notice leading: the one line-height uppercase micro notices
+     (rejected names, steal consequences) share so "make notices more
+     readable" is a one-line edit. Unitless, like all line-height. */
+  --leading-notice: 1.7;
+
   /* Tracking (letter-spacing) ramp: static px like all geometry, one
      token per ref value so retracking a recipe is a one-line edit.
      Extend deliberately when a design ref uses a value with no matching
@@ -82,6 +87,18 @@
      (STYLEGUIDE motion policy carries the amendment). */
   --motion-morph: 0.2s;
   --motion-consume: 0.36s;
+
+  /* The seam-crossing tick (crossing-tick pick, 2026-07-16): the
+     one-shot white raster flash on the circuit/pool seam when the armed
+     zone changes mid-drag. Same value as --motion-slide today, but its
+     own recipe - one token per recipe. */
+  --motion-tick: 0.15s;
+
+  /* The forge exit slop: the beat between the consume envelope ending
+     and everything keyed to "the exit landed" - the JS phase drop and
+     the snackbar entrance both wait it out. Consumed via calc() beside
+     --motion-consume, never alone. */
+  --motion-settle: 0.06s;
 
   /* Safe areas: indirection tokens consumed only by AppShell. If the
      Android WebView needs JS-injected inset values, only these four

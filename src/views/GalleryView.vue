@@ -2,6 +2,9 @@
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
+import ForgeSlot from '@/components/ForgeSlot.vue';
+import GripHandle from '@/components/GripHandle.vue';
+import InlineNameEntry from '@/components/InlineNameEntry.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
@@ -9,11 +12,16 @@ import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
 import PoolGroupHeader from '@/components/PoolGroupHeader.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
+import StepperField from '@/components/StepperField.vue';
+import TransientCardGhost from '@/components/TransientCardGhost.vue';
+import TrashSnackbar from '@/components/TrashSnackbar.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
 import { DEVICE_ONLY_NOTE } from '@/composables/useDb';
+import { useOneShot } from '@/composables/useOneShot';
 import { useTheme } from '@/composables/useTheme';
 import { clampPrescriptionValue } from '@/composables/useWorkbench';
 import type { PrescriptionField } from '@/composables/useWorkbench';
+import { MOTION_CONSUME_MS, MOTION_MORPH_MS, MOTION_SETTLE_MS } from '@/styles/motion';
 import { CONTRACT_COLOR_TOKENS, type ThemeName } from '@/styles/contract';
 import {
   BORDER_TOKENS,
@@ -78,6 +86,51 @@ async function replayFlash(): Promise<void> {
 const demoStealOpen = ref(false);
 const demoPoolEvent = ref<string | null>(null);
 const demoCreatedName = ref<string | null>(null);
+
+// Shared row parts, boarded standalone (they also render live inside
+// the card and create-row samples above them).
+const demoGripEvent = ref<string | null>(null);
+const demoEntryOpen = ref(false);
+const demoEntryResult = ref<string | null>(null);
+const demoStepperRest = ref(60);
+
+// Live forge sample: the real slot, each state and exit choreography
+// playable; the phase-drop timers use the same motion.ts mirrors the
+// workbench screen does, so this board exercises that parity too.
+const demoForge = reactive<{
+  lifted: boolean;
+  armed: boolean;
+  fx: 'idle' | 'consume' | 'abort';
+}>({ lifted: false, armed: false, fx: 'idle' });
+const demoForgeShot = useOneShot();
+
+function toggleDemoForgeLifted(): void {
+  demoForge.fx = 'idle';
+  demoForge.lifted = !demoForge.lifted;
+  if (!demoForge.lifted) {
+    demoForge.armed = false;
+  }
+}
+
+function toggleDemoForgeArmed(): void {
+  demoForge.armed = !demoForge.armed;
+  if (demoForge.armed) {
+    demoForge.lifted = true;
+    demoForge.fx = 'idle';
+  }
+}
+
+function playDemoForge(fx: 'consume' | 'abort'): void {
+  demoForge.fx = fx;
+  demoForge.lifted = false;
+  demoForge.armed = false;
+  demoForgeShot.set(
+    () => {
+      demoForge.fx = 'idle';
+    },
+    fx === 'consume' ? MOTION_CONSUME_MS + MOTION_SETTLE_MS : MOTION_MORPH_MS,
+  );
+}
 
 // env() values only resolve when applied to a property, so each token is
 // measured through a hidden probe element.
@@ -208,7 +261,7 @@ onMounted(() => {
         <h2 class="board-eyebrow">Glow recipes</h2>
         <div class="glow-cta-sample">--glow-cta</div>
         <p class="glow-display-sample">--glow-display-accent</p>
-        <div class="zone-armed-sample">--glow-zone-armed</div>
+        <div class="forge-armed-sample">--glow-forge-armed</div>
         <div class="ghost-sample">--glow-drag-ghost</div>
         <div class="well-sample">--shadow-well</div>
         <div class="raster-sample" aria-hidden="true"></div>
@@ -293,6 +346,90 @@ onMounted(() => {
           @drag-start="demoPoolEvent = 'drag-start emitted'"
         />
         <p v-if="demoPoolEvent" class="board-note">{{ demoPoolEvent }}</p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Shared row parts (grip / inline entry / stepper, live)</h2>
+        <GripHandle @drag-start="demoGripEvent = 'drag-start emitted'" />
+        <p v-if="demoGripEvent" class="board-note">{{ demoGripEvent }}</p>
+        <InlineNameEntry
+          v-if="demoEntryOpen"
+          placeholder="Name"
+          entry-label="Sample name"
+          confirm-label="Commit sample name"
+          @commit="
+            (text) => {
+              demoEntryResult = text || '(blank)';
+              demoEntryOpen = false;
+            }
+          "
+          @cancel="demoEntryOpen = false"
+        />
+        <MenuButton v-else @click="demoEntryOpen = true">Open inline entry</MenuButton>
+        <p v-if="demoEntryResult" class="board-note">commit emitted: {{ demoEntryResult }}</p>
+        <StepperField
+          label="Recover // Rest"
+          :display="`${demoStepperRest}s`"
+          dec-label="-15"
+          inc-label="+15"
+          :step="15"
+          tone="rest"
+          @adjust="
+            (delta) => (demoStepperRest = Math.min(600, Math.max(0, demoStepperRest + delta)))
+          "
+        />
+        <p class="board-note">
+          The parts every draggable/editable row composes: GripHandle is the one drag surface (drag
+          by the dots), InlineNameEntry is the create/rename contenteditable machine, and
+          StepperField is the tap-once / hold-to-ramp control (epic 03's log-set pads are its next
+          consumer). All three also render live inside the card and pool samples above.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Forge slot (create row + delete face, live)</h2>
+        <ForgeSlot :fx="demoForge.fx" :lifted="demoForge.lifted" :armed="demoForge.armed">
+          <PoolCreateRow @create="(name) => (demoCreatedName = name)" />
+        </ForgeSlot>
+        <MenuButton @click="toggleDemoForgeLifted">Toggle lifted (morph rewrite)</MenuButton>
+        <MenuButton @click="toggleDemoForgeArmed">Toggle armed (double rail)</MenuButton>
+        <MenuButton @click="playDemoForge('consume')">Play consume exit</MenuButton>
+        <MenuButton @click="playDemoForge('abort')">Play abort exit</MenuButton>
+        <p class="board-note">
+          The delete target the create row doubles as (STYLEGUIDE section 9). The morph/abort sweeps
+          ride a quiet steel edge; only the consume earns the white event beam (owner feedback
+          2026-07-16).
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Trash snackbar (undoable / verdict)</h2>
+        <TrashSnackbar
+          message="Cable Row deleted"
+          undoable
+          @undo="demoPoolEvent = 'undo emitted'"
+        />
+        <TrashSnackbar message="Couldn't restore // name back in use" :undoable="false" />
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Transient card ghost (card / elsewhere content)</h2>
+        <TransientCardGhost
+          :content="{
+            kind: 'card',
+            name: 'Cable Row',
+            sets: 3,
+            restSeconds: 60,
+            variant: 'circuit',
+          }"
+        />
+        <TransientCardGhost
+          :content="{ kind: 'elsewhere', name: 'Pushups', owner: 'Upper Body' }"
+        />
+        <p class="board-note">
+          The one content model every drag/exit transient renders: the discriminated union means an
+          elsewhere entry (no prescription) can never paint as a zeroed card.
+        </p>
       </section>
     </div>
 
@@ -558,7 +695,7 @@ onMounted(() => {
   box-shadow: var(--shadow-well);
 }
 
-.zone-armed-sample {
+.forge-armed-sample {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -566,7 +703,7 @@ onMounted(() => {
   font-size: var(--type-body);
   color: var(--text-soft);
   border: var(--hairline) solid var(--border);
-  box-shadow: var(--glow-zone-armed);
+  box-shadow: var(--glow-forge-armed);
 }
 
 /* The forge's raster line at rest: 2px of --text wearing --raster. */

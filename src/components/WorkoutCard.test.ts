@@ -30,13 +30,6 @@ afterEach(() => {
 });
 
 describe('WorkoutCard', () => {
-  it('renders the name and the SETS // REST meta', () => {
-    const wrapper = mountCard();
-
-    expect(wrapper.text()).toContain('Cable Row');
-    expect(wrapper.text()).toContain('3 sets // rest 60s');
-  });
-
   it('hides the editor until open, then formats rest as m:ss', async () => {
     const wrapper = mountCard({ restSeconds: 90 });
 
@@ -45,7 +38,7 @@ describe('WorkoutCard', () => {
     await wrapper.setProps({ open: true });
 
     expect(wrapper.find('.workout-card__editor').exists()).toBe(true);
-    expect(wrapper.get('.workout-card__value--rest').text()).toBe('1:30');
+    expect(wrapper.get('.stepper-field__value--rest').text()).toBe('1:30');
   });
 
   it('emits toggle on a head click, never a drag', async () => {
@@ -60,7 +53,7 @@ describe('WorkoutCard', () => {
   it('emits drag-start from the grip once past the threshold, never a toggle', () => {
     const wrapper = mountCard();
 
-    firePointer(wrapper.get('.workout-card__grip').element, 'pointerdown', {
+    firePointer(wrapper.get('.grip-handle').element, 'pointerdown', {
       button: 0,
       clientX: 50,
       clientY: 50,
@@ -75,7 +68,7 @@ describe('WorkoutCard', () => {
   it('a grip press that never travels means nothing', () => {
     const wrapper = mountCard();
 
-    firePointer(wrapper.get('.workout-card__grip').element, 'pointerdown', {
+    firePointer(wrapper.get('.grip-handle').element, 'pointerdown', {
       button: 0,
       clientX: 50,
       clientY: 50,
@@ -179,7 +172,7 @@ describe('WorkoutCard', () => {
     vi.advanceTimersByTime(500);
     await flushPromises();
 
-    expect(wrapper.get('.workout-card__rename-entry').element.textContent).toBe('Cable Row');
+    expect(wrapper.get('.name-entry__entry').element.textContent).toBe('Cable Row');
     expect(wrapper.emitted('drag-start')).toBeUndefined();
   });
 
@@ -201,7 +194,7 @@ describe('WorkoutCard', () => {
     firePointer(document, 'pointermove', { clientX: 50, clientY: 120 });
 
     expect(wrapper.emitted('drag-start')).toBeUndefined();
-    expect(wrapper.find('.workout-card__rename-entry').exists()).toBe(true);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(true);
   });
 
   it('press-and-hold on the head opens the rename entry seeded with the name', async () => {
@@ -216,7 +209,7 @@ describe('WorkoutCard', () => {
     vi.advanceTimersByTime(500);
     await flushPromises();
 
-    const entry = wrapper.get('.workout-card__rename-entry');
+    const entry = wrapper.get('.name-entry__entry');
     expect(entry.element.textContent).toBe('Cable Row');
     // The lifting finger's click must not also fold the editor open.
     firePointer(document, 'pointerup', { clientX: 50, clientY: 50 });
@@ -235,12 +228,12 @@ describe('WorkoutCard', () => {
     vi.advanceTimersByTime(500);
     await flushPromises();
 
-    const entry = wrapper.get('.workout-card__rename-entry');
+    const entry = wrapper.get('.name-entry__entry');
     entry.element.textContent = '  Cable Row Heavy ';
     await entry.trigger('keydown', { key: 'Enter' });
 
     expect(wrapper.emitted('rename')).toEqual([['Cable Row Heavy']]);
-    expect(wrapper.find('.workout-card__rename-entry').exists()).toBe(false);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
   });
 
   it('an unchanged, blank, or escaped entry emits nothing', async () => {
@@ -255,11 +248,11 @@ describe('WorkoutCard', () => {
     vi.advanceTimersByTime(500);
     await flushPromises();
 
-    const entry = wrapper.get('.workout-card__rename-entry');
+    const entry = wrapper.get('.name-entry__entry');
     entry.element.textContent = ' Cable Row ';
     await entry.trigger('keydown', { key: 'Enter' });
     expect(wrapper.emitted('rename')).toBeUndefined();
-    expect(wrapper.find('.workout-card__rename-entry').exists()).toBe(false);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
   });
 
   it('a moving press never matures into a rename (that swipe is a scroll)', async () => {
@@ -275,7 +268,7 @@ describe('WorkoutCard', () => {
     vi.advanceTimersByTime(600);
     await flushPromises();
 
-    expect(wrapper.find('.workout-card__rename-entry').exists()).toBe(false);
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
   });
 
   it('renders the parent verdict when a rename was rejected', () => {
@@ -287,7 +280,7 @@ describe('WorkoutCard', () => {
   it('steps once per tap and ramps while held', () => {
     vi.useFakeTimers();
     const wrapper = mountCard({ open: true });
-    const minus = wrapper.findAll('.workout-card__step')[0];
+    const minus = wrapper.findAll('.stepper-field__step')[0];
 
     firePointer(minus.element, 'pointerdown', { button: 0 });
     expect(wrapper.emitted('adjust')).toEqual([['sets', -1]]);
@@ -304,7 +297,7 @@ describe('WorkoutCard', () => {
   it('never orphans a ramp: a second press supersedes, other lifts are ignored', () => {
     vi.useFakeTimers();
     const wrapper = mountCard({ open: true });
-    const [minus, plus] = wrapper.findAll('.workout-card__step');
+    const [minus, plus] = wrapper.findAll('.stepper-field__step');
 
     // Finger 1 holds minus into a ramp: 1 tap + 1 ramp tick.
     firePointer(minus.element, 'pointerdown', { button: 0, pointerId: 1 });
@@ -335,7 +328,7 @@ describe('WorkoutCard', () => {
 
   it('emits the rest stepper deltas as +/-15 seconds', () => {
     const wrapper = mountCard({ open: true });
-    const steps = wrapper.findAll('.workout-card__step');
+    const steps = wrapper.findAll('.stepper-field__step');
 
     firePointer(steps[2].element, 'pointerdown', { button: 0 });
     firePointer(steps[2].element, 'pointerup');

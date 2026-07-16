@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-import { useDragHandle } from '@/composables/useDragHandle';
+import GripHandle from '@/components/GripHandle.vue';
+import { useBodyHandle } from '@/composables/useBodyHandle';
 
 // A workout held by another circuit, per
 // design_reference/components/pool-elsewhere-row.html. One workout lives
@@ -11,8 +12,9 @@ import { useDragHandle } from '@/composables/useDragHandle';
 // consequence and the named-copy tip EVERY time (no one-time modal),
 // with LEAVE IT / MOVE HERE. The grip is the drag surface (02-07 rule),
 // joined by the body when `dragAnywhere` says the pool has no scroll to
-// protect; dragging one in also moves it. Render + emit only: the
-// parent owns `open` and executes the steal.
+// protect (useBodyHandle owns that machine); dragging one in also moves
+// it. Render + emit only: the parent owns `open` and executes the
+// steal.
 
 const props = withDefaults(
   defineProps<{
@@ -31,35 +33,11 @@ const emit = defineEmits<{
   'drag-start': [event: PointerEvent];
 }>();
 
-// A body drag ends in a click on the head whenever the finger releases
-// back over it, and that click must not also fold the strip open.
-// Cleared by the next press (see WorkoutCard - same rule, same reason).
-let bodyLifted = false;
-
-const gripDrag = useDragHandle({
+const bodyHandle = useBodyHandle({
+  dragAnywhere: () => props.dragAnywhere,
   onDragStart: (event) => emit('drag-start', event),
+  onTap: () => emit('toggle'),
 });
-
-const bodyDrag = useDragHandle({
-  onDragStart: (event) => {
-    bodyLifted = true;
-    emit('drag-start', event);
-  },
-});
-
-function onHeadPointerDown(event: PointerEvent): void {
-  bodyLifted = false;
-  if (props.dragAnywhere) {
-    bodyDrag.onPointerDown(event);
-  }
-}
-
-function onHeadClick(): void {
-  if (bodyLifted) {
-    return;
-  }
-  emit('toggle');
-}
 
 // The named-copy suggestion mirrors the canonical strip copy: the
 // owner's first word is enough to disambiguate ("Pushups // Upper").
@@ -73,15 +51,13 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
         type="button"
         class="pool-elsewhere__head"
         :class="{ 'pool-elsewhere__head--draggable': dragAnywhere }"
-        @click="onHeadClick"
-        @pointerdown="onHeadPointerDown"
+        @click="bodyHandle.onClick"
+        @pointerdown="bodyHandle.onPointerDown"
       >
         <span class="pool-elsewhere__name">{{ name }}</span>
         <span class="pool-elsewhere__owner">{{ owner }}</span>
       </button>
-      <span class="pool-elsewhere__grip" aria-hidden="true" @pointerdown="gripDrag.onPointerDown">
-        <span v-for="dot in 6" :key="dot" class="pool-elsewhere__grip-dot"></span>
-      </span>
+      <GripHandle @drag-start="(event) => emit('drag-start', event)" />
     </div>
     <div v-if="open" class="pool-elsewhere__strip">
       <p class="pool-elsewhere__message">
@@ -131,29 +107,6 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
 .pool-elsewhere__head--draggable {
   cursor: grab;
   touch-action: none;
-}
-
-/* Grip: the drag surface (02-07 rule); carries touch-action: none, and
-   the only other element that may is the head above. Same recipe as the
-   workout card's grip. */
-.pool-elsewhere__grip {
-  --grip-dot: 3px;
-
-  display: grid;
-  flex: none;
-  grid-template-columns: repeat(2, var(--grip-dot));
-  gap: var(--space-1);
-  place-content: center;
-  width: var(--tap-min);
-  cursor: grab;
-  touch-action: none;
-}
-
-.pool-elsewhere__grip-dot {
-  width: var(--grip-dot);
-  height: var(--grip-dot);
-  background: var(--text-dim);
-  border-radius: 50%;
 }
 
 .pool-elsewhere--open .pool-elsewhere__row {
@@ -213,7 +166,7 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   margin: 0;
   color: var(--text-soft);
   font-size: var(--type-micro);
-  line-height: 1.7;
+  line-height: var(--leading-notice);
   letter-spacing: var(--tracking-1);
   text-transform: uppercase;
 }
@@ -227,7 +180,7 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   margin: var(--space-1) 0 0;
   color: var(--text-dim);
   font-size: var(--type-micro);
-  line-height: 1.7;
+  line-height: var(--leading-notice);
   letter-spacing: var(--tracking-05);
   text-transform: uppercase;
 }
@@ -264,5 +217,11 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
 
 .pool-elsewhere__move:active {
   background: var(--accent-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pool-elsewhere__strip {
+    animation: none;
+  }
 }
 </style>

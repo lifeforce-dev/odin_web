@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
-import { useDragHandle } from '@/composables/useDragHandle';
+import GripHandle from '@/components/GripHandle.vue';
+import InlineNameEntry from '@/components/InlineNameEntry.vue';
+import StepperField from '@/components/StepperField.vue';
+import { useBodyHandle } from '@/composables/useBodyHandle';
 
 // THE workout card (task 02-07): one control for both workbench zones,
 // because a workout is one thing wherever it sits - name + sets/rest on
@@ -64,25 +67,30 @@ const emit = defineEmits<{
   'flash-end': [];
 }>();
 
-// --- Grip: the drag handle -------------------------------------------------
-// Always draggable. Under `dragAnywhere` the head is a second handle -
-// a separate session, because the two can be pressed independently.
+// --- Handles: the grip is always a drag surface; the head joins it ---------
+// under dragAnywhere (useBodyHandle - a separate session, because the
+// two can be pressed independently). An open rename owns the card:
+// nothing lifts it out from under the entry - the canDrag gate matters
+// because the very press that matured INTO the rename is still being
+// tracked on document.
 
-const gripDrag = useDragHandle({ onDragStart: (event) => startDrag(event, 'grip') });
-const bodyDrag = useDragHandle({ onDragStart: (event) => startDrag(event, 'body') });
+const renaming = ref(false);
 
-// An open rename owns the card: nothing lifts it out from under the
-// entry. The body handle is why this guard exists - the very press that
-// matured INTO the rename is still being tracked (useDragHandle listens
-// on document, so swapping the head out for the entry did not end its
-// session), so without it the same finger walks from renaming straight
-// into a drag.
-function startDrag(event: PointerEvent, handle: 'grip' | 'body'): void {
-  if (renaming.value) {
-    return;
+const bodyHandle = useBodyHandle({
+  dragAnywhere: () => props.dragAnywhere,
+  canDrag: () => !renaming.value,
+  onDragStart: (event) => emit('drag-start', event),
+  onTap: () => {
+    if (!renaming.value) {
+      emit('toggle');
+    }
+  },
+});
+
+function onGripDrag(event: PointerEvent): void {
+  if (!renaming.value) {
+    emit('drag-start', event);
   }
-  bodyLifted = handle === 'body';
-  emit('drag-start', event);
 }
 
 // --- Head: click folds the editor, press-and-hold renames -------------------
@@ -94,18 +102,9 @@ function startDrag(event: PointerEvent, handle: 'grip' | 'body'): void {
 const RENAME_HOLD_MS = 500;
 const RENAME_SLOP_PX = 10;
 
-const renaming = ref(false);
-const renameEl = ref<HTMLElement | null>(null);
-
 let holdPointerId: number | null = null;
 let holdOrigin: { x: number; y: number } | null = null;
 let renameHoldTimer: ReturnType<typeof setTimeout> | null = null;
-
-// A body drag still ends in a click on the head whenever the finger
-// happens to release back over it (nothing scrolled to swallow it), and
-// that click must not also fold the card open. Cleared by the next
-// press, so a release that lands elsewhere cannot poison a later tap.
-let bodyLifted = false;
 
 function onHeadPointerDown(event: PointerEvent): void {
   if (event.button !== undefined && event.button !== 0) {
@@ -114,10 +113,7 @@ function onHeadPointerDown(event: PointerEvent): void {
   if (holdPointerId !== null || renaming.value) {
     return;
   }
-  bodyLifted = false;
-  if (props.dragAnywhere) {
-    bodyDrag.onPointerDown(event);
-  }
+  bodyHandle.onPointerDown(event);
   holdPointerId = event.pointerId;
   holdOrigin = { x: event.clientX, y: event.clientY };
   document.addEventListener('pointermove', onHoldPointerMove);
@@ -125,7 +121,7 @@ function onHeadPointerDown(event: PointerEvent): void {
   document.addEventListener('pointercancel', releaseHold);
   renameHoldTimer = setTimeout(() => {
     releaseHoldTracking();
-    void startRename();
+    renaming.value = true;
   }, RENAME_HOLD_MS);
 }
 
@@ -158,103 +154,16 @@ function releaseHoldTracking(): void {
   document.removeEventListener('pointercancel', releaseHold);
 }
 
-function onHeadClick(): void {
-  // The click after a matured hold can still land on the old head node
-  // before the rename entry replaces it; it must not also fold the card.
-  if (renaming.value || bodyLifted) {
-    return;
-  }
-  emit('toggle');
-}
-
-// The entry is contenteditable, so Vue must never patch its children -
-// the name is seeded imperatively (log-set gotcha: no v-model here).
-async function startRename(): Promise<void> {
-  renaming.value = true;
-  await nextTick();
-  if (renameEl.value) {
-    renameEl.value.textContent = props.name;
-    renameEl.value.focus();
-  }
-}
-
-function commitRename(): void {
-  const entered = renameEl.value?.textContent?.trim() ?? '';
+// The entry machine itself (seeding, commit/cancel keys, focusout) is
+// InlineNameEntry; this only decides what a commit means for a rename.
+function onRenameCommit(entered: string): void {
   renaming.value = false;
   if (entered.length > 0 && entered !== props.name) {
     emit('rename', entered);
   }
 }
 
-function cancelRename(): void {
-  renaming.value = false;
-}
-
-// Tapping off the entry abandons the rename (commit stays explicit:
-// check or Enter; the check commits on pointerdown, beating the blur).
-function onRenameFocusOut(event: FocusEvent): void {
-  const stillInside =
-    event.relatedTarget instanceof Node &&
-    renameEl.value?.parentElement?.contains(event.relatedTarget);
-  if (!stillInside) {
-    cancelRename();
-  }
-}
-
-// --- Steppers: tap-for-one / hold-to-ramp (the ref's `pressable`) ----------
-// One adjust on press, then a ramp after the hold delay. The parent owns
-// the bounds; at a bound the extra emits are no-ops there, same as the ref.
-
-const HOLD_DELAY_MS = 360;
-const RAMP_INTERVAL_MS = 110;
-
-let holdTimer: ReturnType<typeof setTimeout> | null = null;
-let rampTimer: ReturnType<typeof setInterval> | null = null;
-let steppingPointerId: number | null = null;
-
-function onStepPointerDown(
-  event: PointerEvent,
-  field: 'sets' | 'restSeconds',
-  delta: number,
-): void {
-  event.preventDefault();
-  event.stopPropagation();
-  // One live timer pair, always: overwriting these slots would orphan a
-  // running ramp interval that keeps writing with no finger down. A new
-  // press (any finger) supersedes whatever was stepping.
-  stopStepping();
-  steppingPointerId = event.pointerId;
-  emit('adjust', field, delta);
-  holdTimer = setTimeout(() => {
-    rampTimer = setInterval(() => emit('adjust', field, delta), RAMP_INTERVAL_MS);
-  }, HOLD_DELAY_MS);
-}
-
-// Release/leave/cancel stop the ramp only for the stepping finger: a
-// second finger brushing across the button must not end an active hold.
-function onStepPointerEnd(event: PointerEvent): void {
-  if (event.pointerId !== steppingPointerId) {
-    return;
-  }
-  stopStepping();
-}
-
-function stopStepping(): void {
-  if (holdTimer !== null) {
-    clearTimeout(holdTimer);
-    holdTimer = null;
-  }
-  if (rampTimer !== null) {
-    clearInterval(rampTimer);
-    rampTimer = null;
-  }
-  steppingPointerId = null;
-}
-
-onBeforeUnmount(() => {
-  stopStepping();
-  releaseHoldTracking();
-});
+onBeforeUnmount(releaseHoldTracking);
 
 // animationend bubbles, so a future descendant animation (a stepper
 // pulse, an editor fold) would reach the root handler too and cut a
@@ -299,7 +208,7 @@ const metaText = computed(() =>
         type="button"
         class="workout-card__head"
         :class="{ 'workout-card__head--draggable': dragAnywhere }"
-        @click="onHeadClick"
+        @click="bodyHandle.onClick"
         @pointerdown="onHeadPointerDown"
       >
         <span class="workout-card__body">
@@ -307,89 +216,40 @@ const metaText = computed(() =>
           <span class="workout-card__meta">{{ metaText }}</span>
         </span>
       </button>
-      <div v-else class="workout-card__rename" @focusout="onRenameFocusOut">
-        <span
-          ref="renameEl"
-          class="workout-card__rename-entry"
-          contenteditable="true"
-          role="textbox"
-          aria-label="Workout name"
-          @keydown.enter.prevent="commitRename"
-          @keydown.esc="cancelRename"
-        ></span>
-        <button
-          type="button"
-          class="workout-card__rename-confirm"
-          aria-label="Rename workout"
-          @pointerdown.prevent="commitRename"
-          @click="commitRename"
-        >
-          &check;
-        </button>
-      </div>
-      <span class="workout-card__grip" aria-hidden="true" @pointerdown="gripDrag.onPointerDown">
-        <span v-for="dot in 6" :key="dot" class="workout-card__grip-dot"></span>
-      </span>
+      <InlineNameEntry
+        v-else
+        class="workout-card__rename"
+        :seed="name"
+        size="data"
+        entry-label="Workout name"
+        confirm-label="Rename workout"
+        @commit="onRenameCommit"
+        @cancel="renaming = false"
+      />
+      <GripHandle @drag-start="onGripDrag" />
     </div>
     <p v-if="notice" class="workout-card__notice">{{ notice }}</p>
     <div v-if="open" class="workout-card__editor">
       <div class="workout-card__fields">
-        <div class="workout-card__field">
-          <span class="workout-card__field-label">Sets</span>
-          <div class="workout-card__stepper">
-            <button
-              type="button"
-              class="workout-card__step"
-              @pointerdown="onStepPointerDown($event, 'sets', -1)"
-              @pointerup="onStepPointerEnd"
-              @pointerleave="onStepPointerEnd"
-              @pointercancel="onStepPointerEnd"
-            >
-              &minus;
-            </button>
-            <span class="workout-card__value">
-              <span class="workout-card__value-num">{{ sets }}</span>
-            </span>
-            <button
-              type="button"
-              class="workout-card__step"
-              @pointerdown="onStepPointerDown($event, 'sets', 1)"
-              @pointerup="onStepPointerEnd"
-              @pointerleave="onStepPointerEnd"
-              @pointercancel="onStepPointerEnd"
-            >
-              +
-            </button>
-          </div>
-        </div>
-        <div class="workout-card__field">
-          <span class="workout-card__field-label">Recover // Rest</span>
-          <div class="workout-card__stepper">
-            <button
-              type="button"
-              class="workout-card__step"
-              @pointerdown="onStepPointerDown($event, 'restSeconds', -15)"
-              @pointerup="onStepPointerEnd"
-              @pointerleave="onStepPointerEnd"
-              @pointercancel="onStepPointerEnd"
-            >
-              -15
-            </button>
-            <span class="workout-card__value workout-card__value--rest">
-              <span class="workout-card__value-num">{{ formatRest(restSeconds) }}</span>
-            </span>
-            <button
-              type="button"
-              class="workout-card__step"
-              @pointerdown="onStepPointerDown($event, 'restSeconds', 15)"
-              @pointerup="onStepPointerEnd"
-              @pointerleave="onStepPointerEnd"
-              @pointercancel="onStepPointerEnd"
-            >
-              +15
-            </button>
-          </div>
-        </div>
+        <StepperField
+          class="workout-card__field"
+          label="Sets"
+          :display="String(sets)"
+          :dec-label="'\u2212'"
+          inc-label="+"
+          :step="1"
+          @adjust="(delta) => emit('adjust', 'sets', delta)"
+        />
+        <StepperField
+          class="workout-card__field"
+          label="Recover // Rest"
+          :display="formatRest(restSeconds)"
+          dec-label="-15"
+          inc-label="+15"
+          :step="15"
+          tone="rest"
+          @adjust="(delta) => emit('adjust', 'restSeconds', delta)"
+        />
       </div>
       <!-- The card's one placement action, same slot either way: the
            pool card puts it in, the circuit card takes it out. -->
@@ -528,80 +388,22 @@ const metaText = computed(() =>
   font-size: var(--type-micro);
 }
 
-/* Press-and-hold swapped the name for this entry, in place. */
+/* Press-and-hold swapped the name for the entry, in place; the entry's
+   dress is InlineNameEntry's - this frames and places it. */
 .workout-card__rename {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: stretch;
-  min-width: 0;
   margin-left: var(--space-4);
   border: var(--hairline) solid var(--border-strong);
 }
 
-.workout-card__rename-entry {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  min-width: 1ch;
-  min-height: var(--tap-min);
-  padding: 0 var(--space-3);
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: var(--type-data);
-  font-weight: 700;
-  letter-spacing: var(--tracking-05);
-  text-transform: uppercase;
-  caret-color: var(--warning);
-  outline: none;
-}
-
-.workout-card__rename-confirm {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--tap-min);
-  color: var(--lock);
-  font-size: var(--type-data-lg);
-  font-weight: 800;
-  cursor: pointer;
-  background: none;
-  border: none;
-}
-
-/* Grip: six dots, the drag surface (02-07 rule) - the browser must not
-   contest the gesture here, so touch-action: none lives on this and on
-   nothing else unless the list has no scroll to lose (see the
-   --draggable head above). Full row height + tap-min width keeps the
-   handle thumbable while the dots stay small. Dim so red stays
-   reserved. */
-.workout-card__grip {
-  --grip-dot: 3px;
-
-  display: grid;
-  flex: none;
-  grid-template-columns: repeat(2, var(--grip-dot));
-  gap: var(--space-1);
-  place-content: center;
-  width: var(--tap-min);
-  cursor: grab;
-  touch-action: none;
-}
-
-.workout-card__grip-dot {
-  width: var(--grip-dot);
-  height: var(--grip-dot);
-  background: var(--text-dim);
-  border-radius: 50%;
-}
-
-/* The parent's verdict on a rejected rename (name taken). */
+/* The parent's verdict on a rejected rename (name taken). Same recipe
+   as PoolCreateRow's .pool-create__notice - these move together (only
+   the padding differs, to sit inside the card body). */
 .workout-card__notice {
   margin: 0;
   padding: 0 var(--space-4) var(--space-2);
   color: var(--accent);
   font-size: var(--type-micro);
-  line-height: 1.7;
+  line-height: var(--leading-notice);
   letter-spacing: var(--tracking-1);
   text-transform: uppercase;
 }
@@ -619,73 +421,6 @@ const metaText = computed(() =>
 
 .workout-card__field {
   flex: 1;
-}
-
-.workout-card__field-label {
-  display: block;
-  margin-bottom: var(--space-2);
-  color: var(--text-dim);
-  font-size: var(--type-label);
-  font-weight: 700;
-  letter-spacing: var(--tracking-2);
-  text-transform: uppercase;
-}
-
-.workout-card__stepper {
-  display: flex;
-  gap: var(--space-2);
-  align-items: stretch;
-}
-
-.workout-card__step {
-  display: flex;
-  flex: 0 0 var(--tap-min);
-  align-items: center;
-  justify-content: center;
-  min-height: var(--tap-min);
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: var(--type-data);
-  font-weight: 800;
-  cursor: pointer;
-  background: var(--surface-raise);
-  border: var(--hairline) solid var(--border-strong);
-  transition:
-    background var(--motion-press) ease,
-    transform var(--motion-press) ease;
-}
-
-.workout-card__step:active {
-  background: var(--border);
-  transform: scale(0.96);
-}
-
-.workout-card__value {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--tap-min);
-  background: var(--bg);
-  border: var(--hairline) solid var(--border);
-  box-shadow: var(--shadow-well);
-}
-
-.workout-card__value-num {
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: var(--type-display-value);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.workout-card__value--rest {
-  border-color: var(--warning);
-}
-
-.workout-card__value--rest .workout-card__value-num {
-  color: var(--warning);
-  text-shadow: var(--glow-rest-value);
 }
 
 /* The placement action, red-ghost: exactly one of these renders, in the
@@ -711,5 +446,21 @@ const metaText = computed(() =>
 .workout-card__add:active,
 .workout-card__remove:active {
   background: var(--accent-soft);
+}
+
+/* Reduced motion: the flash is a confirmation cue, not information the
+   card lacks (it is visibly in the list); with the animation gone,
+   animationend never fires, which the parent's null-toggle rearm
+   already tolerates. */
+@media (prefers-reduced-motion: reduce) {
+  .workout-card--flash {
+    animation: none;
+  }
+
+  .workout-card,
+  .workout-card__add,
+  .workout-card__remove {
+    transition: none;
+  }
 }
 </style>

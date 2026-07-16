@@ -72,8 +72,12 @@ export const CONTRACT_TEXTURE_TOKENS: readonly string[] = [
 export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   '--glow-cta',
   '--glow-display-accent',
-  // Workbench drag feedback + editor (task 02-04).
-  '--glow-zone-armed',
+  // The armed FORGE (delete target). Was --glow-zone-armed until the
+  // crossing-tick pick (2026-07-16) retired the ring from both drop
+  // zones: the armed zone is now the LIT region (see --lift-recede) and
+  // only the forge - the one destructive destination - still earns the
+  // red armed glow.
+  '--glow-forge-armed',
   '--glow-flash',
   '--glow-drag-ghost',
   '--glow-rest-value',

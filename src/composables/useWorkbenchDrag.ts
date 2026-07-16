@@ -1,4 +1,4 @@
-import { onScopeDispose, reactive } from 'vue';
+import { computed, onScopeDispose, reactive } from 'vue';
 
 // The workbench drag session (tasks 02-04/02-05/02-07): pointer-follow
 // ghost, the landing gap inside the circuit zone, and the armed drop
@@ -10,8 +10,9 @@ import { onScopeDispose, reactive } from 'vue';
 //   over the pool -> the card goes to (or stays in) the pool
 //     (a circuit card is removed from the circuit, a pool card is
 //     simply put back);
-//   over the trash (the create slot at the pool's bottom - the forge
-//     rule) -> the workout is deleted entirely, wherever it came from.
+//   over the forge (the create slot at the pool's bottom, STYLEGUIDE
+//     section 9) -> the workout is deleted entirely, wherever it came
+//     from.
 // The row's grip detects the lift (useDragHandle; grips are the only
 // drag surface and alone carry touch-action: none, so the browser never
 // contests the gesture) and hands the live pointer here; this composable
@@ -21,22 +22,28 @@ import { onScopeDispose, reactive } from 'vue';
 
 export type WorkbenchDragOrigin = 'circuit' | 'pool';
 
+// 'forge' is the canonical name for the delete target (STYLEGUIDE
+// section 9); the ACTION a forge drop performs is still "trash the
+// workout", which is why the callback below and the domain verb keep
+// that word.
+export type WorkbenchDragZone = 'circuit' | 'pool' | 'forge';
+
 export interface WorkbenchDragOptions {
   // Vertical midpoints of every non-dragged circuit card, top to bottom.
   // (A pool card's id matches no circuit card, so every card measures.)
   measureSlotMidpoints(draggedId: string): number[];
-  // The pool zone's top edge and the trash target's top edge. Measured
+  // The pool zone's top edge and the forge target's top edge. Measured
   // ONCE per drag, at begin(): the zone swap restructures the list, so
   // re-measuring per move would let our own state change move a boundary
   // and feed back into the zone test (a bistable oscillator at the
   // seam). Frozen geometry cannot loop.
   measurePoolTop(): number;
-  measureTrashTop(): number;
+  measureForgeTop(): number;
   onReorder(draggedId: string, insertAt: number): void;
   onRemove(draggedId: string): void;
   // A pool card dropped over the circuit: add (or steal) at the gap.
   onAdd(exerciseId: string, insertAt: number): void;
-  // Any card dropped on the trash band: delete the workout entirely.
+  // Any card dropped on the forge: delete the workout entirely.
   onTrash(exerciseId: string): void;
 }
 
@@ -56,7 +63,7 @@ export interface WorkbenchDragState {
   gapIndex: number | null;
   circuitArmed: boolean;
   poolArmed: boolean;
-  trashArmed: boolean;
+  forgeArmed: boolean;
 }
 
 // Pure so the drop-position rule is unit-testable: insert before the
@@ -91,7 +98,22 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     gapIndex: null,
     circuitArmed: false,
     poolArmed: false,
-    trashArmed: false,
+    forgeArmed: false,
+  });
+
+  // The one-armed-zone invariant as a single observable: which zone the
+  // drop would land in right now, null when nothing is lifted. The view
+  // keys the relight off it and watches it for the seam-crossing tick
+  // (crossing-tick pick, 2026-07-16); a future haptic rides the same
+  // transitions.
+  const armedZone = computed<WorkbenchDragZone | null>(() => {
+    if (state.draggingId === null) {
+      return null;
+    }
+    if (state.forgeArmed) {
+      return 'forge';
+    }
+    return state.poolArmed ? 'pool' : 'circuit';
   });
 
   // Where inside the source card the thumb grabbed it; keeps that point
@@ -107,7 +129,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
 
   // The zone boundaries, frozen at grab time (see the measure options).
   let poolTopAtGrab = Number.POSITIVE_INFINITY;
-  let trashTopAtGrab = Number.POSITIVE_INFINITY;
+  let forgeTopAtGrab = Number.POSITIVE_INFINITY;
 
   // Hysteresis (Schmitt trigger) on each zone seam: arm AT the boundary,
   // disarm only after retreating this far back above it. A thumb resting
@@ -136,7 +158,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     grabOffsetY = Math.min(Math.max(event.clientY - sourceRect.top, 0), sourceRect.height);
     sessionPointerId = event.pointerId;
     poolTopAtGrab = options.measurePoolTop();
-    trashTopAtGrab = options.measureTrashTop();
+    forgeTopAtGrab = options.measureForgeTop();
     document.addEventListener('pointermove', track);
     document.addEventListener('pointerup', drop);
     document.addEventListener('pointercancel', cancel);
@@ -154,14 +176,14 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     state.ghostX = event.clientX - grabOffsetX;
     state.ghostY = event.clientY - grabOffsetY;
     // Exactly one zone is armed at a time (STYLEGUIDE drop-zone rule),
-    // bottom-up: the trash band, then the pool, else the circuit.
+    // bottom-up: the forge, then the pool, else the circuit.
     const y = event.clientY;
-    const overTrash = state.trashArmed ? y >= trashTopAtGrab - SEAM_SLACK_PX : y >= trashTopAtGrab;
+    const overForge = state.forgeArmed ? y >= forgeTopAtGrab - SEAM_SLACK_PX : y >= forgeTopAtGrab;
     const overPool =
-      !overTrash && (state.poolArmed ? y >= poolTopAtGrab - SEAM_SLACK_PX : y >= poolTopAtGrab);
-    state.trashArmed = overTrash;
+      !overForge && (state.poolArmed ? y >= poolTopAtGrab - SEAM_SLACK_PX : y >= poolTopAtGrab);
+    state.forgeArmed = overForge;
     state.poolArmed = overPool;
-    state.circuitArmed = !overTrash && !overPool;
+    state.circuitArmed = !overForge && !overPool;
     state.gapIndex = state.circuitArmed
       ? insertionIndex(options.measureSlotMidpoints(state.draggingId), y)
       : null;
@@ -180,7 +202,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
       return;
     }
     const origin = state.origin;
-    const trashing = state.trashArmed;
+    const trashing = state.forgeArmed;
     const pooling = state.poolArmed;
     const insertAt = state.gapIndex;
     reset();
@@ -221,11 +243,11 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     state.gapIndex = null;
     state.circuitArmed = false;
     state.poolArmed = false;
-    state.trashArmed = false;
+    state.forgeArmed = false;
     sessionPointerId = null;
   }
 
   onScopeDispose(reset);
 
-  return { state, begin };
+  return { state, begin, armedZone };
 }
