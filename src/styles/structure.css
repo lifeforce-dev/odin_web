@@ -46,6 +46,14 @@
      rendering wins. */
   --type-display-value: 26px;
 
+  /* Display-face index badge (the workbench rack's numbered socket
+     cells, loaded-rack 2026-07-15); same static-integer reasoning. */
+  --type-display-badge: 22px;
+
+  /* The rack index cell's width (loaded-rack): what a two-digit Bebas
+     badge needs; deliberately the one width the name column pays. */
+  --rack-index: 34px;
+
   /* Tracking (letter-spacing) ramp: static px like all geometry, one
      token per ref value so retracking a recipe is a one-line edit.
      Extend deliberately when a design ref uses a value with no matching
@@ -65,6 +73,15 @@
   --motion-press: 0.14s;
   --motion-slide: 0.15s;
   --motion-flash: 0.9s;
+
+  /* Forge choreography envelopes (signal-rewrite, 2026-07-15): morph =
+     the create->delete raster rewrite when a drag begins; consume = the
+     tv-off + impact + reverse rewrite after a trash drop. Segment
+     timings are calc() fractions of these two, so retuning either is a
+     one-line edit. Deliberate exceptions to the ~250ms ceiling
+     (STYLEGUIDE motion policy carries the amendment). */
+  --motion-morph: 0.2s;
+  --motion-consume: 0.36s;
 
   /* Safe areas: indirection tokens consumed only by AppShell. If the
      Android WebView needs JS-injected inset values, only these four

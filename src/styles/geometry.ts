@@ -20,6 +20,7 @@ export const DISPLAY_TYPE_TOKENS = [
   '--type-display-title',
   '--type-display-wordmark',
   '--type-display-value',
+  '--type-display-badge',
 ] as const;
 
 export const TRACKING_TOKENS = [
@@ -73,4 +74,7 @@ export const UNBOARDED_TOKENS: Readonly<Record<string, string>> = {
   '--motion-press': 'durations animate; they do not swatch statically',
   '--motion-slide': 'durations animate; they do not swatch statically',
   '--motion-flash': 'durations animate; they do not swatch statically',
+  '--motion-morph': 'durations animate; they do not swatch statically',
+  '--motion-consume': 'durations animate; they do not swatch statically',
+  '--rack-index': 'a single layout width; the workbench rack is its live sample',
 };

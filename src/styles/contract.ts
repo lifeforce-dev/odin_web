@@ -41,6 +41,11 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   // The floating alarm plate (the workbench's RELEASE TO REMOVE flag):
   // an opaque danger-tinted surface, not a translucent accent wash.
   '--surface-alarm',
+  // The inventory/supply channel (loaded-rack, 2026-07-15): steel marks
+  // pool STOCK where vermilion marks a committed circuit member. -soft
+  // is its faded rule/edge ink.
+  '--supply',
+  '--supply-soft',
   // Brand mark fills (OdinMark.vue): raven 1 (Huginn) and raven 2
   // (Muninn). Themable per skin; the carve color is not a theme choice
   // (it tracks the surface the mark sits on) so it stays out of the
@@ -73,8 +78,13 @@ export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   '--glow-drag-ghost',
   '--glow-rest-value',
   '--shadow-well',
-  // The pool group header's AVAILABLE status chip (task 02-05).
-  '--glow-group-mark',
+  // Signal-rewrite forge choreography (task 02-07): the page's stepped
+  // luminance drop while a card is lifted (a filter recipe)...
+  '--lift-recede',
+  // ...and the white raster-line event glow - deliberately the app's
+  // first non-red glow (owner sign-off with the dnd-03 pick): the
+  // morph's bright event spends luminance, never the accent.
+  '--raster',
 ];
 
 // Derived from the groups above, so a token added to a group is part of

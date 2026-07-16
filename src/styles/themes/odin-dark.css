@@ -23,6 +23,7 @@
   --raw-grey-dim: #909090;
   --raw-steel-light: #aeb8c6;
   --raw-steel-mid: #63748c;
+  --raw-steel-soft: rgb(99 116 140 / 40%);
   --raw-red: #ff5050;
   --raw-red-deep: #e23c3c;
   --raw-red-soft: rgb(255 80 80 / 10%);
@@ -33,6 +34,7 @@
   --raw-red-iron: #170c0c;
   --raw-well-ink: rgb(0 0 0 / 60%);
   --raw-scanline-ink: rgb(0 0 0 / 16%);
+  --raw-white-glow: rgb(242 242 242 / 50%);
 
   /* Gritty iron film-grain (STYLEGUIDE.md section 2), copied from the
      canonical home.html: fractal noise at 4% opacity, tiled fine. */
@@ -55,6 +57,11 @@
   --warning: var(--raw-amber);
   --warning-glow: var(--raw-amber-glow);
   --surface-alarm: var(--raw-red-iron);
+
+  /* The inventory/supply channel (loaded-rack): steel = stock on the
+     shelf, vermilion = committed member. Supply never emits light. */
+  --supply: var(--raw-steel-mid);
+  --supply-soft: var(--raw-steel-soft);
 
   /* Brand mark: twin ravens split by value, not hue (STYLEGUIDE brand
      lockup). Red stays scarce, so the mark never spends the accent. */
@@ -80,5 +87,11 @@
   --glow-drag-ghost: 0 0 18px var(--accent-glow);
   --glow-rest-value: 0 0 12px var(--warning-glow);
   --shadow-well: inset 0 2px 6px var(--raw-well-ink);
-  --glow-group-mark: 0 0 8px var(--accent-glow);
+
+  /* Signal-rewrite forge choreography (02-07): the page's stepped
+     luminance drop while a card is lifted, and the white raster-line
+     event glow - the one glow off the red channel (owner-signed with
+     the dnd-03 pick; the morph's bright event spends luminance). */
+  --lift-recede: brightness(0.74);
+  --raster: 0 0 10px var(--raw-white-glow);
 }
