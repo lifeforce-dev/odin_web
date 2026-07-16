@@ -11,6 +11,8 @@ import {
   archiveCircuit,
   createCircuit,
   findOrCreateExercise,
+  listCircuitSlots,
+  removeCircuitItem,
   setPrescription,
 } from './builder';
 import { getInFlightSession, getWorkoutStart } from './workout';
@@ -146,6 +148,23 @@ describe('workout start', () => {
       // Archiving deleted the circuit's items, so there is nothing to
       // resume into; the rotation rules as if the session had ended.
       // 03-05 owns ending/reaping the orphaned session row.
+      expect(start?.circuit.id).toBe(survivor.circuit.id);
+      expect(start?.session).toBeNull();
+    });
+
+    it('treats an in-flight session on an emptied circuit as not resumable', async () => {
+      const emptied = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const survivor = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+      await insertSession(emptied.circuit.id);
+      for (const slot of await listCircuitSlots(testDb.db, emptied.circuit.id)) {
+        await removeCircuitItem(testDb.db, slot.id);
+      }
+
+      const start = await getWorkoutStart(testDb.db);
+
+      // The other door into the same dead-end as archiving: removing
+      // every workout in the workbench leaves nothing to resume into.
+      // Derived per read, so re-adding a workout restores the resume.
       expect(start?.circuit.id).toBe(survivor.circuit.id);
       expect(start?.session).toBeNull();
     });

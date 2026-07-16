@@ -32,9 +32,10 @@ export interface WorkoutStart {
   exercises: StartExercise[];
 }
 
-// At most one in-flight session exists by construction (sessions end
-// only explicitly); the ordering makes the answer deterministic anyway
-// if a bug ever leaves two behind.
+// Newest-first. Sessions end only explicitly, so usually one row is in
+// flight - but a session orphaned by archiving/emptying its circuit
+// stays in flight BY DESIGN until 03-05's reap lands, so a second row
+// is a real state, not a bug; the ordering picks the newest.
 export async function getInFlightSession(db: DbHandle): Promise<SessionRow | undefined> {
   return db
     .select()
@@ -130,16 +131,17 @@ export async function getWorkoutStart(db: DbHandle): Promise<WorkoutStart | null
       // is corrupt, not a state to render around.
       throw new Error(`in-flight session ${inFlight.id} references missing circuit`);
     }
-    // An archived owner means the circuit was discarded mid-session
-    // (archiving also deletes its items, so there is nothing to resume
-    // into): the session is not resumable and the rotation rules as if
-    // it had ended. Ending/reaping the orphaned session row is 03-05's.
-    if (owner.archivedAt === null) {
-      return {
-        circuit: owner,
-        session: inFlight,
-        exercises: await listStartExercises(db, owner.id, inFlight.id),
-      };
+    // Resume only into a circuit that is still STARTABLE - the same
+    // predicate the rotation uses (active, workout kind, at least one
+    // slot). Archiving or emptying a circuit mid-session leaves nothing
+    // to resume into, so the rotation rules as if the session had
+    // ended; derived per read, so re-adding a workout restores the
+    // resume. Ending/reaping the orphaned session row is 03-05's.
+    if (owner.archivedAt === null && owner.kind === 'workout') {
+      const exercises = await listStartExercises(db, owner.id, inFlight.id);
+      if (exercises.length > 0) {
+        return { circuit: owner, session: inFlight, exercises };
+      }
     }
   }
   const front = await getFrontStartableCircuit(db);
