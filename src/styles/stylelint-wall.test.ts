@@ -58,14 +58,22 @@ const trackingSfc = `<style scoped>
 </style>`;
 
 describe('the token wall on component styles', () => {
-  it('rejects raw colors, px in spacing/font, viewport units, and env()', async () => {
-    expect(await firedRules('src/components/ProbeCard.vue', offendingSfc)).toEqual([
-      'color-no-hex',
-      'declaration-property-value-disallowed-list',
-      'function-disallowed-list',
-      'unit-disallowed-list',
-    ]);
-  });
+  // The file's first lint pays stylelint's one-time init (config
+  // resolution + the html custom syntax), which straddles the 5s
+  // default on a loaded Windows machine (seen 4.0-5.9s, 2026-07-15).
+  // Only this first test needs the headroom; the rest run warm.
+  it(
+    'rejects raw colors, px in spacing/font, viewport units, and env()',
+    { timeout: 15000 },
+    async () => {
+      expect(await firedRules('src/components/ProbeCard.vue', offendingSfc)).toEqual([
+        'color-no-hex',
+        'declaration-property-value-disallowed-list',
+        'function-disallowed-list',
+        'unit-disallowed-list',
+      ]);
+    },
+  );
 
   it('rejects dvh outside AppShell', async () => {
     expect(await firedRules('src/components/ProbeShell.vue', viewportSfc)).toEqual([
