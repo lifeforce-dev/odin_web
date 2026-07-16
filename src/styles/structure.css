@@ -46,13 +46,31 @@
      rendering wins. */
   --type-display-value: 26px;
 
+  /* Display-face running readout (the total-time HH:MM:SS bar): a step
+     above the stepper values, same static-integer reasoning. */
+  --type-display-readout: 30px;
+
   /* Display-face index badge (the workbench rack's numbered socket
      cells); same static-integer reasoning. */
   --type-display-badge: 22px;
 
+  /* Display-face completion stamp (the circuit card's DONE outline);
+     static because the tile it sits in is grid-sized, not viewport-
+     sized. */
+  --type-display-stamp: 40px;
+
+  /* Display-face stat numerals (the last-session reps/weight readout).
+     Same value as the stamp today, deliberately its own knob: resizing
+     one must never drag the other. */
+  --type-display-stat: 40px;
+
   /* The rack index cell's width: what a two-digit display badge needs;
      deliberately the one width the name column pays. */
   --rack-index: 34px;
+
+  /* The exercise-select tile's floor: keeps a one-line card reading as
+     a chunky set button instead of collapsing to its text height. */
+  --circuit-card-min: 96px;
 
   /* Verdict-notice leading: the one line-height uppercase micro notices
      (rejected names, steal consequences) share so "make notices more
@@ -67,6 +85,7 @@
   --tracking-15: 1.5px;
   --tracking-2: 2px;
   --tracking-3: 3px;
+  --tracking-4: 4px;
 
   /* Motion durations: one token per recipe so "make press feedback
      snappier" is a one-line edit. Press = touch feedback on buttons

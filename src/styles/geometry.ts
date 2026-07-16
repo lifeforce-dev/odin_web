@@ -19,7 +19,10 @@ export const DISPLAY_TYPE_TOKENS = [
   '--type-display-title',
   '--type-display-wordmark',
   '--type-display-value',
+  '--type-display-readout',
   '--type-display-badge',
+  '--type-display-stamp',
+  '--type-display-stat',
 ] as const;
 
 export const TRACKING_TOKENS = [
@@ -28,6 +31,7 @@ export const TRACKING_TOKENS = [
   '--tracking-15',
   '--tracking-2',
   '--tracking-3',
+  '--tracking-4',
 ] as const;
 
 export const SPACING_TOKENS = [
@@ -79,4 +83,5 @@ export const UNBOARDED_TOKENS: Readonly<Record<string, string>> = {
   '--motion-settle': 'durations animate; they do not swatch statically',
   '--rack-index': 'a single layout width; the workbench rack is its live sample',
   '--leading-notice': 'a unitless line-height; the verdict notices are its live sample',
+  '--circuit-card-min': 'a single tile floor; the circuit-card board rows are its live sample',
 };

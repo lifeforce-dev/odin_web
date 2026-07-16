@@ -76,6 +76,10 @@ export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   // stated by luminance (see --lift-recede).
   '--glow-forge-armed',
   '--glow-flash',
+  // The circuit card's Lock On press: a faint interior wash, no outer
+  // light - the reticle ticks carry the accent, the glow only warms
+  // the plate under the finger.
+  '--glow-lock-on',
   '--glow-drag-ghost',
   '--glow-rest-value',
   '--shadow-well',

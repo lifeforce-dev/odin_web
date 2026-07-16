@@ -83,6 +83,7 @@
      card and the forge. */
   --glow-forge-armed: inset 0 0 0 1px var(--accent), inset 0 0 24px var(--accent-glow);
   --glow-flash: inset 0 0 0 1px var(--accent), 0 0 18px var(--accent-glow);
+  --glow-lock-on: inset 0 0 16px var(--accent-glow);
   --glow-drag-ghost: 0 0 18px var(--accent-glow);
   --glow-rest-value: 0 0 12px var(--warning-glow);
   --shadow-well: inset 0 2px 6px var(--raw-well-ink);
