@@ -211,9 +211,18 @@ onMounted(() => {
         <div class="zone-armed-sample">--glow-zone-armed</div>
         <div class="ghost-sample">--glow-drag-ghost</div>
         <div class="well-sample">--shadow-well</div>
+        <div class="raster-sample" aria-hidden="true"></div>
         <p class="board-note">
-          --glow-flash and --glow-rest-value render live in the workout-card section below;
-          --glow-group-mark on the pool group headers.
+          --raster above: the workbench forge's white raster-line event glow, the one glow off the
+          red channel. --glow-flash and --glow-rest-value render live in the workout-card section
+          below.
+        </p>
+        <div class="recede-sample">
+          <span class="recede-sample__page">page</span>
+          <span class="recede-sample__page recede-sample__page--receded">--lift-recede</span>
+        </div>
+        <p class="board-note">
+          --lift-recede: the luminance grade the page drops while a card is lifted (right box).
         </p>
       </section>
 
@@ -243,8 +252,9 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Workout card (circuit / pool placement, live)</h2>
-        <WorkoutCard name="Lat Pulldown" :sets="4" :rest-seconds="90" addable open />
+        <h2 class="board-eyebrow">Workout card (pool stock / circuit committed, live)</h2>
+        <WorkoutCard name="Lat Pulldown" :sets="4" :rest-seconds="90" variant="pool" addable />
+        <WorkoutCard name="Lat Pulldown" :sets="4" :rest-seconds="90" variant="pool" addable open />
         <WorkoutCard
           :name="demoCard.name"
           :sets="demoCard.sets"
@@ -258,9 +268,11 @@ onMounted(() => {
           @flash-end="demoCard.flash = false"
         />
         <p class="board-note">
-          One control, both zones: closed they are the same card, and the fold carries the one
-          action the placement earns - ADD TO CIRCUIT in the pool (above), REMOVE FROM CIRCUIT in a
-          circuit (live below). Press-and-hold the name to rename.
+          One identity, two dress states (loaded-rack): pool stock is a cold steel-edged line
+          (closed, then open above), the circuit card is the committed vermilion-spine plate (live
+          below). Same fold, same editor either way - the fold carries the one action the placement
+          earns, ADD TO CIRCUIT in the pool, REMOVE FROM CIRCUIT in a circuit. Press-and-hold the
+          name to rename.
         </p>
         <MenuButton @click="() => void replayFlash()">Replay flash-on-add</MenuButton>
       </section>
@@ -555,6 +567,35 @@ onMounted(() => {
   color: var(--text-soft);
   border: var(--hairline) solid var(--border);
   box-shadow: var(--glow-zone-armed);
+}
+
+/* The forge's raster line at rest: 2px of --text wearing --raster. */
+.raster-sample {
+  height: var(--rule);
+  margin: var(--space-2) 0;
+  background: var(--text);
+  box-shadow: var(--raster);
+}
+
+.recede-sample {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.recede-sample__page {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  font-size: var(--type-body);
+  color: var(--text);
+  background: var(--surface-raise);
+  border: var(--hairline) solid var(--border-strong);
+}
+
+.recede-sample__page--receded {
+  filter: var(--lift-recede);
 }
 
 .ghost-sample {

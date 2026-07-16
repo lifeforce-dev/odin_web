@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
 
 import { useDragHandle } from '@/composables/useDragHandle';
 
@@ -12,14 +12,24 @@ import { useDragHandle } from '@/composables/useDragHandle';
 // ordering live in useWorkbench / domain. The parent says where the card
 // is via `addable` (pool: ADD TO CIRCUIT in the editor) and `removable`
 // (circuit: REMOVE FROM CIRCUIT in the editor); both are one button in
-// the same slot of the same fold, so the two placements are identical
-// until you open one.
+// the same slot of the same fold.
+//
+// One identity, two DRESS states (loaded-rack pick, 2026-07-15;
+// supersedes the same-day closed-card-identical ruling): the circuit
+// variant is the committed card - surface plate, vermilion spine,
+// two-line head; the pool variant is cold stock - bg plate, steel
+// hairline edge, one compressed line at tap-min. Behavior is identical
+// in both: same fold, same editor, same rename, same grip. Opening a
+// pool card necessarily grows it (the fold needs the room) - a visible
+// morph the design accepts.
 
 const props = withDefaults(
   defineProps<{
     name: string;
     sets: number;
     restSeconds: number;
+    // The dress state (see above): circuit = committed, pool = stock.
+    variant?: 'circuit' | 'pool';
     open?: boolean;
     dragging?: boolean;
     flash?: boolean;
@@ -33,6 +43,7 @@ const props = withDefaults(
     notice?: string | null;
   }>(),
   {
+    variant: 'circuit',
     open: false,
     dragging: false,
     flash: false,
@@ -261,12 +272,21 @@ function formatRest(totalSeconds: number): string {
   const seconds = (totalSeconds % 60).toString().padStart(2, '0');
   return `${minutes}:${seconds}`;
 }
+
+// The stock line has no second line to spend, so its meta compresses
+// (3X // 60S); the committed card states it in full.
+const metaText = computed(() =>
+  props.variant === 'pool'
+    ? `${props.sets}x // ${props.restSeconds}s`
+    : `${props.sets} sets // rest ${props.restSeconds}s`,
+);
 </script>
 
 <template>
   <div
     class="workout-card"
     :class="{
+      'workout-card--pool': variant === 'pool',
       'workout-card--open': open,
       'workout-card--dragging': dragging,
       'workout-card--flash': flash,
@@ -284,7 +304,7 @@ function formatRest(totalSeconds: number): string {
       >
         <span class="workout-card__body">
           <span class="workout-card__name">{{ name }}</span>
-          <span class="workout-card__meta">{{ sets }} sets // rest {{ restSeconds }}s</span>
+          <span class="workout-card__meta">{{ metaText }}</span>
         </span>
       </button>
       <div v-else class="workout-card__rename" @focusout="onRenameFocusOut">
@@ -390,6 +410,10 @@ function formatRest(totalSeconds: number): string {
 
   /* The accent spine: editable, movable entry (--stamp weight). */
   border-left: var(--stamp) solid var(--accent);
+
+  /* The origin row yields as ground the moment its card lifts; stepped,
+     not eased (signal-rewrite: peripheral vision keys on transients). */
+  transition: opacity calc(var(--motion-morph) * 0.6) steps(2, end);
 }
 
 .workout-card--dragging {
@@ -468,6 +492,40 @@ function formatRest(totalSeconds: number): string {
   font-size: var(--type-label);
   letter-spacing: var(--tracking-1);
   text-transform: uppercase;
+}
+
+/* The pool dress: stock on the shelf goes cold (loaded-rack) - bg
+   plate, steel hairline edge instead of the vermilion spine, name and
+   meta compressed onto one tap-min line. Color says COMMITTED-vs-STOCK,
+   height says INSTALLED-vs-LOOSE; the vermilion arrives WITH membership
+   via the flash at the landing, never in flight. */
+.workout-card--pool {
+  background: var(--bg);
+  border-left: var(--hairline) solid var(--supply);
+}
+
+.workout-card--pool .workout-card__head {
+  min-height: var(--tap-min);
+}
+
+.workout-card--pool .workout-card__body {
+  flex-direction: row;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.workout-card--pool .workout-card__name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: var(--type-body);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.workout-card--pool .workout-card__meta {
+  flex: none;
+  font-size: var(--type-micro);
 }
 
 /* Press-and-hold swapped the name for this entry, in place. */

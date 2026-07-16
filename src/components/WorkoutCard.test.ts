@@ -87,15 +87,18 @@ describe('WorkoutCard', () => {
     expect(wrapper.emitted('toggle')).toBeUndefined();
   });
 
-  it('keeps both placements identical until the card is opened', () => {
-    // The whole point of one card control: nothing about a closed card
-    // says which zone it is sitting in.
-    const pooled = mountCard({ addable: true });
+  it('dresses the placements apart: circuit committed, pool stock', () => {
+    // One identity, two DRESS states (loaded-rack, 2026-07-15;
+    // supersedes the closed-card-identical rule this test used to pin):
+    // the pool line wears the cold stock dress with compressed meta,
+    // while behavior stays identical in both zones.
+    const pooled = mountCard({ variant: 'pool', addable: true });
     const held = mountCard({ removable: true });
 
-    expect(pooled.get('.workout-card__header').html()).toBe(
-      held.get('.workout-card__header').html(),
-    );
+    expect(pooled.classes()).toContain('workout-card--pool');
+    expect(held.classes()).not.toContain('workout-card--pool');
+    expect(pooled.get('.workout-card__meta').text()).toBe('3x // 60s');
+    expect(held.get('.workout-card__meta').text()).toBe('3 sets // rest 60s');
   });
 
   it('carries ADD TO CIRCUIT in the fold when addable, and it emits add', async () => {

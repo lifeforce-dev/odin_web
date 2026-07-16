@@ -148,6 +148,32 @@ describe('CircuitWorkbenchView', () => {
     vi.restoreAllMocks();
   });
 
+  it('numbers the rack and keeps no standing empty socket', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    // Every committed row is a numbered socket (loaded-rack); the open
+    // socket exists only as a drag's landing gap, never at idle.
+    const badges = wrapper.findAll('.workbench__circuit-zone .workbench__rack-index');
+    expect(badges.map((badge) => badge.text())).toEqual(['01', '02']);
+    expect(wrapper.find('.workbench__rack-slot--gap').exists()).toBe(false);
+  });
+
+  it('dresses pool cards as stock and circuit cards as committed', async () => {
+    const circuitId = await seedCircuit();
+    await seedPool();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    const poolCard = wrapper.get('.workbench__pool-list .workout-card');
+    expect(poolCard.classes()).toContain('workout-card--pool');
+    expect(poolCard.text()).toContain('3x // 60s');
+    for (const card of circuitCards(wrapper)) {
+      expect(card.classes()).not.toContain('workout-card--pool');
+    }
+  });
+
   it('renders the pool in its two groups with the create row between them', async () => {
     const circuitId = await seedCircuit();
     await seedPool();
@@ -179,7 +205,7 @@ describe('CircuitWorkbenchView', () => {
     await flushPromises();
 
     // ADD TO CIRCUIT lives in the fold, where a circuit card carries
-    // REMOVE: the closed cards are identical in both zones.
+    // REMOVE: same control, same fold, two dress states (loaded-rack).
     await wrapper.get(`[data-card-id="${freeId}"] .workout-card__head`).trigger('click');
     await wrapper.get(`[data-card-id="${freeId}"] .workout-card__add`).trigger('click');
     await flushPromises();
@@ -308,7 +334,9 @@ describe('CircuitWorkbenchView', () => {
     // must exist in the idle DOM so the drag can measure its boundary,
     // and it only swaps in via the state-driven lifted class.
     const slot = wrapper.get('.workbench__create-slot');
-    expect(slot.get('.workbench__trash-face').text()).toContain('Delete');
+    // The copy is exactly `x DELETE` (owner ruling: bare ASCII, both
+    // dormant and armed - the visuals alone escalate).
+    expect(slot.get('.workbench__trash-face').text()).toBe('x DELETE');
     expect(slot.text()).toContain('+ New workout');
     expect(slot.classes()).not.toContain('workbench__create-slot--lifted');
   });

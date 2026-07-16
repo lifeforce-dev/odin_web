@@ -1,12 +1,13 @@
 <script setup lang="ts">
-// The workbench pool's group labels, per
-// design_reference/components/pool-group-header.html. The two variants
-// must separate AT A GLANCE, not by reading: available is bright with a
-// glowing accent square and an accent-fade rule; elsewhere is dim with a
-// hollow square and a plain rule. The marker is a small SQUARE status
-// chip - deliberately not the tall left rail used on rows, so a header
-// never reads as a movable item. No counts: how many is not
-// decision-relevant here.
+// The workbench pool's group labels. The two variants must separate AT
+// A GLANCE, not by reading: available wears the steel supply mark with
+// a supply-fade rule (loaded-rack, 2026-07-15: red means membership
+// now, so supply does not spend it - and does not glow); elsewhere is
+// dim with a hollow square and a plain rule. The marker is a small
+// SQUARE status chip - deliberately not the tall left rail used on
+// rows, so a header never reads as a movable item. No counts: how many
+// is not decision-relevant here. (The ref file keeps the older glowing
+// accent mark; refs are visual spec only.)
 
 defineProps<{
   label: string;
@@ -53,16 +54,15 @@ defineProps<{
 }
 
 .pool-group--available .pool-group__mark {
-  background: var(--accent);
-  box-shadow: var(--glow-group-mark);
+  background: var(--supply);
 }
 
 .pool-group--available .pool-group__label {
-  color: var(--text);
+  color: var(--text-soft);
 }
 
 .pool-group--available .pool-group__rule {
-  background: linear-gradient(90deg, var(--accent-glow), transparent);
+  background: linear-gradient(90deg, var(--supply-soft), transparent);
 }
 
 .pool-group--elsewhere .pool-group__mark {
