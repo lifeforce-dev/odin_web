@@ -89,7 +89,7 @@ const demoStealOpen = ref(false);
 const demoPoolEvent = ref<string | null>(null);
 const demoCreatedName = ref<string | null>(null);
 
-// A live start for the total-time board row, minted at mount so the
+// A live start for the total-time board row, minted at setup so the
 // readout visibly runs.
 const galleryWorkoutStartedAt = new Date(Date.now() - 65_000).toISOString();
 
@@ -554,7 +554,9 @@ onMounted(() => {
 }
 
 /* The circuit-card rows render in the start screen's own grid shape so
-   the board verifies the tiles at their shipped width. */
+   the board verifies the tiles at their shipped width. Moves together
+   with WorkoutStartView's .workout-start__grid (a shared home would
+   put layout in a component or base.css, both wrong layers). */
 .board-card-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
