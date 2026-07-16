@@ -25,6 +25,7 @@ export const DISPLAY_TYPE_TOKENS = [
 export const TRACKING_TOKENS = [
   '--tracking-05',
   '--tracking-1',
+  '--tracking-15',
   '--tracking-2',
   '--tracking-3',
 ] as const;

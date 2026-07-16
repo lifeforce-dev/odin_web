@@ -80,4 +80,5 @@
   --glow-drag-ghost: 0 0 18px var(--accent-glow);
   --glow-rest-value: 0 0 12px var(--warning-glow);
   --shadow-well: inset 0 2px 6px var(--raw-well-ink);
+  --glow-group-mark: 0 0 8px var(--accent-glow);
 }

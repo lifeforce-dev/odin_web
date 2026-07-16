@@ -53,6 +53,7 @@
      reads as the decimal: 05 = 0.5px, half a step below -1. */
   --tracking-05: 0.5px;
   --tracking-1: 1px;
+  --tracking-15: 1.5px;
   --tracking-2: 2px;
   --tracking-3: 3px;
 

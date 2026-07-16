@@ -73,6 +73,8 @@ export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   '--glow-drag-ghost',
   '--glow-rest-value',
   '--shadow-well',
+  // The pool group header's AVAILABLE status chip (task 02-05).
+  '--glow-group-mark',
 ];
 
 // Derived from the groups above, so a token added to a group is part of
