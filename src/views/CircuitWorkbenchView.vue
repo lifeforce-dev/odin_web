@@ -381,15 +381,23 @@ function rackBadge(index: number): string {
 // into the insertion test - the gap flapped and rows replayed their
 // slides at drag start. offsetTop ignores transforms, so every
 // measurement describes the settled layout the rows are sliding toward.
-// The rows' offsetParent is the zone itself (position: relative).
+//
+// Measured on the RACK WRAPPERS ([data-rack-id]), never the cards
+// inside them: the wrappers are the TransitionGroup children, so the
+// FLIP slide puts its inline transform ON them - and offsetTop only
+// ignores the measured element's OWN transform. A transformed ancestor
+// becomes its descendants' offsetParent, so a card inside a sliding
+// wrapper measured ~0 instead of its place in the list and the gap
+// flap came back (the loaded-rack regression, owner-caught 2026-07-16).
+// The wrappers' offsetParent is the zone itself (position: relative).
 function measureSlotMidpoints(draggedId: string): number[] {
   const zone = circuitZoneEl.value;
   if (!zone) {
     return [];
   }
   const zoneTop = zone.getBoundingClientRect().top - zone.scrollTop;
-  return [...zone.querySelectorAll<HTMLElement>('[data-card-id]')]
-    .filter((element) => element.dataset.cardId !== draggedId)
+  return [...zone.querySelectorAll<HTMLElement>('[data-rack-id]')]
+    .filter((element) => element.dataset.rackId !== draggedId)
     .map((element) => zoneTop + element.offsetTop + element.offsetHeight / 2);
 }
 
@@ -662,7 +670,7 @@ async function handleCreate(name: string): Promise<void> {
                     <span class="workbench__rack-index">{{ rackBadge(row.rackIndex) }}</span>
                     <div class="workbench__rack-vacant"></div>
                   </div>
-                  <div v-else class="workbench__rack-slot">
+                  <div v-else class="workbench__rack-slot" :data-rack-id="row.slot.exerciseId">
                     <span class="workbench__rack-index">{{ rackBadge(row.rackIndex) }}</span>
                     <WorkoutCard
                       :data-card-id="row.slot.exerciseId"

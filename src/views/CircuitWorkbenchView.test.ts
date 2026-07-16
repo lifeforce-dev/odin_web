@@ -158,6 +158,21 @@ describe('CircuitWorkbenchView', () => {
     const badges = wrapper.findAll('.workbench__circuit-zone .workbench__rack-index');
     expect(badges.map((badge) => badge.text())).toEqual(['01', '02']);
     expect(wrapper.find('.workbench__rack-slot--gap').exists()).toBe(false);
+
+    // The reorder midpoints are measured on the WRAPPERS via
+    // data-rack-id, never on the cards inside them: the wrappers carry
+    // the FLIP slide transform, and a transformed ancestor hijacks its
+    // descendants' offsetParent - measuring the card mid-slide read ~0
+    // and the landing gap flapped between slots (regression caught on
+    // device 2026-07-16). This pins the attribute the measurement
+    // depends on; stripping it would silently empty every midpoint
+    // list.
+    const rackIds = wrapper
+      .findAll('.workbench__circuit-zone .workbench__rack-slot')
+      .map((row) => row.attributes('data-rack-id'));
+    const cardIds = circuitCards(wrapper).map((card) => card.attributes('data-card-id'));
+    expect(rackIds).toEqual(cardIds);
+    expect(rackIds.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
   });
 
   it('dresses pool cards as stock and circuit cards as committed', async () => {
