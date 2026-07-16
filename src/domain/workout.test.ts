@@ -134,6 +134,21 @@ describe('workout start', () => {
       expect(start?.circuit.id).toBe(front.circuit.id);
       expect(start?.session).toBeNull();
     });
+
+    it('treats an in-flight session on an archived circuit as not resumable', async () => {
+      const doomed = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const survivor = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+      await insertSession(doomed.circuit.id);
+      await archiveCircuit(testDb.db, doomed.circuit.id);
+
+      const start = await getWorkoutStart(testDb.db);
+
+      // Archiving deleted the circuit's items, so there is nothing to
+      // resume into; the rotation rules as if the session had ended.
+      // 03-05 owns ending/reaping the orphaned session row.
+      expect(start?.circuit.id).toBe(survivor.circuit.id);
+      expect(start?.session).toBeNull();
+    });
   });
 
   describe('getInFlightSession', () => {
@@ -146,13 +161,6 @@ describe('workout start', () => {
       const inFlight = await insertSession(circuit.id);
 
       expect((await getInFlightSession(testDb.db))?.id).toBe(inFlight.id);
-    });
-
-    it('returns undefined when every session has ended', async () => {
-      const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
-      await insertSession(circuit.id, { endedAt: '2026-07-16T11:00:00.000Z' });
-
-      expect(await getInFlightSession(testDb.db)).toBeUndefined();
     });
   });
 

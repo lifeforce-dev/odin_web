@@ -130,11 +130,17 @@ export async function getWorkoutStart(db: DbHandle): Promise<WorkoutStart | null
       // is corrupt, not a state to render around.
       throw new Error(`in-flight session ${inFlight.id} references missing circuit`);
     }
-    return {
-      circuit: owner,
-      session: inFlight,
-      exercises: await listStartExercises(db, owner.id, inFlight.id),
-    };
+    // An archived owner means the circuit was discarded mid-session
+    // (archiving also deletes its items, so there is nothing to resume
+    // into): the session is not resumable and the rotation rules as if
+    // it had ended. Ending/reaping the orphaned session row is 03-05's.
+    if (owner.archivedAt === null) {
+      return {
+        circuit: owner,
+        session: inFlight,
+        exercises: await listStartExercises(db, owner.id, inFlight.id),
+      };
+    }
   }
   const front = await getFrontStartableCircuit(db);
   if (!front) {
