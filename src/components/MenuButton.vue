@@ -3,10 +3,12 @@
 // affordance (a touch app has no hover, so the resting accent carries
 // the whole "you can press me" message). Render-only: the screen owns
 // navigation and placement; clicks reach the parent via attribute
-// fallthrough on the root button.
+// fallthrough on the root button. Primary marks the one action a user
+// wants ~95% of the time (red border, accent wash, resting glow).
 
 defineProps<{
   disabled?: boolean;
+  primary?: boolean;
 }>();
 
 defineSlots<{
@@ -15,7 +17,12 @@ defineSlots<{
 </script>
 
 <template>
-  <button type="button" class="menu-button" :disabled="disabled">
+  <button
+    type="button"
+    class="menu-button"
+    :class="{ 'menu-button--primary': primary }"
+    :disabled="disabled"
+  >
     <span class="menu-button__label"><slot /></span>
     <span class="menu-button__arrow" aria-hidden="true">&#8594;</span>
   </button>
@@ -43,6 +50,14 @@ defineSlots<{
 
 .menu-button:active {
   transform: scale(0.985);
+}
+
+/* A disabled primary drops the dress with the affordance: a glowing
+   red row that cannot be pressed would be a lie. */
+.menu-button--primary:not(:disabled) {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: var(--glow-cta);
 }
 
 .menu-button__arrow {

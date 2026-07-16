@@ -2,9 +2,11 @@
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
+import CircuitCard from '@/components/CircuitCard.vue';
 import ForgeSlot from '@/components/ForgeSlot.vue';
 import GripHandle from '@/components/GripHandle.vue';
 import InlineNameEntry from '@/components/InlineNameEntry.vue';
+import LastCircuitData from '@/components/LastCircuitData.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
@@ -14,6 +16,7 @@ import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import StepperField from '@/components/StepperField.vue';
 import TransientCardGhost from '@/components/TransientCardGhost.vue';
+import TotalTime from '@/components/TotalTime.vue';
 import TrashSnackbar from '@/components/TrashSnackbar.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
 import { DEVICE_ONLY_NOTE } from '@/composables/useDb';
@@ -85,6 +88,10 @@ async function replayFlash(): Promise<void> {
 const demoStealOpen = ref(false);
 const demoPoolEvent = ref<string | null>(null);
 const demoCreatedName = ref<string | null>(null);
+
+// A live start for the total-time board row, minted at mount so the
+// readout visibly runs.
+const galleryWorkoutStartedAt = new Date(Date.now() - 65_000).toISOString();
 
 // Shared row parts, boarded standalone (they also render live inside
 // the card and create-row samples above them).
@@ -287,9 +294,47 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Menu button (default / disabled)</h2>
+        <h2 class="board-eyebrow">Menu button (default / primary / disabled)</h2>
         <MenuButton>Build Circuit</MenuButton>
+        <MenuButton primary>Start Workout</MenuButton>
+        <MenuButton primary disabled>Start Workout</MenuButton>
         <MenuButton disabled>Stats</MenuButton>
+        <p class="board-note">
+          A disabled primary drops the accent dress with the affordance (third row): no glow on a
+          row that cannot be pressed.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Circuit card (pending / in-progress / done / long name)</h2>
+        <div class="board-card-grid">
+          <CircuitCard name="Lat Pulldown" :sets="4" />
+          <CircuitCard name="Cable Row" :sets="4" :logged-sets="2" progress="in-progress" />
+          <CircuitCard name="Face Pull" :sets="3" :logged-sets="3" progress="done" />
+          <CircuitCard name="Single-Arm Overhead Press" :sets="3" />
+        </div>
+        <p class="board-note">
+          The set button. Press for the Lock On reticle; in-progress rides the accent channel
+          (fraction + left edge) because there are reps to go; done recedes under the green outline
+          stamp and goes inert.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Total time (running / no session)</h2>
+        <TotalTime :started-at="galleryWorkoutStartedAt" />
+        <TotalTime :started-at="null" />
+        <p class="board-note">
+          Digits re-derive from the persisted session start on every tick; the parked readout is the
+          no-session state.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Last circuit data (default / custom label / hidden label)</h2>
+        <LastCircuitData :reps="12" :weight="135" weight-unit="lb" />
+        <LastCircuitData :reps="8" :weight="60" weight-unit="kg" label="Previous Set" />
+        <LastCircuitData :reps="10" :weight="25" weight-unit="lb" label="" />
       </section>
 
       <section class="board-section">
@@ -506,6 +551,14 @@ onMounted(() => {
   margin: 0;
   font-size: var(--type-body);
   color: var(--text-soft);
+}
+
+/* The circuit-card rows render in the start screen's own grid shape so
+   the board verifies the tiles at their shipped width. */
+.board-card-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
 }
 
 .brand-sample {
