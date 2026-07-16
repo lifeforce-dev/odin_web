@@ -60,6 +60,7 @@ beforeEach(async () => {
 afterEach(() => {
   nativeState.db = null;
   testDb.close();
+  vi.useRealTimers();
 });
 
 // Bench Press prescribed 2 sets, Cable Row 4: small enough to complete
@@ -126,6 +127,10 @@ describe('WorkoutStartView', () => {
   });
 
   it('derives tile states and the running total from the in-flight session', async () => {
+    // Only Date is faked (real setTimeout keeps flushPromises alive):
+    // the readout must derive from the persisted start, not the machine
+    // clock the seeded timestamp happens to be in the past of.
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-07-16T10:01:05.000Z') });
     const { circuitId, exercises } = await seedCircuit();
     const sessionId = await startSession(circuitId);
     await logSets(sessionId, exercises[0].id, 2);
@@ -139,9 +144,9 @@ describe('WorkoutStartView', () => {
     expect(done.attributes('disabled')).toBeDefined();
     expect(inProgress.text()).toContain('1/4');
     expect(inProgress.attributes('disabled')).toBeUndefined();
-    // The footer runs off session.startedAt, so it must not be parked.
+    // The footer runs off session.startedAt: 65s after the seeded start.
     expect(wrapper.text()).toContain('Total Time');
-    expect(wrapper.text()).not.toContain('00:00:00');
+    expect(wrapper.text()).toContain('00:01:05');
   });
 
   it("pushes the workout-set route with the tapped tile's exerciseId", async () => {
