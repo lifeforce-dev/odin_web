@@ -260,25 +260,75 @@ export async function renameExercise(db: DbHandle, id: string, name: string): Pr
   });
 }
 
+// What a trash gesture destroyed, in the shape its undo needs: the
+// identity, and the slot a circuit was holding it in (exclusivity
+// guarantees at most one).
+export interface TrashedWorkout {
+  exerciseId: string;
+  held: { circuitId: string; position: number } | null;
+}
+
 // The drag-to-trash delete: the workout disappears entirely, from
 // wherever it was. One transaction frees its slot (if a circuit holds
 // it) and archives the identity - set_log history keeps referencing it,
 // and the active-name index frees the name for reuse. Deliberately NOT
 // guarded against held exercises: trashing is an explicit, whole-card
 // gesture, and leaving the slot behind would strand a pointer at an
-// archived identity. Returns false when missing/already archived.
+// archived identity. Resolves to the undo shape for the consume
+// snackbar, or null when missing/already archived.
 export async function trashExercise(
   db: DbHandle,
   exerciseId: string,
   archivedAt = nowIso(),
-): Promise<boolean> {
+): Promise<TrashedWorkout | null> {
   return db.transaction(async (tx) => {
     const pooled = await tx.select().from(exercise).where(eq(exercise.id, exerciseId)).get();
     if (!pooled || pooled.archivedAt !== null) {
-      return false;
+      return null;
     }
+    const held = await tx
+      .select({ circuitId: circuitItem.circuitId, position: circuitItem.position })
+      .from(circuitItem)
+      .where(eq(circuitItem.exerciseId, exerciseId))
+      .get();
     await tx.delete(circuitItem).where(eq(circuitItem.exerciseId, exerciseId));
     await tx.update(exercise).set({ archivedAt }).where(eq(exercise.id, exerciseId));
+    return { exerciseId, held: held ?? null };
+  });
+}
+
+// The trash gesture's undo (the consume snackbar): one transaction
+// restores the archived identity and, when a circuit held it, a slot in
+// that circuit at the old position value. The position may collide with
+// a row added since - ordering only needs positions monotonic, and the
+// next reorder rewrites them densely. If the owner circuit was archived
+// in the meantime the identity still restores, into the pool. The
+// unarchive can violate the active-name index (the freed name was
+// retaken while the snackbar sat): that stays the constraint's
+// DrizzleQueryError for the caller to translate - nothing is written.
+// Returns false when the exercise is missing or already active.
+export async function restoreExercise(db: DbHandle, trashed: TrashedWorkout): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const row = await tx.select().from(exercise).where(eq(exercise.id, trashed.exerciseId)).get();
+    if (!row || row.archivedAt === null) {
+      return false;
+    }
+    await tx.update(exercise).set({ archivedAt: null }).where(eq(exercise.id, trashed.exerciseId));
+    if (trashed.held) {
+      const owner = await tx
+        .select({ archivedAt: circuit.archivedAt })
+        .from(circuit)
+        .where(eq(circuit.id, trashed.held.circuitId))
+        .get();
+      if (owner && owner.archivedAt === null) {
+        await tx.insert(circuitItem).values({
+          id: newId(),
+          circuitId: trashed.held.circuitId,
+          exerciseId: trashed.exerciseId,
+          position: trashed.held.position,
+        });
+      }
+    }
     return true;
   });
 }

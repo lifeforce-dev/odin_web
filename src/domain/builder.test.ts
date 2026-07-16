@@ -21,6 +21,7 @@ import {
   renameCircuit,
   renameExercise,
   reorderCircuitItems,
+  restoreExercise,
   setPrescription,
   stealExercise,
   trashExercise,
@@ -533,15 +534,15 @@ describe('builder', () => {
       await expectRejectsWithCause(renameExercise(db, pushups.id, 'dips'), /UNIQUE constraint/);
     });
 
-    it('trashes an unheld workout out of the pool; repeats and misses report false', async () => {
+    it('trashes an unheld workout out of the pool; repeats and misses report null', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
       const dips = await findOrCreateExercise(db, 'workout', 'Dips');
 
-      expect(await trashExercise(db, dips.id)).toBe(true);
+      expect(await trashExercise(db, dips.id)).toEqual({ exerciseId: dips.id, held: null });
       expect((await getPool(db, push.id)).available).toEqual([]);
-      expect(await trashExercise(db, dips.id)).toBe(false);
-      expect(await trashExercise(db, 'no-such-exercise')).toBe(false);
+      expect(await trashExercise(db, dips.id)).toBeNull();
+      expect(await trashExercise(db, 'no-such-exercise')).toBeNull();
       // The archived identity frees its name: a re-create is a NEW
       // identity (find-or-create matches active rows only), not a revival.
       expect((await findOrCreateExercise(db, 'workout', 'Dips')).id).not.toBe(dips.id);
@@ -553,12 +554,74 @@ describe('builder', () => {
       const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
       await addExerciseToCircuit(db, push.id, pushups.id);
 
-      expect(await trashExercise(db, pushups.id)).toBe(true);
+      expect(await trashExercise(db, pushups.id)).toEqual({
+        exerciseId: pushups.id,
+        held: { circuitId: push.id, position: 0 },
+      });
 
       // No stranded pointer at an archived identity, no pool row left.
       expect(await listCircuitSlots(db, push.id)).toEqual([]);
       expect((await getPool(db, push.id)).available).toEqual([]);
       expect((await getPool(db, push.id)).heldElsewhere).toEqual([]);
+    });
+
+    it('restores a trashed held workout into its old slot position', async () => {
+      const db = testDb.db;
+      const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
+      for (const name of ['Dips', 'Pushups', 'Flys']) {
+        const row = await findOrCreateExercise(db, 'workout', name);
+        await addExerciseToCircuit(db, push.id, row.id);
+      }
+      const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
+
+      const trashed = await trashExercise(db, pushups.id);
+      if (!trashed) {
+        throw new Error('expected the trash to land');
+      }
+      expect(await restoreExercise(db, trashed)).toBe(true);
+
+      // Same identity (history intact), same place in the order.
+      const slots = await listCircuitSlots(db, push.id);
+      expect(slots.map((slot) => slot.exerciseName)).toEqual(['Dips', 'Pushups', 'Flys']);
+      expect(slots[1].exerciseId).toBe(pushups.id);
+      // A second undo is a no-op: the identity is already active.
+      expect(await restoreExercise(db, trashed)).toBe(false);
+    });
+
+    it('restores an unheld workout to the pool; a retaken name stays the constraint verdict', async () => {
+      const db = testDb.db;
+      const dips = await findOrCreateExercise(db, 'workout', 'Dips');
+
+      const trashed = await trashExercise(db, dips.id);
+      if (!trashed) {
+        throw new Error('expected the trash to land');
+      }
+      // The freed name was retaken while the snackbar sat: the undo must
+      // fail loudly on the active-name index, writing nothing.
+      await findOrCreateExercise(db, 'workout', 'Dips');
+      await expectRejectsWithCause(restoreExercise(db, trashed), /UNIQUE constraint/);
+      expect(await restoreExercise(db, { exerciseId: 'no-such-exercise', held: null })).toBe(false);
+    });
+
+    it('restores only the identity when the owner circuit was archived meanwhile', async () => {
+      const db = testDb.db;
+      const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
+      const other = await createCircuit(db, { kind: 'workout', name: 'Pull Day' });
+      const pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
+      await addExerciseToCircuit(db, push.id, pushups.id);
+
+      const trashed = await trashExercise(db, pushups.id);
+      if (!trashed) {
+        throw new Error('expected the trash to land');
+      }
+      await archiveCircuit(db, push.id);
+
+      expect(await restoreExercise(db, trashed)).toBe(true);
+      // No slot resurrects into an archived circuit; the workout waits
+      // in the pool instead.
+      expect((await getPool(db, other.id)).available.map((entry) => entry.name)).toEqual([
+        'Pushups',
+      ]);
     });
   });
 });

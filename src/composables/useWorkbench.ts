@@ -11,11 +11,18 @@ import {
   removeCircuitItem,
   renameExercise,
   reorderCircuitItems,
+  restoreExercise,
   setPrescription,
   stealExercise,
   trashExercise,
 } from '@/domain/builder';
-import type { CircuitKind, CircuitSlot, PoolGroups, Prescription } from '@/domain/builder';
+import type {
+  CircuitKind,
+  CircuitSlot,
+  PoolGroups,
+  Prescription,
+  TrashedWorkout,
+} from '@/domain/builder';
 
 import { orderAfterDrop } from './useWorkbenchDrag';
 
@@ -329,16 +336,38 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
 
   // The drag-to-trash delete: the workout disappears entirely, from
   // whichever zone it was lifted out of (domain frees a held slot and
-  // archives in one transaction; history is kept).
-  function trashWorkout(exerciseId: string): Promise<boolean> {
+  // archives in one transaction; history is kept). Resolves to the undo
+  // token the consume snackbar holds, or null when nothing was trashed.
+  function trashWorkout(exerciseId: string): Promise<TrashedWorkout | null> {
     if (!db) {
-      return Promise.resolve(false);
+      return Promise.resolve(null);
     }
-    let trashed = false;
+    let trashed: TrashedWorkout | null = null;
     return enqueue(async () => {
       trashed = await trashExercise(db, exerciseId);
       await load();
     }).then(() => trashed);
+  }
+
+  // The snackbar's UNDO: restore the identity and its held slot. False
+  // when the undo has expired underneath the snackbar - a double tap, or
+  // the freed name re-taken (the constraint's verdict); either way the
+  // reload has already told the screen the truth.
+  function undoTrash(trashed: TrashedWorkout): Promise<boolean> {
+    if (!db) {
+      return Promise.resolve(false);
+    }
+    let restored = false;
+    return enqueue(async () => {
+      try {
+        restored = await restoreExercise(db, trashed);
+      } catch (error) {
+        if (!isUniqueConstraintViolation(error)) {
+          throw error;
+        }
+      }
+      await load();
+    }).then(() => restored);
   }
 
   return {
@@ -355,5 +384,6 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     createWorkout,
     renameWorkout,
     trashWorkout,
+    undoTrash,
   };
 }

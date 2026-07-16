@@ -123,7 +123,8 @@ describe('useWorkbench', () => {
     expect(await workbench.stealFromPool('anything')).toBeNull();
     expect(await workbench.createWorkout('anything')).toEqual({ kind: 'failed' });
     expect(await workbench.renameWorkout('anything', 'New Name')).toEqual({ kind: 'failed' });
-    expect(await workbench.trashWorkout('anything')).toBe(false);
+    expect(await workbench.trashWorkout('anything')).toBeNull();
+    expect(await workbench.undoTrash({ exerciseId: 'anything', held: null })).toBe(false);
 
     expect(workbench.status.value).toBe('unavailable');
   });
@@ -421,7 +422,7 @@ describe('useWorkbench / pool', () => {
 
     const trashed = await workbench.trashWorkout(gobletSquat.id);
 
-    expect(trashed).toBe(true);
+    expect(trashed).toEqual({ exerciseId: gobletSquat.id, held: null });
     expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual(['Kb Swing']);
     // The archived identity keeps its history but frees the name:
     // find-or-create matches ACTIVE rows only, so a re-create is a new
@@ -436,10 +437,46 @@ describe('useWorkbench / pool', () => {
 
     const trashed = await workbench.trashWorkout(exerciseIds[1]);
 
-    expect(trashed).toBe(true);
+    expect(trashed).toEqual({
+      exerciseId: exerciseIds[1],
+      held: { circuitId: circuit.id, position: 1 },
+    });
     expect(workbench.slots.value.map((slot) => slot.id)).toEqual([itemIds[0], itemIds[2]]);
     const persisted = await listCircuitSlots(db, circuit.id);
     expect(persisted.map((slot) => slot.exerciseName)).toEqual(['Lat Pulldown', 'Cable Face Pull']);
+  });
+
+  it('undoes a trash from the snackbar: the slot returns where it was', async () => {
+    const workbench = useWorkbench(db, () => circuit.id);
+    await workbench.load();
+    const trashed = await workbench.trashWorkout(exerciseIds[1]);
+    if (!trashed) {
+      throw new Error('expected the trash to land');
+    }
+
+    expect(await workbench.undoTrash(trashed)).toBe(true);
+
+    expect(workbench.slots.value.map((slot) => slot.exerciseId)).toEqual(exerciseIds);
+    // A second tap finds the undo already spent and reports so.
+    expect(await workbench.undoTrash(trashed)).toBe(false);
+  });
+
+  it('reports a spent undo when the freed name was retaken, and resyncs', async () => {
+    const workbench = useWorkbench(db, () => circuit.id);
+    await workbench.load();
+    const trashed = await workbench.trashWorkout(gobletSquat.id);
+    if (!trashed) {
+      throw new Error('expected the trash to land');
+    }
+    await findOrCreateExercise(db, 'workout', 'Goblet Squat');
+
+    // The active-name constraint is the verdict; the screen reloads and
+    // the new same-named identity keeps the pool row.
+    expect(await workbench.undoTrash(trashed)).toBe(false);
+    expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual([
+      'Goblet Squat',
+      'Kb Swing',
+    ]);
   });
 
   it('points at the existing card when the created name is already in this circuit', async () => {
