@@ -32,10 +32,9 @@ import {
   TRACKING_TOKENS,
 } from '@/styles/geometry';
 
-// The living component gallery + token board (epic 01 task 5): every
-// token rendered live so a theme can be judged on one screen, on device
-// (task 01-06 checks this board on glass). Component states get added
-// here as real components land in later epics.
+// The living component gallery + token board: every token rendered
+// live so a theme can be judged on one screen, on device. Component
+// states get added here as real components land.
 
 const { theme, themes, setTheme } = useTheme();
 
@@ -46,12 +45,12 @@ const selectedTheme = computed({
   },
 });
 
-// Every token board derives from a TS source: colors from the contract,
-// geometry from styles/geometry.ts (whose parity test diffs it against
-// structure.css), so a minted token appears here automatically or fails
-// the suite - hand-curated lists went stale once (--tracking-05) and are
-// gone. Fonts/textures/glows still get bespoke samples below (a glow is
-// not a swatch); those are exempted BY NAME in geometry.ts.
+// Every token board derives from a TS source: colors from the
+// contract, geometry from styles/geometry.ts (whose parity test diffs
+// it against structure.css), so a minted token appears here
+// automatically or fails the suite. Fonts/textures/glows get bespoke
+// samples below (a glow is not a swatch); those are exempted by name
+// in geometry.ts.
 const colorTokens = CONTRACT_COLOR_TOKENS;
 const monoTypeTokens = MONO_TYPE_TOKENS;
 const displayTypeTokens = DISPLAY_TYPE_TOKENS;
@@ -60,9 +59,9 @@ const spacingTokens = SPACING_TOKENS;
 const borderTokens = BORDER_TOKENS;
 
 // Live workout-card sample: the real shipped component with working
-// steppers, sharing the composable's clamp so the board exercises what
-// ships (UI Maintainability Contract: no hand-copies). One control for
-// both zones; the pool placement adds the + chip.
+// steppers, sharing the composable's clamp so the board exercises
+// exactly what ships - never a hand-copy. One control for both zones;
+// the pool placement adds the + chip.
 const demoCard = reactive({
   name: 'Cable Row',
   sets: 3,
@@ -321,11 +320,10 @@ onMounted(() => {
           @flash-end="demoCard.flash = false"
         />
         <p class="board-note">
-          One identity, two dress states (loaded-rack): pool stock is a cold steel-edged line
-          (closed, then open above), the circuit card is the committed vermilion-spine plate (live
-          below). Same fold, same editor either way - the fold carries the one action the placement
-          earns, ADD TO CIRCUIT in the pool, REMOVE FROM CIRCUIT in a circuit. Press-and-hold the
-          name to rename.
+          One identity, two dress states: pool stock is a cold steel-edged line (closed, then open
+          above), the circuit card is the committed vermilion-spine plate (live below). Same fold,
+          same editor either way - the fold carries the one action the placement earns, ADD TO
+          CIRCUIT in the pool, REMOVE FROM CIRCUIT in a circuit. Press-and-hold the name to rename.
         </p>
         <MenuButton @click="() => void replayFlash()">Replay flash-on-add</MenuButton>
       </section>
@@ -381,8 +379,8 @@ onMounted(() => {
         <p class="board-note">
           The parts every draggable/editable row composes: GripHandle is the one drag surface (drag
           by the dots), InlineNameEntry is the create/rename contenteditable machine, and
-          StepperField is the tap-once / hold-to-ramp control (epic 03's log-set pads are its next
-          consumer). All three also render live inside the card and pool samples above.
+          StepperField is the tap-once / hold-to-ramp control. All three also render live inside the
+          card and pool samples above.
         </p>
       </section>
 
@@ -396,9 +394,8 @@ onMounted(() => {
         <MenuButton @click="playDemoForge('consume')">Play consume exit</MenuButton>
         <MenuButton @click="playDemoForge('abort')">Play abort exit</MenuButton>
         <p class="board-note">
-          The delete target the create row doubles as (STYLEGUIDE section 9). The morph/abort sweeps
-          ride a quiet steel edge; only the consume earns the white event beam (owner feedback
-          2026-07-16).
+          The delete target the create row doubles as. The morph/abort sweeps ride a quiet steel
+          edge; only the consume earns the white event beam.
         </p>
       </section>
 
@@ -759,8 +756,8 @@ onMounted(() => {
   border-top: var(--hairline) solid var(--border);
 }
 
-/* The STYLEGUIDE section 5 primary CTA recipe (game-UI interaction reset
-   comes from base.css button wiring). */
+/* The primary CTA recipe; the game-UI interaction reset comes from
+   base.css button wiring. */
 .gallery-cta {
   width: 100%;
   min-height: var(--tap-min);

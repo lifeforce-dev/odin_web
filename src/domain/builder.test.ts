@@ -258,9 +258,9 @@ describe('builder', () => {
     });
 
     it('fails loudly at the DB when adding an exercise any circuit already holds', async () => {
-      // The UNIQUE(exercise_id) constraint IS the duplicate rule (02-03
-      // task decision), and the SQLite reason travels on the cause chain
-      // (01-04 decision) - this is what the steal UI will branch on.
+      // The UNIQUE(exercise_id) constraint IS the duplicate rule, and
+      // the SQLite reason travels on the cause chain - this is what
+      // the steal UI branches on.
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
       const legs = await createCircuit(db, { kind: 'workout', name: 'Leg Day' });
@@ -407,9 +407,9 @@ describe('builder', () => {
 
       const moved = await stealExercise(db, pushups.id, legs.id);
 
-      // Old pointer gone, new one appended at the target's end - and the
-      // 5x90 rides along (2026-07-15 amendment: sets/rest belong to the
-      // workout, so a move can never reset them).
+      // Old pointer gone, new one appended at the target's end - and
+      // the 5x90 rides along: sets/rest belong to the workout, so a
+      // move can never reset them.
       expect(await listCircuitSlots(db, push.id)).toEqual([]);
       expect(await listCircuitSlots(db, legs.id)).toMatchObject([
         { exerciseName: 'Squats', position: 0, sets: 3, restSeconds: 60 },

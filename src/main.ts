@@ -2,7 +2,7 @@ import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
 // Fonts are bundled (offline-first: no runtime Google Fonts). Latin
-// subsets only; the weights match what the design refs request.
+// subsets only, in exactly the weights the UI uses.
 import '@fontsource/bebas-neue/latin-400.css';
 import '@fontsource/jetbrains-mono/latin-400.css';
 import '@fontsource/jetbrains-mono/latin-500.css';
@@ -21,10 +21,9 @@ import { installHardwareBack } from './router/hardware-back';
 
 async function bootstrap(): Promise<void> {
   if (isNative) {
-    // Migrations must complete before any screen can query. A failure here
-    // is fatal and must be loud: a silent black screen on device cost hours
-    // during 01-02. Loud means on the glass too, not just in logcat - the
-    // person holding the phone has no console.
+    // Migrations must complete before any screen can query. A failure
+    // here is fatal and must be loud on the glass, not just in the
+    // log: the person holding the phone has no console.
     try {
       await initDatabase();
     } catch (error) {

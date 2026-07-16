@@ -4,12 +4,11 @@ import { fileURLToPath } from 'node:url';
 import stylelint from 'stylelint';
 import { describe, expect, it } from 'vitest';
 
-// The stylelint token wall is config, and config can fail OPEN: a widened
-// glob, a regex that stops matching, or a stylelint upgrade turns the wall
-// off while every existing (compliant) file keeps passing. These tests
-// re-prove the wall's negative cases on every run by linting probe
-// snippets through the real .stylelintrc.json, replacing the one-time
-// manual probe component from the 01-05 acceptance pass.
+// The stylelint token wall is config, and config can fail OPEN: a
+// widened glob, a regex that stops matching, or a stylelint upgrade
+// turns the wall off while every existing (compliant) file keeps
+// passing. These tests re-prove the wall's negative cases on every run
+// by linting probe snippets through the real .stylelintrc.json.
 
 const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
 const configFile = join(repoRoot, '.stylelintrc.json');
@@ -59,9 +58,9 @@ const trackingSfc = `<style scoped>
 
 describe('the token wall on component styles', () => {
   // The file's first lint pays stylelint's one-time init (config
-  // resolution + the html custom syntax), which straddles the 5s
-  // default on a loaded Windows machine (seen 4.0-5.9s, 2026-07-15).
-  // Only this first test needs the headroom; the rest run warm.
+  // resolution + the html custom syntax), which can straddle the 5s
+  // default timeout on a loaded machine. Only this first test needs
+  // the headroom; the rest run warm.
   it(
     'rejects raw colors, px in spacing/font, viewport units, and env()',
     { timeout: 15000 },

@@ -9,9 +9,9 @@ import type { TestDb } from './test-db';
 import { expectRejectsWithCause } from './test-support';
 import { nowIso } from './timestamps';
 
-// These tests pin the schema's DB-enforced rules (spec: design/schema-v2.md).
-// They use drizzle directly instead of query functions on purpose: the thing
-// under test is the generated migration's constraints, not the query layer.
+// These tests pin the schema's DB-enforced rules. They use drizzle
+// directly instead of query functions on purpose: the thing under test
+// is the generated migration's constraints, not the query layer.
 
 function exerciseRow(overrides: Partial<ExerciseRow> = {}): ExerciseRow {
   return {
@@ -168,11 +168,12 @@ describe('schema constraints', () => {
   });
 
   it('folds only ASCII in the active-name index: non-ASCII casings coexist', async () => {
-    // SQLite ships without ICU here (better-sqlite3 AND the device plugin),
-    // so lower() leaves the umlaut U unfolded and these two names do NOT
-    // collide - while JS toLowerCase() folds them to the same string. Epic
-    // 02's find-or-create must match on the index's ASCII-only form; this
-    // pin makes that divergence a visible fact instead of a surprise.
+    // SQLite ships without ICU here (better-sqlite3 AND the device
+    // plugin), so lower() leaves the umlaut U unfolded and these two
+    // names do NOT collide - while JS toLowerCase() folds them to the
+    // same string. Find-or-create must match on the index's ASCII-only
+    // form; this pin makes that divergence a visible fact instead of a
+    // surprise.
     const db = testDb.db;
     await db.insert(exercise).values(exerciseRow({ name: 'über Rows' }));
 
@@ -182,8 +183,8 @@ describe('schema constraints', () => {
   });
 
   it('rejects out-of-domain values via CHECK, covering non-drizzle writers', async () => {
-    // Raw SQL on purpose: drizzle's { enum } types stop TS callers, but a
-    // Phase 2 import or restore flow writes rows the compiler never sees.
+    // Raw SQL on purpose: drizzle's { enum } types stop TS callers, but
+    // an import or restore flow writes rows the compiler never sees.
     // The CHECKs are what stand between those writers and garbage data.
     const db = testDb.db;
     const ex = exerciseRow();

@@ -7,9 +7,7 @@ import { useDragHandle } from './useDragHandle';
 // ends in a click on the head whenever the finger releases back over it
 // (nothing scrolled to swallow it), and that click must not also fire
 // the tap action; the swallow flag is cleared by the next press, so a
-// release that lands elsewhere cannot poison a later tap. This machine
-// used to live copy-pasted in WorkoutCard and PoolElsewhereRow - a
-// subtle, device-won behavior that must not fork.
+// release that lands elsewhere cannot poison a later tap.
 
 export interface BodyHandleOptions {
   // Live, not captured: the parent flips it as its list gains/loses

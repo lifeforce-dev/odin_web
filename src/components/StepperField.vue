@@ -1,13 +1,10 @@
 <script setup lang="ts">
 import { onBeforeUnmount } from 'vue';
 
-// Tap-once / hold-to-ramp stepper field (the ref's `pressable`): label,
-// minus button, welled display value, plus button. One adjust fires on
-// press, then a ramp after the hold delay; the parent owns bounds and
-// formatting, so at a bound the extra emits are no-ops there, same as
-// the ref. Extracted from WorkoutCard (its two steppers were the same
-// control twice over); epic 03's log-set thumb pads are the same
-// control family and the known next consumer.
+// Tap-once / hold-to-ramp stepper field: label, minus button, welled
+// display value, plus button. One adjust fires on press, then a ramp
+// after the hold delay; the parent owns bounds and formatting, so at a
+// bound the extra emits are no-ops there.
 
 const HOLD_DELAY_MS = 360;
 const RAMP_INTERVAL_MS = 110;

@@ -6,25 +6,21 @@ import InlineNameEntry from '@/components/InlineNameEntry.vue';
 import StepperField from '@/components/StepperField.vue';
 import { useBodyHandle } from '@/composables/useBodyHandle';
 
-// THE workout card (task 02-07): one control for both workbench zones,
-// because a workout is one thing wherever it sits - name + sets/rest on
-// the identity itself, a circuit is just an ordered list pointing at it.
-// Anatomy: head (name + SETS // REST meta; click folds the prescription
-// editor open, press-and-hold turns the name editable) and the grip -
-// the drag surface. Render + emit only: bounds, persistence, and
-// ordering live in useWorkbench / domain. The parent says where the card
-// is via `addable` (pool: ADD TO CIRCUIT in the editor) and `removable`
-// (circuit: REMOVE FROM CIRCUIT in the editor); both are one button in
+// The workout card: one control for both workbench zones, because a
+// workout is one thing wherever it sits - name + sets/rest live on the
+// identity, a circuit is just an ordered list pointing at it. Anatomy:
+// head (name + meta; click folds the prescription editor open,
+// press-and-hold turns the name editable) and the grip, the drag
+// surface. Render + emit only: bounds, persistence, and ordering live
+// in useWorkbench / domain. The parent says where the card is via
+// `addable` (pool) and `removable` (circuit); both are one button in
 // the same slot of the same fold.
 //
-// One identity, two DRESS states (loaded-rack pick, 2026-07-15;
-// supersedes the same-day closed-card-identical ruling): the circuit
-// variant is the committed card - surface plate, vermilion spine,
-// two-line head; the pool variant is cold stock - bg plate, steel
-// hairline edge, one compressed line at tap-min. Behavior is identical
-// in both: same fold, same editor, same rename, same grip. Opening a
-// pool card necessarily grows it (the fold needs the room) - a visible
-// morph the design accepts.
+// One identity, two dress states: the circuit variant is the committed
+// card - surface plate, accent spine, two-line head; the pool variant
+// is cold stock - bg plate, steel hairline, one compressed line at
+// tap-min. Behavior is identical in both. Opening a pool card
+// necessarily grows it (the fold needs the room).
 
 const props = withDefaults(
   defineProps<{
@@ -67,12 +63,11 @@ const emit = defineEmits<{
   'flash-end': [];
 }>();
 
-// --- Handles: the grip is always a drag surface; the head joins it ---------
-// under dragAnywhere (useBodyHandle - a separate session, because the
-// two can be pressed independently). An open rename owns the card:
-// nothing lifts it out from under the entry - the canDrag gate matters
-// because the very press that matured INTO the rename is still being
-// tracked on document.
+// The grip is always a drag surface; the head joins it under
+// dragAnywhere (a separate session, because the two can be pressed
+// independently). An open rename owns the card: nothing lifts it out
+// from under the entry - the canDrag gate matters because the very
+// press that matured into the rename is still tracked on document.
 
 const renaming = ref(false);
 
@@ -93,11 +88,10 @@ function onGripDrag(event: PointerEvent): void {
   }
 }
 
-// --- Head: click folds the editor, press-and-hold renames -------------------
-// The hold matures only while the finger stays put (within the slop);
-// movement hands the gesture to native scroll (or, under dragAnywhere,
-// to the drag), a quick release is the fold toggle. Document listeners
-// filter to the pressing finger.
+// The rename hold matures only while the finger stays put (within the
+// slop); movement hands the gesture to native scroll (or, under
+// dragAnywhere, to the drag), and a quick release is the fold toggle.
+// Document listeners filter to the pressing finger.
 
 const RENAME_HOLD_MS = 500;
 const RENAME_SLOP_PX = 10;
@@ -175,7 +169,7 @@ function onAnimationEnd(event: AnimationEvent): void {
   }
 }
 
-// Editor rest readout is m:ss; the head meta shows raw seconds (ref).
+// Editor rest readout is m:ss; the head meta shows raw seconds.
 function formatRest(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = (totalSeconds % 60).toString().padStart(2, '0');
@@ -271,8 +265,8 @@ const metaText = computed(() =>
   /* The accent spine: editable, movable entry (--stamp weight). */
   border-left: var(--stamp) solid var(--accent);
 
-  /* The origin row yields as ground the moment its card lifts; stepped,
-     not eased (signal-rewrite: peripheral vision keys on transients). */
+  /* The origin row yields as ground the moment its card lifts;
+     stepped, not eased. */
   transition: opacity calc(var(--motion-morph) * 0.6) steps(2, end);
 }
 
@@ -284,9 +278,8 @@ const metaText = computed(() =>
   animation: card-flash var(--motion-flash) ease-out;
 }
 
-/* Flash-on-add. The left spine is pinned back to accent at both ends so
-   it never fades with the other sides (the ref lets it sweep - a ref
-   defect, not a spec). */
+/* Flash-on-add. The left spine is pinned back to accent at both ends
+   so it never fades with the other sides. */
 @keyframes card-flash {
   0% {
     border-color: var(--accent);
@@ -354,11 +347,11 @@ const metaText = computed(() =>
   text-transform: uppercase;
 }
 
-/* The pool dress: stock on the shelf goes cold (loaded-rack) - bg
-   plate, steel hairline edge instead of the vermilion spine, name and
-   meta compressed onto one tap-min line. Color says COMMITTED-vs-STOCK,
-   height says INSTALLED-vs-LOOSE; the vermilion arrives WITH membership
-   via the flash at the landing, never in flight. */
+/* The pool dress: stock on the shelf goes cold - bg plate, steel
+   hairline edge instead of the accent spine, name and meta compressed
+   onto one tap-min line. Color says committed-vs-stock, height says
+   installed-vs-loose; the accent arrives with membership via the
+   landing flash, never in flight. */
 .workout-card--pool {
   background: var(--bg);
   border-left: var(--hairline) solid var(--supply);

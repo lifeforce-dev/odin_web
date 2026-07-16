@@ -16,12 +16,10 @@ import {
   setPrescription,
 } from '@/domain/builder';
 
-// The rotation list, minimally real (task 02-04): actual circuits from
-// the domain so the workbench opens real persisted data on device. The
-// full circuits screen per design_reference/circuits.html (circuit-row
-// components, rotation reorder, + ADD CIRCUIT) is later epic-02 work;
-// until the pool zone (02-05) provides the add path, dev builds get a
-// seed row so the workbench's drag/editor pass is exercisable at all.
+// The rotation list, minimally real: actual circuits from the domain
+// so the workbench opens real persisted data on device. Until the full
+// circuits screen (rotation reorder, + ADD CIRCUIT) exists, dev builds
+// get a seed row so the workbench is exercisable at all.
 
 const router = useRouter();
 const db = useDb();
@@ -30,8 +28,6 @@ const circuits = ref<CircuitRow[]>([]);
 const hasLoaded = ref(false);
 const loadFailed = ref(false);
 
-// The canonical ref's demo circuit (circuit-workbench.html seeds), so the
-// on-device pass sees the same rows as the design reference.
 const DEMO_CIRCUIT_NAME = 'Legs';
 const DEMO_WORKOUTS = [
   { name: 'Lat Pulldown', prescription: { sets: 4, restSeconds: 90 } },
@@ -48,7 +44,7 @@ async function refresh(): Promise<void> {
     hasLoaded.value = true;
     loadFailed.value = false;
   } catch (error) {
-    // A failed read must fail on the glass, not only in logcat.
+    // A failed read must fail on the glass, not only in the log.
     console.error('[odin] circuits load failed', error);
     loadFailed.value = true;
   }
@@ -73,7 +69,6 @@ async function seedDemoCircuit(): Promise<void> {
     const circuit = await createCircuit(db, { kind: 'workout', name: DEMO_CIRCUIT_NAME });
     for (const workout of DEMO_WORKOUTS) {
       const exercise = await findOrCreateExercise(db, 'workout', workout.name);
-      // Prescription lives on the workout itself (2026-07-15 amendment).
       await setPrescription(db, exercise.id, workout.prescription);
       await addExerciseToCircuit(db, circuit.id, exercise.id);
     }

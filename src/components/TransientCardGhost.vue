@@ -3,11 +3,10 @@ import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
 import type { TransientCard } from '@/composables/useForgeChoreography';
 
-// The one face every workbench transient wears: the REAL row component
+// The one face every workbench transient wears: the real row component
 // for whichever kind the lifted workout is, so a ghost is exactly the
-// row being moved (drag ghost, consume tv-off, and put-back fly used to
-// hand-copy this branch four times). Content only - the wrapper that
-// positions and animates a transient stays with its owner.
+// row being moved. Content only - the wrapper that positions and
+// animates a transient stays with its owner.
 
 defineProps<{
   content: TransientCard;

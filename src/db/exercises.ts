@@ -14,8 +14,8 @@ export interface NewExercise {
 }
 
 // Stores the user's casing; surrounding whitespace is never data. A new
-// exercise starts on the default prescription (sets/rest live on the
-// identity, 2026-07-15 amendment) and gets edited in place from there.
+// exercise starts on the default prescription and gets edited in place
+// from there.
 export async function createExercise(
   db: DbHandle,
   input: NewExercise,

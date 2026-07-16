@@ -2,16 +2,14 @@
 import { useRouter } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 
-// Shared flow-screen header: back affordance + title + eyebrow, per the
-// canonical refs (circuits.html, circuit-workbench.html). Extracted in the
-// 02-02 review fix leg: the block was byte-identical across the stub views
-// and every epic-02+ screen repeats it.
+// Shared flow-screen header: back affordance + title + eyebrow.
 //
-// Back matches hardware back wherever the stack has somewhere to pop. At
-// the history bottom (dev reload straight onto the route, WebView state
-// restore, a future deep link) hardware back minimizes the app, so the
-// on-screen affordance replaces to the screen's declared parent instead
-// of silently doing nothing (a bare router.back() is a no-op there).
+// Back matches hardware back wherever the stack has somewhere to pop.
+// At the history bottom (dev reload straight onto the route, WebView
+// state restore, a deep link) hardware back minimizes the app, so the
+// on-screen affordance replaces to the screen's declared parent
+// instead of silently doing nothing (a bare router.back() is a no-op
+// there).
 
 // eyebrowValue is a separate prop, never string-interpolated into eyebrow
 // by the caller: keeps the static copy and the dynamic value apart at the
@@ -71,8 +69,8 @@ function goBack(): void {
   align-items: stretch;
 }
 
-/* Ref back-btn, lifted to the tap floor: same small type, but the
-   transparent button box carries the full 48px hit area. */
+/* Small type, but the transparent button box carries the full tap-min
+   hit area. */
 .screen-header__back {
   display: flex;
   align-items: center;
@@ -93,8 +91,8 @@ function goBack(): void {
   color: var(--text);
 }
 
-/* Titles are identity and stay WHITE (STYLEGUIDE section 9): red is
-   reserved for state and action, never identity. */
+/* Titles are identity and stay white: red is reserved for state and
+   action, never identity. */
 .screen-header__title {
   margin: 0;
   color: var(--text);

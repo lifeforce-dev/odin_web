@@ -5,12 +5,11 @@ import AppShell from '@/components/AppShell.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
 
-// Home screen. The lockup is exploration v3 direction 01 "Instrument
-// Lockup" (task 01-08): the mark sits left of the ODIN wordmark on one
-// axis, a hairline rule between them like a machined insignia plate.
-// Red stays on the wordmark alone. Each flow epic adds its own menu
-// button as its flow becomes walkable (BUILD CIRCUIT landed with task
-// 02-02). AppShell owns background, grain, and scanlines.
+// Home screen. The lockup puts the mark left of the ODIN wordmark on
+// one axis, a hairline rule between them like a machined insignia
+// plate; red stays on the wordmark alone. Each flow adds its own menu
+// button as it becomes walkable. AppShell owns background, grain, and
+// scanlines.
 
 const router = useRouter();
 
@@ -80,7 +79,7 @@ function openCircuits(): void {
   text-transform: uppercase;
 }
 
-/* Ref rhythm: roomy brand-to-menu gap, tight 8px stack between rows. */
+/* Roomy brand-to-menu gap, tight stack between rows. */
 .home__menu {
   display: grid;
   gap: var(--space-2);

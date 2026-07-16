@@ -85,9 +85,9 @@ const exportRowsArb: fc.Arbitrary<ExportRows> = fc.record({
 });
 
 describe('export contract', () => {
-  // The longest-failure-distance surface in the app: a serialization bug here
-  // is not caught until a real export hits the Phase 2 server, long after the
-  // data was written. Property, not examples.
+  // The longest-failure-distance surface in the app: a serialization
+  // bug here is not caught until a real export is imported, long after
+  // the data was written. Property, not examples.
   test.prop([exportRowsArb, isoDate])('round-trips over generated rows', (rows, exportedAt) => {
     const data = buildExport(rows, exportedAt);
     expect(deserialize(serialize(data))).toEqual(data);

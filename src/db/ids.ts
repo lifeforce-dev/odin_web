@@ -1,13 +1,12 @@
-// Primary keys are device-generated UUIDs (schema-v2 standing decision):
-// exported rows keep globally unique ids, so the Phase 2 server can import
-// them idempotently with no key translation.
+// Primary keys are device-generated UUIDs: exported rows keep globally
+// unique ids, so a future server can import them idempotently with no
+// key translation.
 //
-// crypto.randomUUID is SECURE-CONTEXT-ONLY: it exists in Node and in the
-// installed app (https/capacitor origins), but is undefined when the
-// WebView loads from the LAN dev server (http://<ip>:5173) - the phone dev
-// loop. getRandomValues has no such gate, so the fallback derives the same
-// RFC 4122 v4 shape from it. Found on device: the workbench seed silently
-// failed only under dev:phone (task 02-04).
+// crypto.randomUUID is secure-context-only: it exists in Node and in
+// the installed app (https/capacitor origins), but is undefined when
+// the WebView loads from the LAN dev server (http://<ip>:5173).
+// getRandomValues has no such gate, so the fallback derives the same
+// RFC 4122 v4 shape from it.
 export function newId(): string {
   if (typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();

@@ -8,19 +8,17 @@ import { circuit, circuitItem, exercise } from '@/db/schema';
 import type { CircuitItemRow, CircuitRow, ExerciseRow } from '@/db/schema';
 import { nowIso } from '@/db/timestamps';
 
-// The circuit-builder domain layer (epic 02): every operation the workbench
-// and circuits screens perform, over an injected DbHandle so it runs
-// identically on device and in Node tests. Business rules live here
-// (kind matching, name rules, steal semantics, reorder validation);
-// components stay render-and-emit only. Spec:
-// .claude/features/odin-design/design/schema-v2.md.
+// The circuit-builder domain layer: every operation the workbench and
+// circuits screens perform, over an injected DbHandle so it runs
+// identically on device and in Node tests. Business rules live here;
+// components stay render-and-emit only.
 
 export type CircuitKind = CircuitRow['kind'];
 
-// Typed rule failures so the UI can branch on the rule that fired without
-// parsing message strings. DB constraint violations are deliberately NOT
-// translated into these: drizzle wraps them in DrizzleQueryError and the
-// SQLite reason stays on the error.cause chain (01-04 decision).
+// Typed rule failures so the UI can branch on the rule that fired
+// without parsing message strings. DB constraint violations are
+// deliberately not translated: drizzle wraps them in DrizzleQueryError
+// with the SQLite reason on the error.cause chain.
 export type BuilderErrorCode =
   | 'blank-name'
   | 'circuit-not-found'
@@ -46,12 +44,9 @@ export interface Prescription {
   restSeconds: number;
 }
 
-// A fresh workout's starting prescription. The value source is the
-// schema (it is the columns' storage default); re-exported here because
-// the UI thinks in domain terms. Sets/rest belong to the WORKOUT
-// (2026-07-15 amendment): moving it between circuits carries them, and
-// it is editable wherever it sits - the 02-03 "re-default on add and
-// steal" rule is superseded.
+// A fresh workout's starting prescription; the value lives in the
+// schema as the columns' storage default. Sets/rest belong to the
+// workout: moving it between circuits carries them.
 export { DEFAULT_PRESCRIPTION } from '@/db/schema';
 
 function requireValidName(name: string): string {
@@ -208,12 +203,12 @@ export async function archiveCircuit(
 
 // --- Workout pool -----------------------------------------------------------
 
-// Find-or-create on the normalized name. Matching folds BOTH sides with
-// SQLite's own lower() so the comparison is exactly the ASCII-only fold the
-// active-name unique index uses; JS toLowerCase() disagrees on non-ASCII
-// names (01-04 review pin). The index is global across kinds, so a name held
-// by the other kind is a kind-mismatch error, never a silent second identity
-// that the index would then reject.
+// Find-or-create on the normalized name. Matching folds both sides
+// with SQLite's own lower() so the comparison is exactly the
+// ASCII-only fold the active-name unique index uses; JS toLowerCase()
+// disagrees on non-ASCII names. The index is global across kinds, so a
+// name held by the other kind is a kind-mismatch error, never a second
+// identity the index would then reject.
 export async function findOrCreateExercise(
   db: DbHandle,
   kind: ExerciseKind,
@@ -239,11 +234,10 @@ export async function findOrCreateExercise(
   });
 }
 
-// The pool tray's rename. Returns false when the row is missing or
-// archived, mirroring renameCircuit's contract. A collision with another
-// active name is NOT pre-checked: the active-name unique index is the
-// rule, and the violation stays a DrizzleQueryError with the reason on
-// error.cause (01-04 decision).
+// Returns false when the row is missing or archived, mirroring
+// renameCircuit's contract. A collision with another active name is
+// not pre-checked: the active-name unique index is the rule, and the
+// violation stays a DrizzleQueryError with the reason on error.cause.
 export async function renameExercise(db: DbHandle, id: string, name: string): Promise<boolean> {
   const trimmed = requireValidName(name);
   return db.transaction(async (tx) => {
@@ -268,14 +262,12 @@ export interface TrashedWorkout {
   held: { circuitId: string; position: number } | null;
 }
 
-// The drag-to-trash delete: the workout disappears entirely, from
-// wherever it was. One transaction frees its slot (if a circuit holds
-// it) and archives the identity - set_log history keeps referencing it,
-// and the active-name index frees the name for reuse. Deliberately NOT
-// guarded against held exercises: trashing is an explicit, whole-card
-// gesture, and leaving the slot behind would strand a pointer at an
-// archived identity. Resolves to the undo shape for the consume
-// snackbar, or null when missing/already archived.
+// The drag-to-trash delete: one transaction frees the slot a circuit
+// may hold and archives the identity - set_log history keeps
+// referencing it, and the active-name index frees the name for reuse.
+// Deliberately not guarded against held exercises: leaving the slot
+// behind would strand a pointer at an archived identity. Resolves to
+// the undo shape, or null when missing or already archived.
 export async function trashExercise(
   db: DbHandle,
   exerciseId: string,
@@ -297,16 +289,14 @@ export async function trashExercise(
   });
 }
 
-// The trash gesture's undo (the consume snackbar): one transaction
-// restores the archived identity and, when a circuit held it, a slot in
-// that circuit at the old position value. The position may collide with
-// a row added since - ordering only needs positions monotonic, and the
-// next reorder rewrites them densely. If the owner circuit was archived
-// in the meantime the identity still restores, into the pool. The
-// unarchive can violate the active-name index (the freed name was
-// retaken while the snackbar sat): that stays the constraint's
-// DrizzleQueryError for the caller to translate - nothing is written.
-// Returns false when the exercise is missing or already active.
+// The trash undo: restores the archived identity and, when a circuit
+// held it, a slot at the old position. The position may collide with a
+// row added since - ordering only needs monotonic values, and the next
+// reorder rewrites them densely. If the owner circuit was archived in
+// the meantime the identity restores into the pool. A name retaken
+// while the undo sat violates the active-name index and surfaces as
+// the constraint's DrizzleQueryError with nothing written. Returns
+// false when the exercise is missing or already active.
 export async function restoreExercise(db: DbHandle, trashed: TrashedWorkout): Promise<boolean> {
   return db.transaction(async (tx) => {
     const row = await tx.select().from(exercise).where(eq(exercise.id, trashed.exerciseId)).get();
@@ -333,8 +323,8 @@ export async function restoreExercise(db: DbHandle, trashed: TrashedWorkout): Pr
   });
 }
 
-// Available entries carry their prescription: the pool card is the same
-// editable control as the circuit's (2026-07-15 amendment).
+// Available entries carry their prescription: the pool card is the
+// same editable control as the circuit's.
 export interface PoolAvailableEntry {
   exerciseId: string;
   name: string;
@@ -354,11 +344,11 @@ export interface PoolGroups {
   heldElsewhere: PoolElsewhereEntry[];
 }
 
-// Pool group state is derived, never stored (schema-v2): AVAILABLE = active
+// Pool group state is derived, never stored: AVAILABLE is an active
 // exercise of the circuit's kind with no circuit_item row anywhere;
-// IN OTHER CIRCUITS = its one item belongs to another circuit, with the
-// owner's name for the pill / steal strip / drag ghost. Exercises held by
-// THIS circuit are its slots, not pool rows, so they appear in neither group.
+// IN OTHER CIRCUITS means its one item belongs to another circuit.
+// Exercises held by THIS circuit are its slots, not pool rows, so they
+// appear in neither group.
 export async function getPool(db: DbHandle, circuitId: string): Promise<PoolGroups> {
   const viewing = await requireActiveCircuit(db, circuitId);
   const available = await db
@@ -420,10 +410,9 @@ export interface CircuitSlot {
 }
 
 // The circuit zone's slot list; sets/rest read from the exercise (the
-// slot is a pure association). Selected bare column names stay distinct
-// (id, exercise_id, name, position, sets, rest_seconds) because the
-// plugin's object rows collapse same-named result columns
-// (src/db/proxy-rows.ts).
+// slot is a pure association). The selected bare column names are all
+// distinct because the plugin's object rows collapse same-named result
+// columns (src/db/proxy-rows.ts).
 export async function listCircuitSlots(db: DbHandle, circuitId: string): Promise<CircuitSlot[]> {
   return db
     .select({
@@ -485,11 +474,11 @@ export async function removeCircuitItem(db: DbHandle, itemId: string): Promise<b
   });
 }
 
-// The live-apply prescription edit, keyed to the WORKOUT (2026-07-15
-// amendment): the same edit works from the circuit slot and the pool
-// card. Partial on purpose: the steppers change one number at a time.
-// Validates the merged result so a partial edit can never leave an
-// invalid pair behind. Returns false when missing or archived.
+// The live-apply prescription edit, keyed to the workout so the same
+// edit works from the circuit slot and the pool card. Partial on
+// purpose: the steppers change one number at a time. Validates the
+// merged result so a partial edit can never leave an invalid pair
+// behind. Returns false when missing or archived.
 export async function setPrescription(
   db: DbHandle,
   exerciseId: string,

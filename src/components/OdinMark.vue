@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// The Odin brand mark (Huginn and Muninn, raven-04). Single source of
-// geometry: the same canonical asset the launcher icon is built from
-// (task 01-07), inlined here so theme custom properties recolor it.
+// The Odin brand mark (Huginn and Muninn). Single source of geometry:
+// the same asset the launcher icon is built from
+// (resources/odin-mark.svg), inlined so theme custom properties
+// recolor it.
 //
 // The mark parameterizes color via three inherited custom properties:
 // --logo-ink (raven 1 + its rings) and --logo-slate (raven 2 + its rings)

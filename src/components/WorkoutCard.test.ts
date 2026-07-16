@@ -81,10 +81,9 @@ describe('WorkoutCard', () => {
   });
 
   it('dresses the placements apart: circuit committed, pool stock', () => {
-    // One identity, two DRESS states (loaded-rack, 2026-07-15;
-    // supersedes the closed-card-identical rule this test used to pin):
-    // the pool line wears the cold stock dress with compressed meta,
-    // while behavior stays identical in both zones.
+    // One identity, two dress states: the pool line wears the cold
+    // stock dress with compressed meta, while behavior stays identical
+    // in both zones.
     const pooled = mountCard({ variant: 'pool', addable: true });
     const held = mountCard({ removable: true });
 

@@ -1,31 +1,21 @@
 import { computed, onScopeDispose, reactive } from 'vue';
 
-// The workbench drag session (tasks 02-04/02-05/02-07): pointer-follow
-// ghost, the landing gap inside the circuit zone, and the armed drop
-// zones. ONE behavior for both origins - the zones read identically
-// whichever list the card was lifted from; only the drop OUTCOME
-// depends on where it came from:
-//   over the circuit -> the landing gap previews the position
-//     (a circuit card reorders there, a pool card is added there);
-//   over the pool -> the card goes to (or stays in) the pool
-//     (a circuit card is removed from the circuit, a pool card is
-//     simply put back);
-//   over the forge (the create slot at the pool's bottom, STYLEGUIDE
-//     section 9) -> the workout is deleted entirely, wherever it came
-//     from.
-// The row's grip detects the lift (useDragHandle; grips are the only
-// drag surface and alone carry touch-action: none, so the browser never
-// contests the gesture) and hands the live pointer here; this composable
-// owns the document-level tracking from that moment to the drop. Screen
-// geometry comes in through the measure callbacks so the decision logic
-// stays testable without layout.
+// The workbench drag session: pointer-follow ghost, the landing gap
+// inside the circuit zone, and the armed drop zones. One behavior for
+// both origins; only the drop outcome depends on where the card came
+// from: over the circuit the gap previews the position (reorder or
+// add), over the pool a circuit card is removed and a pool card put
+// back, over the forge the workout is deleted entirely. The row's grip
+// detects the lift (useDragHandle) and hands the live pointer here;
+// this composable owns the document-level tracking from that moment to
+// the drop. Screen geometry comes in through the measure callbacks so
+// the decision logic stays testable without layout.
 
 export type WorkbenchDragOrigin = 'circuit' | 'pool';
 
-// 'forge' is the canonical name for the delete target (STYLEGUIDE
-// section 9); the ACTION a forge drop performs is still "trash the
-// workout", which is why the callback below and the domain verb keep
-// that word.
+// The forge is the delete target; the action a forge drop performs is
+// still "trash the workout", which is why the callback and the domain
+// verb keep that word.
 export type WorkbenchDragZone = 'circuit' | 'pool' | 'forge';
 
 export interface WorkbenchDragOptions {
@@ -101,11 +91,8 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     forgeArmed: false,
   });
 
-  // The one-armed-zone invariant as a single observable: which zone the
-  // drop would land in right now, null when nothing is lifted. The view
-  // keys the relight off it and watches it for the seam-crossing tick
-  // (crossing-tick pick, 2026-07-16); a future haptic rides the same
-  // transitions.
+  // The one-armed-zone invariant as a single observable: which zone
+  // the drop would land in right now, null when nothing is lifted.
   const armedZone = computed<WorkbenchDragZone | null>(() => {
     if (state.draggingId === null) {
       return null;
@@ -175,8 +162,8 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     }
     state.ghostX = event.clientX - grabOffsetX;
     state.ghostY = event.clientY - grabOffsetY;
-    // Exactly one zone is armed at a time (STYLEGUIDE drop-zone rule),
-    // bottom-up: the forge, then the pool, else the circuit.
+    // Exactly one zone is armed at a time, tested bottom-up: the
+    // forge, then the pool, else the circuit.
     const y = event.clientY;
     const overForge = state.forgeArmed ? y >= forgeTopAtGrab - SEAM_SLACK_PX : y >= forgeTopAtGrab;
     const overPool =

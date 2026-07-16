@@ -12,9 +12,8 @@ import { useOneShot } from './useOneShot';
 import type { UndoTrashOutcome } from './useWorkbench';
 import type { WorkbenchDragState } from './useWorkbenchDrag';
 
-// The forge EXIT choreography (signal-rewrite, 2026-07-15 owner pick),
-// extracted from the workbench screen: while a card is lifted the CSS
-// owns MORPH / DORMANT / ARMED straight from drag-state classes, but the
+// The forge exit choreography. While a card is lifted the CSS owns
+// MORPH / DORMANT / ARMED straight from drag-state classes, but the
 // two exit choreographies play after the drag session has already
 // reset, so they need their own transient phase. Consume (tv-off
 // collapse, line dart, white-hot impact, reverse rewrite, undo

@@ -1,14 +1,13 @@
 /*
-  Theme: odin-dark. The default Redline HUD skin, derived from
-  design_reference/STYLEGUIDE.md sections 2-4.
+  Theme: odin-dark, the default skin.
 
-  Two tiers (architecture.md): tier 1 raw primitives (--raw-*), the only
-  place raw color and texture literals may live; tier 2 the semantic
-  contract, fully answered. Components consume tier 2 only and know
-  nothing of this file. npm run check:themes fails this file on any
-  missing or extra tier-2 token, so contract.ts and this file move in
-  the same change. Geometry lives in structure.css; a theme that moves
-  or resizes things is a fork, not a skin.
+  Two tiers: tier 1 raw primitives (--raw-*), the only place raw color
+  and texture literals may live; tier 2 the semantic contract, fully
+  answered. Components consume tier 2 only and know nothing of this
+  file. npm run check:themes fails this file on any missing or extra
+  tier-2 token, so contract.ts and this file move in the same change.
+  Geometry lives in structure.css; a theme that moves or resizes things
+  is a fork, not a skin.
 */
 
 [data-theme='odin-dark'] {
@@ -36,8 +35,7 @@
   --raw-scanline-ink: rgb(0 0 0 / 16%);
   --raw-white-glow: rgb(242 242 242 / 50%);
 
-  /* Gritty iron film-grain (STYLEGUIDE.md section 2), copied from the
-     canonical home.html: fractal noise at 4% opacity, tiled fine. */
+  /* Iron film-grain: fractal noise at 4% opacity, tiled fine. */
   --raw-grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 
   /* Tier 2: the semantic contract. */
@@ -58,13 +56,13 @@
   --warning-glow: var(--raw-amber-glow);
   --surface-alarm: var(--raw-red-iron);
 
-  /* The inventory/supply channel (loaded-rack): steel = stock on the
-     shelf, vermilion = committed member. Supply never emits light. */
+  /* The inventory/supply channel: steel marks stock on the shelf, the
+     accent marks a committed member. Supply never emits light. */
   --supply: var(--raw-steel-mid);
   --supply-soft: var(--raw-steel-soft);
 
-  /* Brand mark: twin ravens split by value, not hue (STYLEGUIDE brand
-     lockup). Red stays scarce, so the mark never spends the accent. */
+  /* Brand mark: twin ravens split by value, not hue; the mark never
+     spends the accent. */
   --logo-ink: var(--raw-steel-light);
   --logo-slate: var(--raw-steel-mid);
   --font-display: 'Bebas Neue', sans-serif;
@@ -80,20 +78,17 @@
   --glow-cta: inset 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow);
   --glow-display-accent: 0 0 44px var(--accent-glow);
 
-  /* The armed forge (the one destructive destination). The drop ZONES
-     stopped glowing with the crossing-tick pick (2026-07-16): armed is
-     now stated by luminance (--lift-recede lifts off the armed region),
-     and red stays on the lifted card and the forge alone. */
+  /* The armed forge, the one destructive destination. Armed zones are
+     stated by luminance (--lift-recede); red rides only the lifted
+     card and the forge. */
   --glow-forge-armed: inset 0 0 0 1px var(--accent), inset 0 0 24px var(--accent-glow);
   --glow-flash: inset 0 0 0 1px var(--accent), 0 0 18px var(--accent-glow);
   --glow-drag-ghost: 0 0 18px var(--accent-glow);
   --glow-rest-value: 0 0 12px var(--warning-glow);
   --shadow-well: inset 0 2px 6px var(--raw-well-ink);
 
-  /* Signal-rewrite forge choreography (02-07): the page's stepped
-     luminance drop while a card is lifted, and the white raster-line
-     event glow - the one glow off the red channel (owner-signed with
-     the dnd-03 pick; the morph's bright event spends luminance). */
+  /* The page's stepped luminance drop while a card is lifted, and the
+     white raster-line event glow - the one glow off the red channel. */
   --lift-recede: brightness(0.74);
   --raster: 0 0 10px var(--raw-white-glow);
 }

@@ -12,7 +12,7 @@
     {
       "name": "only-native-touches-capacitor",
       "severity": "error",
-      "comment": "Bridge isolation (capacitor-builder): only src/native/ may import @capacitor/*. Everything else consumes the plain-TS adapters it exports.",
+      "comment": "Bridge isolation: only src/native/ may import @capacitor/*. Everything else consumes the plain-TS adapters it exports.",
       "from": { "path": "^src", "pathNot": "^src/native(/|$)" },
       "to": { "path": "^node_modules/@capacitor(/|$)" }
     }

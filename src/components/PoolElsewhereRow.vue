@@ -4,17 +4,15 @@ import { computed } from 'vue';
 import GripHandle from '@/components/GripHandle.vue';
 import { useBodyHandle } from '@/composables/useBodyHandle';
 
-// A workout held by another circuit, per
-// design_reference/components/pool-elsewhere-row.html. One workout lives
-// in ONE circuit at a time, so these rows are recessed + dashed (on
-// someone else's rack) with a filled owner pill naming that circuit.
-// Clicking the body folds open the STEAL STRIP - it states the
-// consequence and the named-copy tip EVERY time (no one-time modal),
-// with LEAVE IT / MOVE HERE. The grip is the drag surface (02-07 rule),
-// joined by the body when `dragAnywhere` says the pool has no scroll to
-// protect (useBodyHandle owns that machine); dragging one in also moves
-// it. Render + emit only: the parent owns `open` and executes the
-// steal.
+// A workout held by another circuit. One workout lives in one circuit
+// at a time, so these rows are recessed + dashed (on someone else's
+// rack) with a filled owner pill naming that circuit. Clicking the
+// body folds open the steal strip - it states the consequence and the
+// named-copy tip every time (no one-time modal), with LEAVE IT / MOVE
+// HERE. The grip is the drag surface, joined by the body when
+// `dragAnywhere` says the pool has no scroll to protect; dragging one
+// in also moves it. Render + emit only: the parent owns `open` and
+// executes the steal.
 
 const props = withDefaults(
   defineProps<{
@@ -39,8 +37,8 @@ const bodyHandle = useBodyHandle({
   onTap: () => emit('toggle'),
 });
 
-// The named-copy suggestion mirrors the canonical strip copy: the
-// owner's first word is enough to disambiguate ("Pushups // Upper").
+// The owner's first word is enough to disambiguate ("Pushups //
+// Upper").
 const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')[0]}`);
 </script>
 

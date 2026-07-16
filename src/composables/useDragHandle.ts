@@ -1,15 +1,13 @@
 import { onScopeDispose } from 'vue';
 
-// The grip's press-to-drag decision (task 02-07): every draggable row's
-// grip (the dot grid) is the ONLY drag surface. Grips carry
-// touch-action: none, so the browser never contests a gesture that
-// starts there; row bodies keep native panning and fold open on click.
-// A press that travels past the threshold lifts the row (onDragStart
+// The grip's press-to-drag decision: every draggable row's grip (the
+// dot grid) is the only drag surface. Grips carry touch-action: none,
+// so the browser never contests a gesture that starts there; row
+// bodies keep native panning and fold open on click - with any row
+// surface draggable, scrolling a full list is nearly impossible. A
+// press that travels past the threshold lifts the row (onDragStart
 // hands the live pointer to the drag session); a press that releases
 // without travelling means nothing - a grip has no tap meaning.
-// Replaces both 02-04's whole-head handle and 02-05's hold-to-lift
-// (owner device feedback: with any row surface draggable, scrolling a
-// full list was nearly impossible).
 
 export const DRAG_THRESHOLD_PX = 10;
 
@@ -18,9 +16,9 @@ export interface DragHandleOptions {
 }
 
 export function useDragHandle(options: DragHandleOptions) {
-  // The pressing finger. Document-level listeners hear EVERY pointer on
-  // the glass (feature rule): all tracking filters to this id, and a new
-  // press is refused while one is live.
+  // The pressing finger. Document-level listeners hear every pointer
+  // on the glass: all tracking filters to this id, and a new press is
+  // refused while one is live.
   let pressPointerId: number | null = null;
   let pressOrigin: { x: number; y: number } | null = null;
 

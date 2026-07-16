@@ -1,13 +1,11 @@
 <script setup lang="ts">
-// The workbench pool's group labels. The two variants must separate AT
-// A GLANCE, not by reading: available wears the steel supply mark with
-// a supply-fade rule (loaded-rack, 2026-07-15: red means membership
-// now, so supply does not spend it - and does not glow); elsewhere is
-// dim with a hollow square and a plain rule. The marker is a small
-// SQUARE status chip - deliberately not the tall left rail used on
-// rows, so a header never reads as a movable item. No counts: how many
-// is not decision-relevant here. (The ref file keeps the older glowing
-// accent mark; refs are visual spec only.)
+// The workbench pool's group labels. The two variants must separate
+// at a glance, not by reading: available wears the steel supply mark
+// with a supply-fade rule (red means membership, so supply spends
+// neither red nor glow); elsewhere is dim with a hollow square and a
+// plain rule. The marker is a small square status chip - deliberately
+// not the tall left rail used on rows, so a header never reads as a
+// movable item. No counts: how many is not decision-relevant here.
 
 defineProps<{
   label: string;

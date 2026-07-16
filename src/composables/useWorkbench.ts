@@ -26,21 +26,19 @@ import type {
 
 import { orderAfterDrop } from './useWorkbenchDrag';
 
-// The workbench's domain adapter (tasks 02-04/02-05): reactive circuit
-// and pool state over domain/builder.ts. Edits apply live - every
-// stepper tick lands in the DB, there is no save button. Components stay
-// render + emit; the rules (bounds, resync-on-failure, exact-permutation
-// reorders, create collision routing) live here and below in domain/.
+// The workbench's domain adapter: reactive circuit and pool state over
+// domain/builder.ts. Edits apply live - every stepper tick lands in
+// the DB, there is no save button. Components stay render + emit; the
+// rules live here and below in domain/.
 
 export type WorkbenchStatus = 'loading' | 'ready' | 'missing' | 'unavailable' | 'error';
 
 export type PrescriptionField = keyof Prescription;
 
 // What became of an inline create, for the screen to route: reveal the
-// pool row (created or already free - 02-07: create stays in the pool,
-// nothing auto-adds), flash the slot (already here), open the owner's
-// steal strip (create never silently steals), or show the domain's
-// verdict on the name.
+// pool row (create stays in the pool, nothing auto-adds), flash the
+// slot (already here), open the owner's steal strip (create never
+// silently steals), or show the domain's verdict on the name.
 export type CreateWorkoutOutcome =
   | { kind: 'in-pool'; exerciseId: string }
   | { kind: 'already-in-circuit'; exerciseId: string }
@@ -59,8 +57,8 @@ export type RenameWorkoutOutcome =
 // The two need different copy, so they come back apart.
 export type UndoTrashOutcome = 'restored' | 'spent' | 'failed';
 
-// The SQLite reason only travels on the wrapped error's cause chain
-// (01-04 decision); reacting to a specific violation means walking it.
+// The SQLite reason only travels on the wrapped error's cause chain;
+// reacting to a specific violation means walking it.
 function isUniqueConstraintViolation(error: unknown): boolean {
   for (let current: unknown = error; current instanceof Error; current = current.cause) {
     if (/UNIQUE constraint failed/i.test(current.message)) {
@@ -70,9 +68,8 @@ function isUniqueConstraintViolation(error: unknown): boolean {
   return false;
 }
 
-// UI stepper bounds from the canonical workbench-slot ref. Domain
-// validation is wider (sets >= 1, rest >= 0); these are the affordance
-// limits the steppers stop at.
+// Domain validation is wider (sets >= 1, rest >= 0); these are the
+// affordance limits the steppers stop at.
 export const PRESCRIPTION_BOUNDS: Record<PrescriptionField, { min: number; max: number }> = {
   sets: { min: 1, max: 20 },
   restSeconds: { min: 0, max: 600 },
@@ -150,10 +147,10 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
       pool.value = await getPool(db, circuit.id);
       status.value = 'ready';
     } catch (error) {
-      // A failed read must fail on the glass, not only in logcat: the
-      // screen renders this status with a retry (repo rule: loud on
-      // device). Also keeps the write chain unbreakable - resync awaits
-      // load, so load must never reject.
+      // A failed read must fail on the glass, not only in the log: the
+      // screen renders this status with a retry. Also keeps the write
+      // chain unbreakable - resync awaits load, so load must never
+      // reject.
       console.error('[odin] workbench load failed', error);
       status.value = 'error';
     }
@@ -180,11 +177,10 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     return enqueue(load);
   }
 
-  // Optimistic: the displayed value moves on the same tick as the tap so
-  // hold-to-ramp reads instantly; the write follows on the chain. Keyed
-  // to the WORKOUT, so the same edit works from a circuit slot and a
-  // pool card (2026-07-15 amendment). Returns the queued write so tests
-  // (and callers that care) can await it.
+  // Optimistic: the displayed value moves on the same tick as the tap
+  // so hold-to-ramp reads instantly; the write follows on the chain.
+  // Keyed to the workout, so the same edit works from a circuit slot
+  // and a pool card. Returns the queued write so callers can await it.
   function adjustPrescription(
     exerciseId: string,
     field: PrescriptionField,
@@ -229,9 +225,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     if (!db) {
       return Promise.resolve();
     }
-    // A card dropped back where it came from writes nothing (02-04
-    // decision); display order is array order, so the comparison is
-    // against the current array.
+    // A card dropped back where it came from writes nothing; display
+    // order is array order, so the comparison is against the current
+    // array.
     const unchanged =
       orderedItemIds.length === slots.value.length &&
       orderedItemIds.every((id, index) => slots.value[index]?.id === id);
@@ -306,12 +302,11 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }).then(() => itemId);
   }
 
-  // Inline create: find-or-create on the normalized name, then route by
-  // where that name already lives. The created (or matched free)
-  // workout lands in the AVAILABLE group and STAYS there (02-07 ruling:
-  // no auto-add - tap +, drag, or the tray from here). A name held
-  // elsewhere comes back as held-elsewhere so the screen can open that
-  // row's steal strip; stealing must always state its consequence.
+  // Inline create: find-or-create on the normalized name, then route
+  // by where that name already lives. The created (or matched free)
+  // workout lands in the AVAILABLE group and stays there - no auto-add.
+  // A name held elsewhere comes back as held-elsewhere so the screen
+  // can open that row's steal strip.
   function createWorkout(name: string): Promise<CreateWorkoutOutcome> {
     if (!db) {
       return Promise.resolve({ kind: 'failed' });

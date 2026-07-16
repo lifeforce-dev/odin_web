@@ -1,10 +1,10 @@
 import { onScopeDispose, readonly, ref, watch, type Ref } from 'vue';
 
 // Does this scroll container overflow right now - is there anything to
-// scroll at all? The workbench's drag rule keys off it (owner ruling
-// 2026-07-15): a zone whose list scrolls needs the swipe for scrolling,
-// so only grips lift a card there; a zone whose content fits has no
-// scroll to protect, and the thumb expects to just grab the card.
+// scroll at all? The workbench's drag rule keys off it: a zone whose
+// list scrolls needs the swipe for scrolling, so only grips lift a
+// card there; a zone whose content fits has no scroll to protect, and
+// the thumb expects to just grab the card.
 //
 // The answer has to be reactive BEFORE the press rather than measured
 // during it: it decides `touch-action`, which the browser reads at

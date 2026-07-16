@@ -2,15 +2,13 @@
 import { onMounted, ref } from 'vue';
 
 // The inline name-entry machine, shared by the pool's create row and
-// the card rename (extract-at-second-copy; the two had already drifted
-// cosmetically). A contenteditable seeded imperatively - Vue must never
-// patch its children (the log-set gotcha: no v-model on
-// contenteditable). Enter or the check commits, Escape cancels, and
-// focus leaving the entry cancels too - but focus moving WITHIN it (the
-// confirm button on desktop) must not, and the confirm commits on
-// pointerdown, beating the blur. The parent owns open/closed state and
-// the verdict on the committed text; dress differences stay at the
-// call site (a class on the root) and in the size prop.
+// the card rename. A contenteditable seeded imperatively: Vue must
+// never patch a contenteditable's children, so nothing binds into it.
+// Enter or the check commits, Escape cancels, and focus leaving the
+// entry cancels too - but focus moving WITHIN it (the confirm button
+// on desktop) must not, and the confirm commits on pointerdown,
+// beating the blur. The parent owns open/closed state and the verdict
+// on the committed text; dress differences stay at the call site.
 
 const props = withDefaults(
   defineProps<{

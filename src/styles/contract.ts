@@ -1,12 +1,12 @@
-// The theme contract (architecture.md, theming section). Every file in
-// styles/themes/ must define exactly these custom properties, all scoped
-// under its own [data-theme] selector: no missing, no extra, no leaks.
-// Enforced by npm run check:themes (src/styles/contract.test.ts).
+// The theme contract. Every file in styles/themes/ must define exactly
+// these custom properties, all scoped under its own [data-theme]
+// selector: no missing, no extra, no leaks. Enforced by npm run
+// check:themes (src/styles/contract.test.ts).
 //
-// The contract is grouped by kind so consumers can render a whole group:
-// the gallery's color board renders CONTRACT_COLOR_TOKENS. The sensory
-// groups (fonts, textures, glows) each need a bespoke presentation, so
-// the gallery samples those individually.
+// Grouped by kind so consumers can render a whole group: the gallery's
+// color board renders CONTRACT_COLOR_TOKENS. The sensory groups each
+// need a bespoke presentation, so the gallery samples those
+// individually.
 
 export const THEMES = ['odin-dark'] as const;
 
@@ -21,7 +21,7 @@ export function isThemeName(value: string): value is ThemeName {
 // Tier-1 primitives carry this prefix and never appear in the contract.
 export const PRIMITIVE_PREFIX = '--raw-';
 
-// Color roles (STYLEGUIDE.md section 3).
+// Color roles.
 export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   '--bg',
   '--surface',
@@ -41,9 +41,9 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   // The floating alarm plate (the workbench's RELEASE TO REMOVE flag):
   // an opaque danger-tinted surface, not a translucent accent wash.
   '--surface-alarm',
-  // The inventory/supply channel (loaded-rack, 2026-07-15): steel marks
-  // pool STOCK where vermilion marks a committed circuit member. -soft
-  // is its faded rule/edge ink.
+  // The inventory/supply channel: steel marks pool stock where the
+  // accent marks a committed circuit member. -soft is its faded
+  // rule/edge ink.
   '--supply',
   '--supply-soft',
   // Brand mark fills (OdinMark.vue): raven 1 (Huginn) and raven 2
@@ -64,30 +64,26 @@ export const CONTRACT_TEXTURE_TOKENS: readonly string[] = [
   '--texture-scanline',
 ];
 
-// Light/shade recipes. EVERY glow/shadow recipe is a full theme token -
-// components never write shadow geometry inline (the design refs do, but
-// refs are visual spec only, never pattern authority - feature.md
-// decision 2026-07-13). The glow-ink color tokens (--accent-glow,
-// --warning-glow) are the one-edit knobs these recipes derive from.
+// Light/shade recipes. Every glow/shadow recipe is a full theme token;
+// components never write shadow geometry inline. The glow-ink color
+// tokens (--accent-glow, --warning-glow) are the one-edit knobs these
+// recipes derive from.
 export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   '--glow-cta',
   '--glow-display-accent',
-  // The armed FORGE (delete target). Was --glow-zone-armed until the
-  // crossing-tick pick (2026-07-16) retired the ring from both drop
-  // zones: the armed zone is now the LIT region (see --lift-recede) and
-  // only the forge - the one destructive destination - still earns the
-  // red armed glow.
+  // The armed forge: the one destructive destination and the only
+  // region that earns a red armed glow. Armed zones are otherwise
+  // stated by luminance (see --lift-recede).
   '--glow-forge-armed',
   '--glow-flash',
   '--glow-drag-ghost',
   '--glow-rest-value',
   '--shadow-well',
-  // Signal-rewrite forge choreography (task 02-07): the page's stepped
-  // luminance drop while a card is lifted (a filter recipe)...
+  // The page's stepped luminance drop while a card is lifted (a filter
+  // recipe)...
   '--lift-recede',
-  // ...and the white raster-line event glow - deliberately the app's
-  // first non-red glow (owner sign-off with the dnd-03 pick): the
-  // morph's bright event spends luminance, never the accent.
+  // ...and the white raster-line event glow, deliberately off the red
+  // channel: the bright event spends luminance, never the accent.
   '--raster',
 ];
 

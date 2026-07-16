@@ -122,11 +122,11 @@ function run(command) {
       ...process.env,
       ODIN_DEV_SERVER_URL: devServerUrl,
       // Caps adb's emulator port scan (default 5585). Anything else
-      // listening in that range (a daemon squatting on 5563 on the first
-      // dev PC) becomes a phantom offline "emulator-55xx" that breaks
-      // native-run's device listing, so cap run can't see real phones.
-      // Only affects an adb server STARTED by this command; a running
-      // uncapped server needs one `adb kill-server` first.
+      // listening in that range becomes a phantom offline
+      // "emulator-55xx" that breaks native-run's device listing, so
+      // cap run can't see real phones. Only affects an adb server
+      // STARTED by this command; a running uncapped server needs one
+      // `adb kill-server` first.
       ADB_LOCAL_TRANSPORT_MAX_PORT: process.env.ADB_LOCAL_TRANSPORT_MAX_PORT ?? '5560',
     },
     // One pre-built command string (never user input), because Windows can

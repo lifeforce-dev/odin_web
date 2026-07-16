@@ -7,12 +7,12 @@ import { sqlRawPlugin } from './vite-plugin-sql-raw';
 
 const alias = { '@': fileURLToPath(new URL('./src', import.meta.url)) };
 
-// Two projects, deliberately split (epic 01 Task 1): domain/, db/, and native/
-// run in plain Node with zero Vue in the module graph, proving the logic
-// layers never depend on the UI stack. Components/composables/stores/views/
-// router get jsdom + the Vue plugin. Both projects need the same `@` alias -
-// it's not inherited from vite.config.ts (vitest.config.ts fully replaces it
-// when present, it doesn't merge).
+// Two projects, deliberately split: domain/, db/, and native/ run in
+// plain Node with zero Vue in the module graph, proving the logic
+// layers never depend on the UI stack. Components/composables/stores/
+// views/router get jsdom + the Vue plugin. Both projects need the same
+// `@` alias - it is not inherited from vite.config.ts
+// (vitest.config.ts fully replaces it when present, it doesn't merge).
 export default defineConfig({
   test: {
     projects: [

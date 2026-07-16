@@ -1,10 +1,9 @@
 <script setup lang="ts">
-// Home menu row (design_reference/home.html .main-btn): a full-width
-// surface row whose red chevron is the tap affordance (Pattern A - a
-// touch app has no hover, so the resting accent carries the whole
-// "you can press me" message). Render-only: the screen owns navigation
-// and placement; clicks reach the parent via attribute fallthrough on
-// the root button.
+// Home menu row: a full-width surface row whose red chevron is the tap
+// affordance (a touch app has no hover, so the resting accent carries
+// the whole "you can press me" message). Render-only: the screen owns
+// navigation and placement; clicks reach the parent via attribute
+// fallthrough on the root button.
 
 defineProps<{
   disabled?: boolean;

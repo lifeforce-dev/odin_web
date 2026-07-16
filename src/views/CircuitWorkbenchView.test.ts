@@ -104,7 +104,7 @@ describe('CircuitWorkbenchView', () => {
     const circuitId = await seedCircuit();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
 
-    // Before the load settles: the reported one-frame WORKBENCH flash.
+    // Before the load settles no placeholder title may flash.
     expect(wrapper.get('h1').text()).toBe('');
 
     await flushPromises();
@@ -156,20 +156,19 @@ describe('CircuitWorkbenchView', () => {
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    // Every committed row is a numbered socket (loaded-rack); the open
-    // socket exists only as a drag's landing gap, never at idle.
+    // Every committed row is a numbered socket; the open socket exists
+    // only as a drag's landing gap, never at idle.
     const badges = wrapper.findAll('.workbench__circuit-zone .workbench__rack-index');
     expect(badges.map((badge) => badge.text())).toEqual(['01', '02']);
     expect(wrapper.find('.workbench__rack-slot--gap').exists()).toBe(false);
 
-    // The reorder midpoints are measured on the WRAPPERS via
+    // The reorder midpoints are measured on the wrappers via
     // data-rack-id, never on the cards inside them: the wrappers carry
     // the FLIP slide transform, and a transformed ancestor hijacks its
-    // descendants' offsetParent - measuring the card mid-slide read ~0
-    // and the landing gap flapped between slots (regression caught on
-    // device 2026-07-16). This pins the attribute the measurement
-    // depends on; stripping it would silently empty every midpoint
-    // list.
+    // descendants' offsetParent, so a card measured mid-slide reads ~0
+    // and the landing gap flaps between slots. This pins the attribute
+    // the measurement depends on; stripping it would silently empty
+    // every midpoint list.
     const rackIds = wrapper
       .findAll('.workbench__circuit-zone .workbench__rack-slot')
       .map((row) => row.attributes('data-rack-id'));
@@ -184,16 +183,16 @@ describe('CircuitWorkbenchView', () => {
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    // Crossing-tick pick (2026-07-16): the berth, the seam tick, and
-    // the receded-region filters exist only while a card is lifted - at
-    // idle the pool is plain stock and nothing is dimmed.
+    // The berth, the seam tick, and the receded-region filters exist
+    // only while a card is lifted - at idle the pool is plain stock
+    // and nothing is dimmed.
     expect(wrapper.find('.workbench__berth').exists()).toBe(false);
     expect(wrapper.find('.workbench__seam-tick').exists()).toBe(false);
     expect(wrapper.find('.workbench__region--receded').exists()).toBe(false);
-    // The retired zone-ring classes by name (a blanket [class*="--armed"]
-    // ban would fail any future component legitimately carrying an
-    // --armed modifier at idle): armed is stated by the LIT region, and
-    // the only --armed dress left is the forge face's, mid-drag.
+    // Bans the zone-ring classes by name (a blanket [class*="--armed"]
+    // ban would fail any component legitimately carrying an --armed
+    // modifier at idle): armed is stated by the lit region, and the
+    // only --armed dress is the forge face's, mid-drag.
     expect(wrapper.find('.workbench__circuit-zone--armed').exists()).toBe(false);
     expect(wrapper.find('.workbench__pool--armed').exists()).toBe(false);
     expect(wrapper.find('.forge-slot__face--armed').exists()).toBe(false);
@@ -245,7 +244,7 @@ describe('CircuitWorkbenchView', () => {
     await flushPromises();
 
     // ADD TO CIRCUIT lives in the fold, where a circuit card carries
-    // REMOVE: same control, same fold, two dress states (loaded-rack).
+    // REMOVE: same control, same fold, two dress states.
     await wrapper.get(`[data-card-id="${freeId}"] .workout-card__head`).trigger('click');
     await wrapper.get(`[data-card-id="${freeId}"] .workout-card__add`).trigger('click');
     await flushPromises();
@@ -375,8 +374,8 @@ describe('CircuitWorkbenchView', () => {
     // must exist in the idle DOM so the drag can measure its boundary,
     // and it only swaps in via the state-driven lifted class.
     const slot = wrapper.get('.forge-slot');
-    // The copy is exactly `x DELETE` (owner ruling: bare ASCII, both
-    // dormant and armed - the visuals alone escalate).
+    // The copy is exactly `x DELETE`, bare ASCII in both dormant and
+    // armed - the visuals alone escalate.
     expect(slot.get('.forge-slot__face').text()).toBe('x DELETE');
     expect(slot.text()).toContain('+ New workout');
     expect(slot.classes()).not.toContain('forge-slot--lifted');
@@ -399,10 +398,10 @@ describe('CircuitWorkbenchView', () => {
   });
 });
 
-// --- The drag seam: session ids are EXERCISE ids, persistence wants ---------
-// ITEM ids, and the drop callbacks translate between them. jsdom rects
-// are all zero, so every frozen boundary sits at y=0: negative clientY
-// is the circuit band, positive is the forge (or, with the forge seam
+// The drag seam: session ids are exercise ids, persistence wants item
+// ids, and the drop callbacks translate between them. jsdom rects are
+// all zero, so every frozen boundary sits at y=0: negative clientY is
+// the circuit band, positive is the forge (or, with the forge seam
 // stubbed lower, the pool). Pointer events are plain Events with
 // coordinate expandos - the established jsdom workaround.
 
@@ -470,7 +469,7 @@ describe('CircuitWorkbenchView / drag seams', () => {
       syntheticPress({ clientX: 10, clientY: 5 }),
     );
     // The release lands inside the settle tick, before the session
-    // could begin: no session, no ghost (the stuck-ghost regression).
+    // could begin: no session, no ghost left stuck on screen.
     dragPointer('pointerup', { clientX: 10, clientY: 5 });
     await flushPromises();
 
@@ -539,9 +538,9 @@ describe('CircuitWorkbenchView / drag seams', () => {
     dragPointer('pointermove', { clientX: 10, clientY: 40 });
     await flushPromises();
 
-    // Owner pick 2026-07-16: the berth is deterministic - always the
-    // top row of AVAILABLE, never the sorted spot mid-list (which could
-    // even open below the scroll).
+    // The berth is deterministic - always the top row of AVAILABLE,
+    // never the sorted spot mid-list (which could even open below the
+    // scroll).
     const items = wrapper.get('.workbench__pool-items').element;
     expect(items.children[0].className).toContain('workbench__berth');
 

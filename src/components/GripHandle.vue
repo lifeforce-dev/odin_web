@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { useDragHandle } from '@/composables/useDragHandle';
 
-// The grip: six dots, THE drag surface on a draggable row (02-07 rule).
-// Owns the press-to-drag decision (useDragHandle) and emits the live
-// pointer event once the press travels past the threshold; a press that
+// The grip: six dots, the drag surface on a draggable row. Owns the
+// press-to-drag decision (useDragHandle) and emits the live pointer
+// event once the press travels past the threshold; a press that
 // releases without travelling means nothing - a grip has no tap
-// meaning. Shared by every draggable row (WorkoutCard, PoolElsewhereRow,
-// 02-06's queue rows next), so the hit area, dot recipe, and
-// touch-action rule exist exactly once.
+// meaning. Shared by every draggable row, so the hit area, dot recipe,
+// and touch-action rule exist exactly once.
 
 const emit = defineEmits<{
   'drag-start': [event: PointerEvent];

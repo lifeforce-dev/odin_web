@@ -1,6 +1,5 @@
 // Adapter over @capacitor/app (bridge isolation: the plugin is imported
-// nowhere else). Owns the Android hardware back button; pause/resume
-// listeners join here when the timer flows (epics 03/04) need them.
+// nowhere else). Owns the Android hardware back button.
 import { App } from '@capacitor/app';
 import type { PluginListenerHandle } from '@capacitor/core';
 

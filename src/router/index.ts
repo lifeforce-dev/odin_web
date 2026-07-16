@@ -16,8 +16,8 @@ const router = createRouter({
       component: () => import('@/views/GalleryView.vue'),
     },
     {
-      // Circuit builder flow (epic 02). Two routes only; back stack is
-      // workbench -> circuits -> home (task 02-02).
+      // Circuit builder flow. Two routes only; the back stack is
+      // workbench -> circuits -> home.
       path: '/circuits',
       name: 'circuits',
       component: () => import('@/views/CircuitsView.vue'),

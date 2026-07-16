@@ -59,7 +59,7 @@ afterEach(() => {
 });
 
 describe('clampPrescriptionValue', () => {
-  it('holds the stepper bounds from the canonical ref', () => {
+  it('holds the stepper affordance bounds', () => {
     expect(clampPrescriptionValue('sets', 0)).toBe(1);
     expect(clampPrescriptionValue('sets', 21)).toBe(20);
     expect(clampPrescriptionValue('restSeconds', -15)).toBe(0);
@@ -426,7 +426,7 @@ describe('useWorkbench / pool', () => {
     const outcome = await workbench.createWorkout('Dead Bug');
 
     expect(outcome.kind).toBe('in-pool');
-    // 02-07 ruling: no auto-add - the workout waits in the pool.
+    // No auto-add: the workout waits in the pool.
     expect(workbench.pool.value.available.map((entry) => entry.name)).toContain('Dead Bug');
     expect(workbench.slots.value.map((slot) => slot.exerciseName)).not.toContain('Dead Bug');
     expect(await listCircuitSlots(db, circuit.id)).toHaveLength(3);

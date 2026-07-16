@@ -1,17 +1,17 @@
 import type { CircuitItemRow, CircuitRow, ExerciseRow, SessionRow, SetLogRow } from '@/db/schema';
 import { nowIso } from '@/db/timestamps';
 
-// The device <-> Phase 2 server contract (design/schema-v2.md, export sketch).
-// Rows serialize as-is: the properties ARE the drizzle row objects' fields
-// (camelCase), no mapping layer to get wrong. Everything exports, including
-// archived rows and unfinished sessions; the export never filters facts.
+// The device-to-server export contract. Rows serialize as-is: the
+// properties ARE the drizzle row objects' fields (camelCase), no
+// mapping layer to get wrong. Everything exports, including archived
+// rows and unfinished sessions; the export never filters facts.
 
 export const EXPORT_FORMAT = 'odin-export';
 
-// The DB schema version the rows conform to. The Phase 2 importer branches on
-// it; bump it in the same change as any migration that alters an exported shape.
-// v2 (2026-07-15): prescription moved onto the exercise row (sets,
-// restSeconds); circuit_item became a pure association and lost both.
+// The DB schema version the rows conform to. Importers branch on it;
+// bump it in the same change as any migration that alters an exported
+// shape. v2: the prescription moved onto the exercise row (sets,
+// restSeconds) and circuit_item became a pure association.
 export const EXPORT_SCHEMA_VERSION = 2;
 
 export interface ExportRows {
@@ -48,9 +48,8 @@ export function serialize(data: OdinExport): string {
 }
 
 // Envelope validation only, and fail fast with context. Full row-level
-// validation is the importer's job (the Phase 2 server for uploads, and a
-// future device-side restore flow if one ships); this parser only accepts
-// the one version this app itself writes.
+// validation is the importer's job; this parser only accepts the one
+// version this app itself writes.
 export function deserialize(text: string): OdinExport {
   let parsed: unknown;
   try {

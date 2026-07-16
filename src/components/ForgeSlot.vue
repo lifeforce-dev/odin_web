@@ -1,18 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-// The forge (02-07): the create row docked below the pool doubles as
-// the delete target. Its face is a SIGNAL (signal-rewrite, 2026-07-15
-// pick): a drag begins and a raster line REWRITES it top-to-bottom to
-// the dormant x DELETE (the create row stays painted beneath - the
-// split face mid-sweep is the tell); the ghost on it arms the energized
-// double rail; release plays the reverse rewrite (consume adds the
-// tv-off impact first). This component owns the face, the raster line,
-// and every forge keyframe; the SCREEN owns placement, the region
-// luminance classes, and what rides in the slot (the create row and its
-// wiring). Dropping here deletes the workout entirely, from either
-// zone. Always laid out, so the boundary is measurable at drag start -
-// the screen reads `rootEl` for exactly that.
+// The forge: the create row docked below the pool doubles as the
+// delete target. A drag begins and a raster line rewrites the face
+// top-to-bottom to the dormant x DELETE (the create row stays painted
+// beneath - the split face mid-sweep is the tell); the ghost on it
+// arms the energized double rail; release plays the reverse rewrite
+// (consume adds the tv-off impact first). This component owns the
+// face, the raster line, and every forge keyframe; the screen owns
+// placement, the region luminance classes, and what rides in the slot.
+// Dropping here deletes the workout entirely, from either zone. Always
+// laid out, so the boundary is measurable at drag start - the screen
+// reads `rootEl` for exactly that.
 
 defineProps<{
   // The exit transient phase (useForgeChoreography): consume plays the
@@ -92,12 +91,12 @@ defineExpose({ rootEl });
     both;
 }
 
-/* ARMED: the energized double rail - solid accent border PLUS an inner
-   accent rail (two live wires, a signature no other zone wears), charge
-   tint over the alarm plate, label at full accent with widened tracking
-   (flex layout: no geometry shift). The glow pulses shallowly at the
-   --motion-flash cadence via the overlay below - a functional loop on a
-   live destructive state, sanctioned with the dnd-03 pick. */
+/* ARMED: the energized double rail - solid accent border plus an inner
+   accent rail (a signature no other zone wears), charge tint over the
+   alarm plate, label at full accent with widened tracking (flex
+   layout: no geometry shift). The glow pulses shallowly at the
+   --motion-flash cadence via the overlay below - a functional loop on
+   a live destructive state. */
 .forge-slot__face--armed,
 .forge-slot--consume .forge-slot__face {
   color: var(--accent);
@@ -141,10 +140,9 @@ defineExpose({ rootEl });
   animation: forge-unwrite calc(var(--motion-morph) * 0.7) linear both;
 }
 
-/* The raster line. Base dress is the white EVENT beam (--raster glow) -
-   but only the CONSUME earns it now: a delete is the one moment worth a
-   flash. Sits after the face in the DOM, so it paints above at the
-   same z. */
+/* The raster line. Only the consume earns the white event beam
+   (--raster glow): a delete is the one moment worth a flash. Sits
+   after the face in the DOM, so it paints above at the same z. */
 .forge-slot__raster {
   position: absolute;
   right: 0;
@@ -157,11 +155,10 @@ defineExpose({ rootEl });
   opacity: 0;
 }
 
-/* MORPH and ABORT sweep with a QUIET edge instead: dim steel, no glow
-   (owner feedback 2026-07-16 - a lift is a routine ~200ms gesture, and
-   the bright beam at the screen's bottom edge kept stealing the eye
-   from the card being dragged; it even read as a stray flash of light.
-   The wipe itself still states the rewrite). */
+/* MORPH and ABORT sweep with a quiet edge instead: dim steel, no glow.
+   A lift is a routine gesture, and a bright beam at the screen's
+   bottom edge steals the eye from the card being dragged; the wipe
+   itself still states the rewrite. */
 .forge-slot--lifted .forge-slot__raster,
 .forge-slot--abort .forge-slot__raster {
   background: var(--text-dim);

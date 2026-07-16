@@ -3,14 +3,12 @@ import { ref } from 'vue';
 
 import InlineNameEntry from '@/components/InlineNameEntry.vue';
 
-// The pool's inline create affordance, per the canonical workbench page
-// (design_reference/circuit-workbench.html): a red-outline ghost row in
-// the + ADD CIRCUIT language. Tapping it swaps in the shared
-// InlineNameEntry (which owns the contenteditable machine); a blank
-// commit, Escape, or tapping off the row folds back to the idle row.
-// The created workout lands in the AVAILABLE group and stays there
-// (02-07: no auto-add); the parent handles name collisions (the
-// `notice` prop renders its verdict when a name is rejected).
+// The pool's inline create affordance: a red-outline ghost row.
+// Tapping it swaps in the shared InlineNameEntry (which owns the
+// contenteditable machine); a blank commit, Escape, or tapping off the
+// row folds back to the idle row. The created workout lands in the
+// AVAILABLE group and stays there - no auto-add; the parent handles
+// name collisions (the `notice` prop renders its verdict).
 
 defineProps<{
   notice?: string | null;

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-// The one component that owns the viewport (STYLEGUIDE.md section 10):
-// safe-area tokens, 100dvh, and the fixed-header / scrollable-middle /
-// docked-action layout primitive. Screens render inside it and never
-// touch viewport units or safe areas themselves. This file and styles/
-// are the only carve-outs from the stylelint token wall.
+// The one component that owns the viewport: safe-area tokens, 100dvh,
+// and the fixed-header / scrollable-middle / docked-action layout
+// primitive. Screens render inside it and never touch viewport units
+// or safe areas themselves. This file and styles/ are the only
+// carve-outs from the stylelint token wall.
 
 defineSlots<{
   header?: () => unknown;

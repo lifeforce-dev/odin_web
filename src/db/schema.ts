@@ -9,14 +9,10 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/sqlite-core';
 
-// Domain schema v2. Spec: .claude/features/odin-design/design/schema-v2.md
-// (pool model + the 2026-07-12 exclusive-membership amendment + the
-// 2026-07-15 workout-owns-its-prescription amendment, migration 0001).
-// TEXT UUID primary keys (device-generated) and TEXT ISO8601 UTC timestamps
-// are standing decisions carried from schema v1: exported FKs stay UUIDs with
-// zero translation, and the perf cost is irrelevant at one user's data volume.
-// Indexes encode access shape (screen-by-screen table in the spec), not perf
-// necessity.
+// Domain schema. TEXT UUID primary keys (device-generated) and TEXT
+// ISO8601 UTC timestamps throughout: exported FKs stay UUIDs with zero
+// translation, and the perf cost is irrelevant at one user's data
+// volume. Indexes encode access shape, not perf necessity.
 
 // A fresh workout's prescription; the storage default for the columns
 // below and the value domain/builder re-exports as DEFAULT_PRESCRIPTION.
@@ -30,12 +26,11 @@ export const exercise = sqliteTable(
     id: text('id').primaryKey(),
     kind: text('kind', { enum: ['workout', 'stretch'] }).notNull(),
     name: text('name').notNull(),
-    // The workout's own prescription (2026-07-15 amendment): sets/rest
-    // are properties of the identity, not the slot - membership is
-    // exclusive (one circuit per exercise), so a per-slot copy could
-    // never legitimately diverge, and the workout is editable wherever
-    // it sits. No reps target, by design: reps exist only as logged
-    // actuals.
+    // The workout's own prescription: sets/rest are properties of the
+    // identity, not the slot - membership is exclusive (one circuit
+    // per exercise), so a per-slot copy could never legitimately
+    // diverge, and the workout is editable wherever it sits. No reps
+    // target, by design: reps exist only as logged actuals.
     sets: integer('sets').notNull().default(DEFAULT_PRESCRIPTION.sets),
     restSeconds: integer('rest_seconds').notNull().default(DEFAULT_PRESCRIPTION.restSeconds),
     createdAt: text('created_at').notNull(),
@@ -44,18 +39,17 @@ export const exercise = sqliteTable(
     archivedAt: text('archived_at'),
   },
   (table) => [
-    // "Unique (normalized) among active": names compare case-insensitively,
-    // archived names are free for reuse. Writers trim whitespace; lower() is
-    // as much normalization as SQLite can enforce, and the find-or-create
-    // domain logic (epic 02) does its matching on the same lower(trim) form.
-    // CAUTION: without ICU, lower() folds ASCII only ('UBER' with an umlaut
-    // U stays unfolded), while JS toLowerCase() folds everything - epic 02
-    // must normalize to the index's ASCII-only form (pinned in
-    // schema.test.ts).
+    // "Unique (normalized) among active": names compare
+    // case-insensitively, archived names are free for reuse. Writers
+    // trim whitespace; lower() is as much normalization as SQLite can
+    // enforce, and find-or-create matches on the same lower(trim)
+    // form. CAUTION: without ICU, lower() folds ASCII only, while JS
+    // toLowerCase() folds everything - callers must normalize to the
+    // index's ASCII-only form (pinned in schema.test.ts).
     uniqueIndex('exercise_active_name_unique')
       .on(sql`lower(${table.name})`)
       .where(sql`${table.archivedAt} IS NULL`),
-    // CHECKs guard writers that bypass the TS types: a Phase 2 import, a
+    // CHECKs guard writers that bypass the TS types: an import, a
     // restore flow, manual SQL. Drizzle's { enum } is compile-time only.
     check('exercise_kind_check', sql`${table.kind} IN ('workout', 'stretch')`),
     check('exercise_name_not_blank_check', sql`length(trim(${table.name})) > 0`),
@@ -82,8 +76,8 @@ export const circuit = sqliteTable(
 );
 
 // A slot: a pure circuit -> exercise association plus its position.
-// The prescription lives on the exercise itself (2026-07-15 amendment);
-// this row only says "this circuit, this order".
+// The prescription lives on the exercise itself; this row only says
+// "this circuit, this order".
 export const circuitItem = sqliteTable(
   'circuit_item',
   {
@@ -99,10 +93,11 @@ export const circuitItem = sqliteTable(
     position: integer('position').notNull(),
   },
   (table) => [
-    // Exclusive membership (2026-07-12 amendment): one circuit per exercise,
-    // enforced by the DB so a "steal" that forgets to delete the old pointer
-    // fails loudly instead of silently duplicating. Its implicit index also
-    // serves both pool-group queries (AVAILABLE anti-join, owner lookup).
+    // Exclusive membership: one circuit per exercise, enforced by the
+    // DB so a "steal" that forgets to delete the old pointer fails
+    // loudly instead of silently duplicating. Its implicit index also
+    // serves both pool-group queries (AVAILABLE anti-join, owner
+    // lookup).
     uniqueIndex('circuit_item_exercise_unique').on(table.exerciseId),
     index('circuit_item_circuit_position_idx').on(table.circuitId, table.position),
   ],
@@ -118,7 +113,7 @@ export const session = sqliteTable(
       .notNull()
       .references(() => circuit.id, { onDelete: 'restrict' }),
     startedAt: text('started_at').notNull(),
-    // Null = in flight or abandoned; epic 03 decides the interpretation.
+    // Null = in flight or abandoned.
     endedAt: text('ended_at'),
   },
   (table) => [index('session_started_idx').on(table.startedAt)],

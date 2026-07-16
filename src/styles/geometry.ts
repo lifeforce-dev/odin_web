@@ -1,11 +1,10 @@
-// Geometry token boards: the NAME source the gallery renders from;
-// structure.css stays the VALUE source. geometry.test.ts parses
+// Geometry token boards: the name source the gallery renders from;
+// structure.css stays the value source. geometry.test.ts parses
 // structure.css and fails on drift in either direction, so a token
-// minted there must be boarded (or consciously exempted) here - a
-// curated list can no longer go silently stale, which is exactly how
-// --tracking-05 vanished from the tracking board during 02-04. This is
-// the contract.ts pattern applied to the tokens the theme contract
-// cannot see (geometry is deliberately not themable).
+// minted there must be boarded (or consciously exempted) here and a
+// curated list cannot go silently stale. This is the contract.ts
+// pattern applied to the tokens the theme contract cannot see
+// (geometry is deliberately not themable).
 
 export const MONO_TYPE_TOKENS = [
   '--type-micro',

@@ -18,10 +18,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Game-UI feel, not a web form (STYLEGUIDE section 5, an app-wide policy
-   for every tappable surface): no text selection or drag-highlight, no
-   tap flash, no long-press callout, no double-tap zoom delay. Wired here
-   once so a new button cannot forget it and silently regress to
+/* Game-UI feel, not a web form: no text selection or drag-highlight,
+   no tap flash, no long-press callout, no double-tap zoom delay. Wired
+   here once so a new button cannot forget it and silently regress to
    web-form behavior on device. */
 button {
   user-select: none;
@@ -31,9 +30,9 @@ button {
   touch-action: manipulation;
 }
 
-/* The themed thin scrollbar for inner scroll containers (STYLEGUIDE
-   section 9: screens never scroll as a page; zones scroll inside). An
-   app-wide utility so every scrolling zone shares one recipe. */
+/* The themed thin scrollbar for inner scroll containers; screens never
+   scroll as a page, zones scroll inside. An app-wide utility so every
+   scrolling zone shares one recipe. */
 .scrolly {
   scrollbar-width: thin;
   scrollbar-color: var(--border-strong) transparent;
