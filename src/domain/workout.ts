@@ -223,32 +223,52 @@ export interface WorkoutSet {
   lastSession: LastSessionSet | null;
 }
 
+// Resolves a circuit's current slots down to one exercise's facts:
+// shared by getWorkoutSet (the lift page) and arriveAtRest (the rest
+// page), which both need the same "how many sets are left, here and
+// across the whole circuit" math on top of listStartExercises.
+async function resolveSlotFacts(
+  db: DbHandle,
+  circuitId: string,
+  exerciseId: string,
+  sessionId: string | null,
+): Promise<{ mine: StartExercise; remainingForExercise: number; remainingForSession: number }> {
+  const slots = await listStartExercises(db, circuitId, sessionId);
+  const mine = slots.find((slot) => slot.exerciseId === exerciseId);
+  if (!mine) {
+    // The caller's own read joined on this circuit's items, so the slot
+    // list must contain the exercise; a miss means the DB changed
+    // mid-read.
+    throw new Error(`exercise ${exerciseId} vanished from circuit ${circuitId} mid-read`);
+  }
+  const remainingForExercise = Math.max(0, mine.sets - mine.loggedSets);
+  const remainingForSession = slots.reduce(
+    (total, slot) => total + Math.max(0, slot.sets - slot.loggedSets),
+    0,
+  );
+  return { mine, remainingForExercise, remainingForSession };
+}
+
 export async function getWorkoutSet(db: DbHandle, exerciseId: string): Promise<WorkoutSet | null> {
   const owned = await getOwnedExercise(db, exerciseId);
   if (!owned) {
     return null;
   }
   const inFlight = (await getInFlightSessionForCircuit(db, owned.circuitId)) ?? null;
-  const slots = await listStartExercises(db, owned.circuitId, inFlight?.id ?? null);
-  const mine = slots.find((slot) => slot.exerciseId === exerciseId);
-  if (!mine) {
-    // The owned read joined on this circuit's items, so the slot list
-    // must contain the exercise; a miss means the DB changed mid-read.
-    throw new Error(`exercise ${exerciseId} vanished from circuit ${owned.circuitId} mid-read`);
-  }
-  const remainingTotal = slots.reduce(
-    (total, slot) => total + Math.max(0, slot.sets - slot.loggedSets),
-    0,
+  const { mine, remainingForExercise, remainingForSession } = await resolveSlotFacts(
+    db,
+    owned.circuitId,
+    exerciseId,
+    inFlight?.id ?? null,
   );
-  const remainingMine = Math.max(0, mine.sets - mine.loggedSets);
   return {
     session: inFlight,
     exerciseId,
     exerciseName: mine.name,
     prescribedSets: mine.sets,
     loggedSets: mine.loggedSets,
-    currentSet: remainingMine === 0 ? null : mine.loggedSets + 1,
-    isFinalSet: remainingMine === 1 && remainingTotal === 1,
+    currentSet: remainingForExercise === 0 ? null : mine.loggedSets + 1,
+    isFinalSet: remainingForExercise === 1 && remainingForSession === 1,
     lastSession: (await getLastSessionSet(db, exerciseId, inFlight?.id ?? null)) ?? null,
   };
 }
@@ -259,6 +279,238 @@ export interface RestEntry {
   sessionId: string;
   exerciseId: string;
   setIndex: number;
+}
+
+// The prefill floor when neither history branch answers: a fresh
+// exercise with no prior visit and no earlier set this session.
+// weightUnit is a constant until the settings screen exists; it is
+// still captured per row, so a future default swaps cleanly.
+export const DEFAULT_SET_VALUES: {
+  reps: number;
+  weight: number;
+  weightUnit: SetLogRow['weightUnit'];
+} = {
+  reps: 10,
+  weight: 10,
+  weightUnit: 'lb',
+};
+
+export type RestMode = 'countdown' | 'final';
+
+// The rest screen's arrival read: the auto-logged row's facts flattened
+// alongside what the screen needs to render and navigate - no separate
+// row/facts split, mirroring WorkoutSet's shape.
+export interface RestArrival {
+  setLogId: string;
+  sessionId: string;
+  // The session's persisted start, for the docked TOTAL TIME readout
+  // (a separate clock from the rest countdown; see domain/rest-timer.ts).
+  sessionStartedAt: string;
+  exerciseId: string;
+  reps: number;
+  weight: number;
+  weightUnit: SetLogRow['weightUnit'];
+  loggedAt: string;
+  restSeconds: number;
+  mode: RestMode;
+  // Unlogged sets left on THIS exercise after this one (clamped >= 0):
+  // NEXT SET routes back to the lift page while this is > 0, else the
+  // grid.
+  remainingForExercise: number;
+}
+
+async function findSetLog(
+  db: DbHandle,
+  sessionId: string,
+  exerciseId: string,
+  setIndex: number,
+): Promise<SetLogRow | undefined> {
+  return db
+    .select()
+    .from(setLog)
+    .where(
+      and(
+        eq(setLog.sessionId, sessionId),
+        eq(setLog.exerciseId, exerciseId),
+        eq(setLog.setIndex, setIndex),
+      ),
+    )
+    .get();
+}
+
+type SetValues = Pick<SetLogRow, 'reps' | 'weight' | 'weightUnit'>;
+
+// The prefill chain (insert only, so re-arrival never re-derives it):
+// (a) the same exercise + setIndex from a DIFFERENT session, newest
+// first - the most relevant history for "what did I lift here last
+// time"; else (b) the previous set logged THIS session (progression
+// within one visit); else (c) the app default.
+async function prefillSetValues(
+  tx: DbHandle,
+  sessionId: string,
+  exerciseId: string,
+  setIndex: number,
+): Promise<SetValues> {
+  const sameSlotElsewhere = await tx
+    .select({ reps: setLog.reps, weight: setLog.weight, weightUnit: setLog.weightUnit })
+    .from(setLog)
+    .where(
+      and(
+        eq(setLog.exerciseId, exerciseId),
+        eq(setLog.setIndex, setIndex),
+        ne(setLog.sessionId, sessionId),
+      ),
+    )
+    // Every row here already shares setIndex (the where-clause pins it),
+    // so ordering by it too would be a no-op tiebreaker; loggedAt desc
+    // alone picks the newest.
+    .orderBy(desc(setLog.loggedAt))
+    .limit(1)
+    .get();
+  if (sameSlotElsewhere) {
+    return sameSlotElsewhere;
+  }
+  const previousThisSession = await tx
+    .select({ reps: setLog.reps, weight: setLog.weight, weightUnit: setLog.weightUnit })
+    .from(setLog)
+    .where(and(eq(setLog.exerciseId, exerciseId), eq(setLog.sessionId, sessionId)))
+    .orderBy(desc(setLog.loggedAt), desc(setLog.setIndex))
+    .limit(1)
+    .get();
+  return previousThisSession ?? DEFAULT_SET_VALUES;
+}
+
+// The START REST / FINISH transition's landing: auto-logs the set that
+// just happened (find-then-insert inside one transaction stands in for
+// an upsert - there is no unique index on the (session, exercise,
+// setIndex) triple) and derives the screen's mode from session facts.
+// Idempotent by construction: re-arrival finds the existing row instead
+// of prefilling again. Null when the route is stale - no in-flight
+// session on this exercise's circuit (the lift page owns the fallback
+// mint) or the exercise is missing/archived/unheld/stretch - so no
+// write and no session mint ever happens here.
+export async function arriveAtRest(
+  db: DbHandle,
+  exerciseId: string,
+  setIndex: number,
+  loggedAt = nowIso(),
+): Promise<RestArrival | null> {
+  return db.transaction(async (tx) => {
+    const owned = await getOwnedExercise(tx, exerciseId);
+    if (!owned) {
+      return null;
+    }
+    const inFlight = await getInFlightSessionForCircuit(tx, owned.circuitId);
+    if (!inFlight) {
+      return null;
+    }
+    let row = await findSetLog(tx, inFlight.id, exerciseId, setIndex);
+    if (!row) {
+      // Only the insert path needs guarding against a route-carried
+      // setIndex the caller never validated: a legitimate re-arrival at
+      // an EXISTING row survives a since-lowered prescription (the find
+      // above already resolved it), but a stale/manual route minting a
+      // phantom row here would corrupt the remaining-sets math below
+      // and could force final mode early.
+      if (!Number.isInteger(setIndex) || setIndex < 1 || setIndex > owned.sets) {
+        return null;
+      }
+      const prefill = await prefillSetValues(tx, inFlight.id, exerciseId, setIndex);
+      row = {
+        id: newId(),
+        sessionId: inFlight.id,
+        exerciseId,
+        setIndex,
+        reps: prefill.reps,
+        weight: prefill.weight,
+        weightUnit: prefill.weightUnit,
+        loggedAt,
+      };
+      await tx.insert(setLog).values(row);
+    }
+    const { mine, remainingForExercise, remainingForSession } = await resolveSlotFacts(
+      tx,
+      owned.circuitId,
+      exerciseId,
+      inFlight.id,
+    );
+    return {
+      setLogId: row.id,
+      sessionId: inFlight.id,
+      sessionStartedAt: inFlight.startedAt,
+      exerciseId,
+      reps: row.reps,
+      weight: row.weight,
+      weightUnit: row.weightUnit,
+      loggedAt: row.loggedAt,
+      restSeconds: mine.restSeconds,
+      mode: remainingForSession === 0 ? 'final' : 'countdown',
+      remainingForExercise,
+    };
+  });
+}
+
+export interface RestLogEdit {
+  reps: number;
+  weight: number;
+}
+
+function requireValidRestLogEdit(changes: RestLogEdit): void {
+  if (!Number.isInteger(changes.reps) || changes.reps < 0) {
+    throw new Error(`updateRestLog: reps must be a non-negative integer, got ${changes.reps}`);
+  }
+  if (!Number.isFinite(changes.weight) || changes.weight < 0) {
+    throw new Error(`updateRestLog: weight must be a non-negative number, got ${changes.weight}`);
+  }
+}
+
+// The one legitimate mutation of a set_log row: a pre-advance
+// correction to what auto-logged. loggedAt (the rest anchor) is never
+// touched. Returns false when the row is gone (stale edit racing a
+// change elsewhere), so the caller can re-derive rather than guess.
+export async function updateRestLog(
+  db: DbHandle,
+  setLogId: string,
+  changes: RestLogEdit,
+): Promise<boolean> {
+  requireValidRestLogEdit(changes);
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: setLog.id })
+      .from(setLog)
+      .where(eq(setLog.id, setLogId))
+      .get();
+    if (!existing) {
+      return false;
+    }
+    await tx
+      .update(setLog)
+      .set({ reps: changes.reps, weight: changes.weight })
+      .where(eq(setLog.id, setLogId));
+    return true;
+  });
+}
+
+// The FINISH transition's minimal completion: stamps endedAt once and
+// refuses a second call (null). Deliberately does not set an outcome or
+// rotate the queue - a later domain change owns both and will backfill
+// outcome for sessions ended before it lands. This alone lets the run
+// today go start -> lift -> rest -> FINISH -> home, where the CTA reads
+// Start Workout again because getWorkoutStart only resumes a session
+// with a null endedAt.
+export async function finishSession(
+  db: DbHandle,
+  sessionId: string,
+  endedAt = nowIso(),
+): Promise<SessionRow | null> {
+  return db.transaction(async (tx) => {
+    const existing = await tx.select().from(session).where(eq(session.id, sessionId)).get();
+    if (!existing || existing.endedAt !== null) {
+      return null;
+    }
+    await tx.update(session).set({ endedAt }).where(eq(session.id, sessionId));
+    return { ...existing, endedAt };
+  });
 }
 
 // The START REST / FINISH transition. The normal flow arrives with a

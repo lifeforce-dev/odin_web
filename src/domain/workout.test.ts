@@ -1,7 +1,8 @@
+import { eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { newId } from '@/db/ids';
-import { session, setLog } from '@/db/schema';
+import { exercise, session, setLog } from '@/db/schema';
 import type { CircuitRow, ExerciseRow, SessionRow } from '@/db/schema';
 import { createTestDb } from '@/db/test-db';
 import type { TestDb } from '@/db/test-db';
@@ -17,11 +18,15 @@ import {
   trashExercise,
 } from './builder';
 import {
+  DEFAULT_SET_VALUES,
+  arriveAtRest,
+  finishSession,
   getInFlightSession,
   getWorkoutSet,
   getWorkoutStart,
   startRest,
   startWorkout,
+  updateRestLog,
 } from './workout';
 
 let testDb: TestDb;
@@ -572,6 +577,232 @@ describe('lift page', () => {
       const mine = (await allSessions()).find((row) => row.circuitId === circuit.id);
       expect(mine?.id).toBe(entry?.sessionId);
       expect(await allSessions()).toHaveLength(2);
+    });
+  });
+});
+
+describe('rest screen', () => {
+  async function allSetLogs() {
+    return testDb.db.select().from(setLog);
+  }
+
+  describe('arriveAtRest', () => {
+    it('mints the row with the SAME exercise + setIndex from a different session (branch a)', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await setPrescription(testDb.db, exercises[0].id, { sets: 4 });
+      const older = await insertSession(circuit.id, {
+        startedAt: '2026-07-14T10:00:00.000Z',
+        endedAt: '2026-07-14T11:00:00.000Z',
+      });
+      await insertSetLog(older.id, exercises[0].id, 2, {
+        reps: 8,
+        weight: 100,
+        loggedAt: '2026-07-14T10:05:00.000Z',
+      });
+      const newer = await insertSession(circuit.id, {
+        startedAt: '2026-07-15T10:00:00.000Z',
+        endedAt: '2026-07-15T11:00:00.000Z',
+      });
+      await insertSetLog(newer.id, exercises[0].id, 2, {
+        reps: 6,
+        weight: 110,
+        loggedAt: '2026-07-15T10:05:00.000Z',
+      });
+      const inFlight = await insertSession(circuit.id);
+
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 2);
+
+      expect(arrival).toMatchObject({ reps: 6, weight: 110, weightUnit: 'lb' });
+      expect(arrival?.sessionId).toBe(inFlight.id);
+    });
+
+    it('falls back to the previous set THIS session when no other session has this slot (branch b)', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await setPrescription(testDb.db, exercises[0].id, { sets: 4 });
+      const inFlight = await insertSession(circuit.id);
+      await insertSetLog(inFlight.id, exercises[0].id, 1, { reps: 9, weight: 95 });
+
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 2);
+
+      expect(arrival).toMatchObject({ reps: 9, weight: 95, weightUnit: 'lb' });
+    });
+
+    it('falls back to DEFAULT_SET_VALUES with no history anywhere (branch c)', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 1);
+
+      expect(arrival).toMatchObject(DEFAULT_SET_VALUES);
+    });
+
+    it('is idempotent: re-arrival returns the existing row, no second row', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+
+      const first = await arriveAtRest(testDb.db, exercises[0].id, 1, '2026-07-16T10:05:00.000Z');
+      const second = await arriveAtRest(testDb.db, exercises[0].id, 1, '2026-07-16T10:06:00.000Z');
+
+      expect(second?.setLogId).toBe(first?.setLogId);
+      // The second call's loggedAt must NOT overwrite the anchor.
+      expect(second?.loggedAt).toBe('2026-07-16T10:05:00.000Z');
+      expect(await allSetLogs()).toHaveLength(1);
+    });
+
+    it('refuses with no in-flight session on this circuit: no write, no mint', async () => {
+      const { exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+
+      expect(await arriveAtRest(testDb.db, exercises[0].id, 1)).toBeNull();
+      expect(await allSetLogs()).toHaveLength(0);
+      expect(await testDb.db.select().from(session)).toHaveLength(0);
+    });
+
+    it('refuses a missing, archived, unheld, or stretch exercise', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+      const pooled = await findOrCreateExercise(testDb.db, 'workout', 'Poolside Curl');
+      await trashExercise(testDb.db, exercises[0].id);
+      const stretch = await createCircuit(testDb.db, { kind: 'stretch', name: 'Mobility' });
+      const hold = await findOrCreateExercise(testDb.db, 'stretch', 'Pigeon Hold');
+      await addExerciseToCircuit(testDb.db, stretch.id, hold.id);
+
+      expect(await arriveAtRest(testDb.db, newId(), 1)).toBeNull();
+      expect(await arriveAtRest(testDb.db, exercises[0].id, 1)).toBeNull();
+      expect(await arriveAtRest(testDb.db, pooled.id, 1)).toBeNull();
+      expect(await arriveAtRest(testDb.db, hold.id, 1)).toBeNull();
+      expect(await allSetLogs()).toHaveLength(0);
+    });
+
+    it('isolates the archivedAt filter: archived but still held still refuses', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+      // Unlike trashExercise (which also unholds), this only flips
+      // archivedAt: the circuit_item stays intact, so a query that
+      // dropped the archivedAt predicate would still find this exercise
+      // via the held join and wrongly resolve it.
+      await testDb.db
+        .update(exercise)
+        .set({ archivedAt: '2026-07-16T09:00:00.000Z' })
+        .where(eq(exercise.id, exercises[0].id));
+
+      expect(await arriveAtRest(testDb.db, exercises[0].id, 1)).toBeNull();
+      expect(await allSetLogs()).toHaveLength(0);
+    });
+
+    it('refuses an out-of-range setIndex on the insert path: a stale route mints no row', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await setPrescription(testDb.db, exercises[0].id, { sets: 2 });
+      await insertSession(circuit.id);
+
+      expect(await arriveAtRest(testDb.db, exercises[0].id, 0)).toBeNull();
+      expect(await arriveAtRest(testDb.db, exercises[0].id, 3)).toBeNull();
+      expect(await allSetLogs()).toHaveLength(0);
+    });
+
+    it('re-arrival still resolves an EXISTING row whose setIndex now exceeds a lowered prescription', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await setPrescription(testDb.db, exercises[0].id, { sets: 4 });
+      const inFlight = await insertSession(circuit.id);
+      await insertSetLog(inFlight.id, exercises[0].id, 3, { reps: 8, weight: 100 });
+      await setPrescription(testDb.db, exercises[0].id, { sets: 2 });
+
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 3);
+
+      // The find path is unguarded by design: only a brand-new insert
+      // needs the range check, not a legitimate re-arrival at a row
+      // that already exists.
+      expect(arrival).toMatchObject({ reps: 8, weight: 100, sessionId: inFlight.id });
+      expect(await allSetLogs()).toHaveLength(1);
+    });
+
+    it('derives countdown mode with unlogged sets left in the session', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press', 'Dips']);
+      await setPrescription(testDb.db, exercises[0].id, { sets: 4, restSeconds: 45 });
+      await insertSession(circuit.id);
+
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 1);
+
+      expect(arrival).toMatchObject({
+        mode: 'countdown',
+        restSeconds: 45,
+        remainingForExercise: 3,
+      });
+    });
+
+    it("derives final mode on the session's last unlogged set anywhere in the circuit", async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press', 'Dips']);
+      await setPrescription(testDb.db, exercises[0].id, { sets: 1 });
+      await setPrescription(testDb.db, exercises[1].id, { sets: 1 });
+      const inFlight = await insertSession(circuit.id);
+      await insertSetLog(inFlight.id, exercises[0].id, 1);
+
+      const arrival = await arriveAtRest(testDb.db, exercises[1].id, 1);
+
+      expect(arrival).toMatchObject({ mode: 'final', remainingForExercise: 0 });
+    });
+  });
+
+  describe('updateRestLog', () => {
+    it('updates reps/weight in place; loggedAt stays the anchor', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 1, '2026-07-16T10:05:00.000Z');
+
+      const ok = await updateRestLog(testDb.db, arrival!.setLogId, { reps: 8, weight: 135 });
+
+      expect(ok).toBe(true);
+      const [row] = await allSetLogs();
+      expect(row).toMatchObject({ reps: 8, weight: 135, loggedAt: '2026-07-16T10:05:00.000Z' });
+    });
+
+    it('refuses a vanished row', async () => {
+      expect(await updateRestLog(testDb.db, newId(), { reps: 8, weight: 135 })).toBe(false);
+    });
+
+    it('rejects an invalid edit instead of writing garbage', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 1);
+
+      await expect(
+        updateRestLog(testDb.db, arrival!.setLogId, { reps: -1, weight: 10 }),
+      ).rejects.toThrow('non-negative integer');
+    });
+  });
+
+  describe('finishSession', () => {
+    it('stamps endedAt once', async () => {
+      const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const inFlight = await insertSession(circuit.id);
+
+      const finished = await finishSession(testDb.db, inFlight.id, '2026-07-16T11:00:00.000Z');
+
+      expect(finished).toMatchObject({ id: inFlight.id, endedAt: '2026-07-16T11:00:00.000Z' });
+    });
+
+    it('refuses a second call', async () => {
+      const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const inFlight = await insertSession(circuit.id);
+      await finishSession(testDb.db, inFlight.id, '2026-07-16T11:00:00.000Z');
+
+      expect(await finishSession(testDb.db, inFlight.id, '2026-07-16T12:00:00.000Z')).toBeNull();
+      const [row] = await testDb.db.select().from(session);
+      expect(row.endedAt).toBe('2026-07-16T11:00:00.000Z');
+    });
+
+    it('refuses a missing session', async () => {
+      expect(await finishSession(testDb.db, newId())).toBeNull();
+    });
+
+    it('offers the rotation front again afterward: the CTA reads Start Workout', async () => {
+      const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const inFlight = await insertSession(circuit.id);
+
+      await finishSession(testDb.db, inFlight.id);
+      const start = await getWorkoutStart(testDb.db);
+
+      expect(start?.circuit.id).toBe(circuit.id);
+      expect(start?.session).toBeNull();
     });
   });
 });
