@@ -1,50 +1,152 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
+import LastCircuitData from '@/components/LastCircuitData.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
+import SetProgress from '@/components/SetProgress.vue';
+import TotalTime from '@/components/TotalTime.vue';
+import { useActiveSession } from '@/composables/useActiveSession';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
-import { getExerciseById } from '@/db/exercises';
 
-// Placeholder for the lift (workout-set) screen: holds the route
-// contract the start grid navigates against - an exerciseId param
-// resolved against the pool - until the real three-zone screen
-// replaces the body. The swallowed read failure below is stub-only:
-// the real screen adopts useScreenLoad (failure gets a Retry note on
-// the glass), do not copy this load shape.
+// The lift (workout-set) screen, three zones per the styleguide:
+// CONTEXT (back + white title + last-session card, quiet), STATE
+// (flex-grow centered set boxes + giant LIFT!), ACTION (docked total
+// time + the amber rest CTA). Mid-set the vermilion LIFT! owns the
+// screen; the title never wears the accent. The CTA reads FINISH on
+// the session's final unlogged set and both labels route to the rest
+// screen - final mode derives there from session facts.
 
 const props = defineProps<{
   exerciseId: string;
 }>();
 
+const router = useRouter();
 const db = useDb();
-const exerciseName = ref<string | null>(null);
 
-onMounted(async () => {
-  if (!db) {
-    return;
+const { workoutSet, hasLoaded, loadFailed, refresh, restFailed, startRest } = useActiveSession(
+  db,
+  () => props.exerciseId,
+);
+
+async function handleRest(): Promise<void> {
+  const entry = await startRest();
+  if (entry) {
+    void router.push({
+      name: 'rest',
+      params: { exerciseId: entry.exerciseId, setIndex: entry.setIndex },
+    });
   }
-  try {
-    exerciseName.value = (await getExerciseById(db, props.exerciseId))?.name ?? null;
-  } catch (error) {
-    console.error('[odin] workout set load failed', error);
-  }
-});
+}
 </script>
 
 <template>
   <AppShell>
     <div class="workout-set">
-      <ScreenHeader :title="exerciseName ?? 'Workout Set'" :back-to="{ name: 'workout-start' }" />
+      <ScreenHeader
+        :title="workoutSet?.exerciseName ?? 'Workout Set'"
+        :back-to="{ name: 'workout-start' }"
+      />
       <ScreenNote v-if="!db">{{ DEVICE_ONLY_NOTE }}</ScreenNote>
-      <ScreenNote v-else>Lift screen // under construction</ScreenNote>
+      <ScreenNote v-else-if="loadFailed" action="Retry" @action="() => void refresh()">
+        Couldn't load the workout set
+      </ScreenNote>
+      <template v-else-if="workoutSet">
+        <LastCircuitData
+          v-if="workoutSet.lastSession"
+          :reps="workoutSet.lastSession.reps"
+          :weight="workoutSet.lastSession.weight"
+          :weight-unit="workoutSet.lastSession.weightUnit"
+        />
+        <div v-if="workoutSet.currentSet !== null" class="workout-set__state">
+          <SetProgress :sets="workoutSet.prescribedSets" :logged-sets="workoutSet.loggedSets" />
+          <p class="workout-set__word">Lift!</p>
+        </div>
+        <ScreenNote v-else>All sets logged // pick another workout</ScreenNote>
+      </template>
+      <ScreenNote v-else-if="hasLoaded">
+        Not on this workout // pick an exercise from the grid
+      </ScreenNote>
     </div>
+    <template #action>
+      <!-- loadFailed gates here too: the body's v-else chain already
+           hides stale facts behind the Retry note, but this footer is
+           its own tree and would keep rendering the previous read's
+           clock and CTA label over a button that writes against the
+           current route. -->
+      <div
+        v-if="!loadFailed && workoutSet && workoutSet.currentSet !== null"
+        class="workout-set__footer"
+      >
+        <ScreenNote v-if="restFailed">Couldn't start the rest // try again</ScreenNote>
+        <TotalTime :started-at="workoutSet.session?.startedAt ?? null" />
+        <button type="button" class="workout-set__rest" @click="handleRest">
+          {{ workoutSet.isFinalSet ? 'Finish' : 'Start Rest' }}
+        </button>
+      </div>
+    </template>
   </AppShell>
 </template>
 
 <style scoped>
 .workout-set {
-  padding: var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: var(--space-6) var(--space-4) 0;
+}
+
+/* Zone 2 absorbs all flex: the boxes and the word are one grouped,
+   centered readout - no dead space, no "set x of y" caption. */
+.workout-set__state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-12);
+  align-items: center;
+  justify-content: center;
+}
+
+/* Giant live word: vermilion FILL only, no text glow, no halo. */
+.workout-set__word {
+  margin: 0;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: var(--type-display-hero);
+  line-height: 0.86;
+  letter-spacing: var(--tracking-4);
+  text-transform: uppercase;
+}
+
+.workout-set__footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-2);
+}
+
+/* The amber rest channel: "go rest" never wears the lifting red. */
+.workout-set__rest {
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--space-4);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: var(--type-data);
+  font-weight: 700;
+  letter-spacing: var(--tracking-2);
+  text-transform: uppercase;
+  cursor: pointer;
+  background: var(--warning);
+  border: none;
+  transition:
+    transform var(--motion-press),
+    background var(--motion-press);
+}
+
+.workout-set__rest:active {
+  background: var(--warning-deep);
+  transform: scale(0.98);
 }
 </style>

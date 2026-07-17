@@ -14,6 +14,7 @@ import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
 import PoolGroupHeader from '@/components/PoolGroupHeader.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
+import SetProgress from '@/components/SetProgress.vue';
 import StepperField from '@/components/StepperField.vue';
 import TransientCardGhost from '@/components/TransientCardGhost.vue';
 import TotalTime from '@/components/TotalTime.vue';
@@ -317,6 +318,19 @@ onMounted(() => {
           The set button. Press for the Lock On reticle; in-progress rides the accent channel
           (fraction + left edge) because there are reps to go; done recedes under the green outline
           stamp and goes inert.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Set progress (start / mid-set / final set / all logged)</h2>
+        <SetProgress :sets="4" :logged-sets="0" />
+        <SetProgress :sets="4" :logged-sets="1" />
+        <SetProgress :sets="4" :logged-sets="3" />
+        <SetProgress :sets="4" :logged-sets="4" />
+        <p class="board-note">
+          The lift screen's state readout: done sets fill solid on the lifting red (not green - a
+          logged set isn't done-done), the current set blinks via background fill-pulse, never a
+          glow.
         </p>
       </section>
 
