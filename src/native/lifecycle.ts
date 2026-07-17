@@ -28,9 +28,10 @@ export async function onHardwareBackButton(handler: (canGoBack: boolean) => void
   });
 }
 
-// Android-only in the plugin, and only reachable from the back handler,
-// which itself only fires on Android. A stray web call rejects loudly
-// with the plugin's own unimplemented error; no silent gate here.
+// Android-only in the plugin. Callers gate on isNative only (goUp's
+// no-up branch), so an iOS call is reachable and rejects loudly with
+// the plugin's own unimplemented error, same as a stray web call; no
+// silent gate here.
 export async function minimizeApp(): Promise<void> {
   await App.minimizeApp();
 }

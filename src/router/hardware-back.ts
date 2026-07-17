@@ -1,16 +1,14 @@
 import type { Router } from 'vue-router';
 
-import { minimizeApp, onHardwareBackButton } from '@/native';
+import { onHardwareBackButton } from '@/native';
 
-// The Android hardware back button pops router history (workbench ->
-// circuits -> home); at the root there is nothing left to pop, so the
-// app minimizes instead of exiting dead.
+import { goUp } from './up';
+
+// The Android hardware back button follows the same structural map as
+// every on-screen up affordance - canGoBack is ignored outright, since
+// history semantics are dead and the map is the only authority.
 export async function installHardwareBack(router: Router): Promise<void> {
-  await onHardwareBackButton((canGoBack) => {
-    if (canGoBack) {
-      router.back();
-      return;
-    }
-    minimizeApp().catch((error: unknown) => console.error('[odin] minimize failed', error));
+  await onHardwareBackButton(() => {
+    goUp(router);
   });
 }
