@@ -105,6 +105,22 @@ async function nextPosition(db: DbHandle, circuitId: string): Promise<number> {
   return row?.next ?? 0;
 }
 
+// The back of a kind's rotation queue. The max is taken over all rows of
+// the kind, archived included: archived circuits keep their slot, so
+// appends stay monotonic with no collision to reason about. Shared by
+// createCircuit and the session-end rotation (domain/workout.ts) - the
+// queue's monotonic-append invariant has exactly one author.
+export async function nextRotationOrder(db: DbHandle, kind: CircuitKind): Promise<number> {
+  const row = await db
+    .select({
+      next: sql<number>`coalesce(max(${circuit.rotationOrder}), -1) + 1`.as('next_rotation_order'),
+    })
+    .from(circuit)
+    .where(eq(circuit.kind, kind))
+    .get();
+  return row?.next ?? 0;
+}
+
 // --- Circuits ---------------------------------------------------------------
 
 export interface NewCircuit {
@@ -112,9 +128,8 @@ export interface NewCircuit {
   name: string;
 }
 
-// New circuits append at the end of their kind's rotation. The max is taken
-// over all rows of the kind, archived included: archived circuits keep their
-// slot, so appends stay monotonic with no collision to reason about.
+// New circuits append at the end of their kind's rotation
+// (nextRotationOrder above owns the append rule).
 export async function createCircuit(
   db: DbHandle,
   input: NewCircuit,
@@ -122,20 +137,11 @@ export async function createCircuit(
 ): Promise<CircuitRow> {
   const name = requireValidName(input.name);
   return db.transaction(async (tx) => {
-    const order = await tx
-      .select({
-        next: sql<number>`coalesce(max(${circuit.rotationOrder}), -1) + 1`.as(
-          'next_rotation_order',
-        ),
-      })
-      .from(circuit)
-      .where(eq(circuit.kind, input.kind))
-      .get();
     const row: CircuitRow = {
       id: newId(),
       kind: input.kind,
       name,
-      rotationOrder: order?.next ?? 0,
+      rotationOrder: await nextRotationOrder(tx, input.kind),
       createdAt,
       archivedAt: null,
     };

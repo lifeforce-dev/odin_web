@@ -12,6 +12,8 @@ import {
   archiveCircuit,
   createCircuit,
   findOrCreateExercise,
+  getCircuitById,
+  listActiveCircuits,
   listCircuitSlots,
   removeCircuitItem,
   setPrescription,
@@ -19,11 +21,14 @@ import {
 } from './builder';
 import {
   DEFAULT_SET_VALUES,
+  abandonSession,
   arriveAtRest,
   finishSession,
   getInFlightSession,
+  getResumePoint,
   getWorkoutSet,
   getWorkoutStart,
+  reconcileWorkoutCompletion,
   rollBackRest,
   startRest,
   startWorkout,
@@ -56,9 +61,22 @@ async function makeCircuitWithWorkouts(
 
 async function insertSession(
   circuitId: string,
-  { startedAt = '2026-07-16T10:00:00.000Z', endedAt = null as string | null } = {},
+  {
+    startedAt = '2026-07-16T10:00:00.000Z',
+    endedAt = null as string | null,
+    // Ended seeds default to 'completed': endedAt and outcome are one
+    // fact after migration 0002, so a bare endedAt would seed a row
+    // the app can no longer produce.
+    outcome = null as SessionRow['outcome'],
+  } = {},
 ): Promise<SessionRow> {
-  const row: SessionRow = { id: newId(), circuitId, startedAt, endedAt };
+  const row: SessionRow = {
+    id: newId(),
+    circuitId,
+    startedAt,
+    endedAt,
+    outcome: outcome ?? (endedAt !== null ? 'completed' : null),
+  };
   await testDb.db.insert(session).values(row);
   return row;
 }
@@ -223,18 +241,67 @@ describe('workout start', () => {
       expect(await allSessions()).toHaveLength(0);
     });
 
-    it('mints on the front startable circuit past a non-resumable orphan', async () => {
+    it('mints past a non-resumable orphan and reaps it as abandoned', async () => {
       const doomed = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const survivor = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
-      await insertSession(doomed.circuit.id);
+      const orphan = await insertSession(doomed.circuit.id);
       await archiveCircuit(testDb.db, doomed.circuit.id);
 
-      const minted = await startWorkout(testDb.db);
+      const minted = await startWorkout(testDb.db, '2026-07-16T12:00:00.000Z');
 
-      // The orphaned row stays in flight until 03-05's reap; the new
-      // workout starts on the circuit the rotation actually offers.
+      // The new workout starts on the circuit the rotation actually
+      // offers, and beginning new work is the moment the orphaned row
+      // stops being true: the mint abandons it in the same transaction.
       expect(minted?.circuitId).toBe(survivor.circuit.id);
-      expect(await allSessions()).toHaveLength(2);
+      const reaped = (await allSessions()).find((row) => row.id === orphan.id);
+      expect(reaped).toMatchObject({
+        endedAt: '2026-07-16T12:00:00.000Z',
+        outcome: 'abandoned',
+      });
+    });
+
+    it('reaps an orphan on an EMPTIED circuit at the next mint, not before', async () => {
+      const emptied = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const survivor = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+      const orphan = await insertSession(emptied.circuit.id);
+      for (const slot of await listCircuitSlots(testDb.db, emptied.circuit.id)) {
+        await removeCircuitItem(testDb.db, slot.id);
+      }
+      // Emptying alone reaps nothing: refilling the circuit would make
+      // the session resumable again, so its fate waits for a real mint.
+      expect((await getInFlightSession(testDb.db))?.id).toBe(orphan.id);
+
+      const minted = await startWorkout(testDb.db, '2026-07-16T12:00:00.000Z');
+
+      expect(minted?.circuitId).toBe(survivor.circuit.id);
+      const reaped = (await allSessions()).find((row) => row.id === orphan.id);
+      expect(reaped).toMatchObject({ outcome: 'abandoned' });
+
+      // The reap's rotation half is part of its contract, not a free
+      // ride on endSessionRow: the emptied circuit moves behind the
+      // survivor, so a refill starts at the back of the queue.
+      const order = await listActiveCircuits(testDb.db, 'workout');
+      expect(order.map((row) => row.name)).toEqual(['Pull', 'Push']);
+    });
+
+    it('resume reaps any OTHER in-flight row but never the resumed session', async () => {
+      const doomed = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const live = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+      const orphan = await insertSession(doomed.circuit.id, {
+        startedAt: '2026-07-16T09:00:00.000Z',
+      });
+      await archiveCircuit(testDb.db, doomed.circuit.id);
+      const inFlight = await insertSession(live.circuit.id);
+
+      const resumed = await startWorkout(testDb.db, '2026-07-16T12:00:00.000Z');
+
+      expect(resumed?.id).toBe(inFlight.id);
+      const rows = await allSessions();
+      expect(rows.find((row) => row.id === orphan.id)).toMatchObject({ outcome: 'abandoned' });
+      expect(rows.find((row) => row.id === inFlight.id)).toMatchObject({
+        endedAt: null,
+        outcome: null,
+      });
     });
   });
 
@@ -481,6 +548,26 @@ describe('lift page', () => {
       expect(workoutSet).toMatchObject({ session: null, loggedSets: 0, currentSet: 1 });
     });
 
+    it('serves in-flight logs as Last Session only once that session ENDS', async () => {
+      // The mid-workout steal: the exercise logged sets in another
+      // circuit's session, then moved here. History is ended-sessions
+      // only, so those logs stay invisible until the session ends.
+      const { exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const other = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+      const foreign = await insertSession(other.circuit.id);
+      await insertSetLog(foreign.id, exercises[0].id, 1, { reps: 7, weight: 90 });
+
+      expect((await getWorkoutSet(testDb.db, exercises[0].id))?.lastSession).toBeNull();
+
+      await abandonSession(testDb.db, foreign.id);
+
+      expect((await getWorkoutSet(testDb.db, exercises[0].id))?.lastSession).toEqual({
+        reps: 7,
+        weight: 90,
+        weightUnit: 'lb',
+      });
+    });
+
     it('answers null for a missing, archived, or unheld exercise', async () => {
       const { exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const pooled = await findOrCreateExercise(testDb.db, 'workout', 'Poolside Curl');
@@ -510,6 +597,7 @@ describe('lift page', () => {
         circuitId: circuit.id,
         startedAt: '2026-07-16T10:03:00.000Z',
         endedAt: null,
+        outcome: null,
       });
     });
 
@@ -563,21 +651,26 @@ describe('lift page', () => {
       expect(await allSessions()).toHaveLength(0);
     });
 
-    it("scopes to the exercise's own circuit even while another is in flight", async () => {
+    it("fallback mint abandons another circuit's in-flight session (the third door)", async () => {
       const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const other = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
-      await insertSession(other.circuit.id);
+      const foreign = await insertSession(other.circuit.id);
 
-      const entry = await startRest(testDb.db, exercises[0].id);
+      const entry = await startRest(testDb.db, exercises[0].id, '2026-07-16T12:00:00.000Z');
 
-      // A second in-flight row is the honest fact here: the only way in
-      // is a stale/manual route while another workout is live, and
-      // 03-05's reap owns converging back to one. Same precedent as the
-      // archived-circuit orphan.
+      // The only way in is a stale/manual route while another workout
+      // is live. Starting a rest here IS starting new work, so the mint
+      // converges the rows: the foreign session ends 'abandoned' and
+      // exactly one session stays in flight.
       expect(entry?.setIndex).toBe(1);
-      const mine = (await allSessions()).find((row) => row.circuitId === circuit.id);
+      const rows = await allSessions();
+      const mine = rows.find((row) => row.circuitId === circuit.id);
       expect(mine?.id).toBe(entry?.sessionId);
-      expect(await allSessions()).toHaveLength(2);
+      expect(mine).toMatchObject({ endedAt: null, outcome: null });
+      expect(rows.find((row) => row.id === foreign.id)).toMatchObject({
+        endedAt: '2026-07-16T12:00:00.000Z',
+        outcome: 'abandoned',
+      });
     });
   });
 });
@@ -857,13 +950,19 @@ describe('rest screen', () => {
   });
 
   describe('finishSession', () => {
-    it('stamps endedAt once', async () => {
+    it('stamps endedAt and completed together, once', async () => {
       const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const inFlight = await insertSession(circuit.id);
 
       const finished = await finishSession(testDb.db, inFlight.id, '2026-07-16T11:00:00.000Z');
 
-      expect(finished).toMatchObject({ id: inFlight.id, endedAt: '2026-07-16T11:00:00.000Z' });
+      expect(finished).toMatchObject({
+        id: inFlight.id,
+        endedAt: '2026-07-16T11:00:00.000Z',
+        outcome: 'completed',
+      });
+      const [row] = await testDb.db.select().from(session);
+      expect(row).toMatchObject({ endedAt: '2026-07-16T11:00:00.000Z', outcome: 'completed' });
     });
 
     it('refuses a second call', async () => {
@@ -890,5 +989,208 @@ describe('rest screen', () => {
       expect(start?.circuit.id).toBe(circuit.id);
       expect(start?.session).toBeNull();
     });
+  });
+});
+
+describe('session end', () => {
+  async function activeOrder(): Promise<string[]> {
+    const rows = await listActiveCircuits(testDb.db, 'workout');
+    return rows.map((row) => row.name);
+  }
+
+  describe('abandonSession', () => {
+    it('stamps endedAt + abandoned and keeps every set_log', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const inFlight = await insertSession(circuit.id);
+      await insertSetLog(inFlight.id, exercises[0].id, 1);
+      await insertSetLog(inFlight.id, exercises[0].id, 2);
+
+      const abandoned = await abandonSession(testDb.db, inFlight.id, '2026-07-16T11:00:00.000Z');
+
+      expect(abandoned).toMatchObject({
+        id: inFlight.id,
+        endedAt: '2026-07-16T11:00:00.000Z',
+        outcome: 'abandoned',
+      });
+      // The sets happened; abandoning records how it ended, never what
+      // was done.
+      expect(await testDb.db.select().from(setLog)).toHaveLength(2);
+    });
+
+    it('refuses an already-ended or missing session', async () => {
+      const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const inFlight = await insertSession(circuit.id);
+      await finishSession(testDb.db, inFlight.id, '2026-07-16T11:00:00.000Z');
+
+      expect(await abandonSession(testDb.db, inFlight.id)).toBeNull();
+      expect(await abandonSession(testDb.db, newId())).toBeNull();
+      const [row] = await testDb.db.select().from(session);
+      expect(row.outcome).toBe('completed');
+    });
+  });
+
+  describe('rotation on end', () => {
+    it('either outcome rotates the circuit to the back of its kind', async () => {
+      await makeCircuitWithWorkouts('A', ['Bench Press']);
+      const b = await makeCircuitWithWorkouts('B', ['Cable Row']);
+      await makeCircuitWithWorkouts('C', ['Goblet Squat']);
+      // Another kind's queue must not move: rotation is kind-scoped.
+      const stretch = await createCircuit(testDb.db, { kind: 'stretch', name: 'Mobility' });
+
+      const inFlight = await insertSession(b.circuit.id);
+      await abandonSession(testDb.db, inFlight.id);
+
+      expect(await activeOrder()).toEqual(['A', 'C', 'B']);
+      const stretchRow = await getCircuitById(testDb.db, stretch.id);
+      expect(stretchRow?.rotationOrder).toBe(stretch.rotationOrder);
+    });
+
+    it('wraps around: ending each circuit in turn cycles the front back to the first', async () => {
+      const a = await makeCircuitWithWorkouts('A', ['Bench Press']);
+      const b = await makeCircuitWithWorkouts('B', ['Cable Row']);
+      const c = await makeCircuitWithWorkouts('C', ['Goblet Squat']);
+
+      await finishSession(testDb.db, (await insertSession(a.circuit.id)).id);
+      expect(await activeOrder()).toEqual(['B', 'C', 'A']);
+
+      await abandonSession(testDb.db, (await insertSession(b.circuit.id)).id);
+      expect(await activeOrder()).toEqual(['C', 'A', 'B']);
+
+      await finishSession(testDb.db, (await insertSession(c.circuit.id)).id);
+      expect(await activeOrder()).toEqual(['A', 'B', 'C']);
+      expect((await getWorkoutStart(testDb.db))?.circuit.id).toBe(a.circuit.id);
+    });
+  });
+});
+
+describe('reconcileWorkoutCompletion', () => {
+  it('completes a session stranded by a lowered prescription, with rotation', async () => {
+    const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+    await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+    const inFlight = await insertSession(circuit.id);
+    await insertSetLog(inFlight.id, exercises[0].id, 1);
+    await insertSetLog(inFlight.id, exercises[0].id, 2);
+    // The workbench edit that zeroes the remaining sets: 3 prescribed,
+    // 2 logged, lowered to 2 - no lift page offers FINISH anymore.
+    await setPrescription(testDb.db, exercises[0].id, { sets: 2 });
+
+    const completed = await reconcileWorkoutCompletion(testDb.db, '2026-07-16T11:00:00.000Z');
+
+    expect(completed).toMatchObject({
+      id: inFlight.id,
+      endedAt: '2026-07-16T11:00:00.000Z',
+      outcome: 'completed',
+    });
+    const circuits = await listActiveCircuits(testDb.db, 'workout');
+    expect(circuits.map((row) => row.name)).toEqual(['Pull', 'Push']);
+    // Afterwards nothing is in flight: the home CTA reads Start Workout.
+    expect((await getWorkoutStart(testDb.db))?.session).toBeNull();
+  });
+
+  it('completes a session stranded by deleting the last unfinished workout', async () => {
+    const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press', 'Fly']);
+    await setPrescription(testDb.db, exercises[0].id, { sets: 2 });
+    const inFlight = await insertSession(circuit.id);
+    await insertSetLog(inFlight.id, exercises[0].id, 1);
+    await insertSetLog(inFlight.id, exercises[0].id, 2);
+    // Bench is fully logged; deleting the untouched Fly zeroes the
+    // session's remaining sets while the circuit stays startable.
+    const flySlot = (await listCircuitSlots(testDb.db, circuit.id)).find(
+      (slot) => slot.exerciseId === exercises[1].id,
+    );
+    await removeCircuitItem(testDb.db, flySlot!.id);
+
+    const completed = await reconcileWorkoutCompletion(testDb.db);
+
+    expect(completed).toMatchObject({ id: inFlight.id, outcome: 'completed' });
+  });
+
+  it('does nothing while sets remain', async () => {
+    const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+    const inFlight = await insertSession(circuit.id);
+    await insertSetLog(inFlight.id, exercises[0].id, 1);
+
+    expect(await reconcileWorkoutCompletion(testDb.db)).toBeNull();
+    expect((await getInFlightSession(testDb.db))?.id).toBe(inFlight.id);
+  });
+
+  it('does nothing with no in-flight session', async () => {
+    await makeCircuitWithWorkouts('Push', ['Bench Press']);
+    expect(await reconcileWorkoutCompletion(testDb.db)).toBeNull();
+  });
+
+  it('never completes an orphan on an emptied circuit: zero slots is not a finished workout', async () => {
+    const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+    const orphan = await insertSession(circuit.id);
+    for (const slot of await listCircuitSlots(testDb.db, circuit.id)) {
+      await removeCircuitItem(testDb.db, slot.id);
+    }
+
+    expect(await reconcileWorkoutCompletion(testDb.db)).toBeNull();
+    expect((await getInFlightSession(testDb.db))?.id).toBe(orphan.id);
+  });
+});
+
+describe('getResumePoint', () => {
+  it('answers null with no in-flight session', async () => {
+    await makeCircuitWithWorkouts('Push', ['Bench Press']);
+    expect(await getResumePoint(testDb.db)).toBeNull();
+  });
+
+  it('answers null when the in-flight session is not resumable', async () => {
+    const doomed = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+    await insertSession(doomed.circuit.id);
+    await archiveCircuit(testDb.db, doomed.circuit.id);
+
+    expect(await getResumePoint(testDb.db)).toBeNull();
+  });
+
+  it('restores the grid when the session has no logged sets yet', async () => {
+    const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+    await insertSession(circuit.id);
+
+    expect(await getResumePoint(testDb.db)).toEqual({ screen: 'workout-start' });
+  });
+
+  it('restores the rest screen for the newest logged set, however long expired', async () => {
+    const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press', 'Fly']);
+    const inFlight = await insertSession(circuit.id);
+    await insertSetLog(inFlight.id, exercises[0].id, 1, { loggedAt: '2026-07-16T10:05:00.000Z' });
+    // The newest fact wins regardless of which exercise it belongs to.
+    await insertSetLog(inFlight.id, exercises[1].id, 1, { loggedAt: '2026-07-16T10:15:00.000Z' });
+
+    expect(await getResumePoint(testDb.db)).toEqual({
+      screen: 'rest',
+      exerciseId: exercises[1].id,
+      setIndex: 1,
+    });
+  });
+
+  it('breaks equal loggedAt ties on the higher set index', async () => {
+    const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+    const inFlight = await insertSession(circuit.id);
+    await insertSetLog(inFlight.id, exercises[0].id, 1, { loggedAt: '2026-07-16T10:05:00.000Z' });
+    await insertSetLog(inFlight.id, exercises[0].id, 2, { loggedAt: '2026-07-16T10:05:00.000Z' });
+
+    expect(await getResumePoint(testDb.db)).toEqual({
+      screen: 'rest',
+      exerciseId: exercises[0].id,
+      setIndex: 2,
+    });
+  });
+
+  it("falls back to the grid when the newest set's exercise left the circuit", async () => {
+    const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press', 'Fly']);
+    const inFlight = await insertSession(circuit.id);
+    await insertSetLog(inFlight.id, exercises[0].id, 1);
+    const benchSlot = (await listCircuitSlots(testDb.db, circuit.id)).find(
+      (slot) => slot.exerciseId === exercises[0].id,
+    );
+    await removeCircuitItem(testDb.db, benchSlot!.id);
+
+    // The rest route for the logged set would refuse to resolve
+    // (arriveAtRest needs the exercise held by the session's circuit),
+    // so the grid is the honest landing.
+    expect(await getResumePoint(testDb.db)).toEqual({ screen: 'workout-start' });
   });
 });

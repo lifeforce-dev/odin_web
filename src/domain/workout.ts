@@ -1,4 +1,4 @@
-import { and, desc, eq, exists, isNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, exists, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 
 import type { DbHandle } from '@/db/client';
 import { newId } from '@/db/ids';
@@ -6,17 +6,18 @@ import { circuit, circuitItem, exercise, session, setLog } from '@/db/schema';
 import type { CircuitRow, SessionRow, SetLogRow } from '@/db/schema';
 import { nowIso } from '@/db/timestamps';
 
-import { getCircuitById, listCircuitSlots } from './builder';
+import { getCircuitById, listCircuitSlots, nextRotationOrder } from './builder';
 
 // The workout-flow domain layer: which circuit is up next, how far the
-// in-flight session has gotten, and the session-start writes -
-// startWorkout minting the session row at the home CTA tap (the owner
-// ruling: tapping Start Workout IS the workout starting, and the
-// total-time readout anchors on the persisted startedAt so it survives
-// restarts), with startRest keeping a stale-route fallback mint.
-// Everything derives from persisted facts (session rows, set_log
-// counts, rotation order); nothing here trusts UI state. Terminal
-// session writes (outcome, rotation) land in 03-05.
+// in-flight session has gotten, the session-start writes - startWorkout
+// minting the session row at the home CTA tap (the owner ruling:
+// tapping Start Workout IS the workout starting, and the total-time
+// readout anchors on the persisted startedAt so it survives restarts),
+// with startRest keeping a stale-route fallback mint - and the terminal
+// writes: both outcomes stamp endedAt + outcome and rotate the circuit
+// to the back of its kind's queue. Everything derives from persisted
+// facts (session rows, set_log counts, rotation order); nothing here
+// trusts UI state.
 
 export type ExerciseProgress = 'pending' | 'in-progress' | 'done';
 
@@ -39,10 +40,11 @@ export interface WorkoutStart {
   exercises: StartExercise[];
 }
 
-// Newest-first. Sessions end only explicitly, so usually one row is in
-// flight - but a session orphaned by archiving/emptying its circuit
-// stays in flight BY DESIGN until 03-05's reap lands, so a second row
-// is a real state, not a bug; the ordering picks the newest.
+// Newest-first. Sessions end only explicitly, and every session mint
+// abandons the other in-flight rows in the same transaction - but a
+// session orphaned by archiving/emptying its circuit stays in flight
+// until that next mint reaps it, so a second row is a real interim
+// state, not a bug; the ordering picks the newest.
 export async function getInFlightSession(db: DbHandle): Promise<SessionRow | undefined> {
   return db
     .select()
@@ -180,26 +182,22 @@ export interface LastSessionSet {
   weightUnit: SetLogRow['weightUnit'];
 }
 
-// "Last Session" = the newest logged set from a previous visit to this
-// exercise. Excluded: THIS circuit's in-flight session, or the card
-// would echo the set just done. Another circuit's in-flight logs (the
-// exercise was stolen mid-workout) still surface here - nothing can
-// end a session until 03-05 lands, so an ended-sessions-only filter
-// would blank all history today; tighten to it there. setIndex breaks
-// loggedAt ties within one visit.
+// "Last Session" = the newest logged set from an ENDED session: honest
+// history only. This covers excluding the set just done (the current
+// session is in flight) AND another circuit's in-flight logs after a
+// mid-workout steal. setIndex breaks loggedAt ties within one visit.
+// The selected bare column names stay distinct across the join - the
+// plugin's object rows collapse same-named result columns
+// (src/db/proxy-rows.ts).
 async function getLastSessionSet(
   db: DbHandle,
   exerciseId: string,
-  excludeSessionId: string | null,
 ): Promise<LastSessionSet | undefined> {
-  const conditions = [eq(setLog.exerciseId, exerciseId)];
-  if (excludeSessionId !== null) {
-    conditions.push(ne(setLog.sessionId, excludeSessionId));
-  }
   return db
     .select({ reps: setLog.reps, weight: setLog.weight, weightUnit: setLog.weightUnit })
     .from(setLog)
-    .where(and(...conditions))
+    .innerJoin(session, eq(session.id, setLog.sessionId))
+    .where(and(eq(setLog.exerciseId, exerciseId), isNotNull(session.endedAt)))
     .orderBy(desc(setLog.loggedAt), desc(setLog.setIndex))
     .limit(1)
     .get();
@@ -227,6 +225,14 @@ export interface WorkoutSet {
 // shared by getWorkoutSet (the lift page) and arriveAtRest (the rest
 // page), which both need the same "how many sets are left, here and
 // across the whole circuit" math on top of listStartExercises.
+// The session's unlogged sets across a whole slot list, each slot
+// clamped at zero (a prescription lowered below the logged count must
+// not run the total negative). Zero means the workout is factually
+// done, whether or not FINISH was ever tapped.
+function totalRemainingSets(slots: StartExercise[]): number {
+  return slots.reduce((total, slot) => total + Math.max(0, slot.sets - slot.loggedSets), 0);
+}
+
 async function resolveSlotFacts(
   db: DbHandle,
   circuitId: string,
@@ -242,11 +248,7 @@ async function resolveSlotFacts(
     throw new Error(`exercise ${exerciseId} vanished from circuit ${circuitId} mid-read`);
   }
   const remainingForExercise = Math.max(0, mine.sets - mine.loggedSets);
-  const remainingForSession = slots.reduce(
-    (total, slot) => total + Math.max(0, slot.sets - slot.loggedSets),
-    0,
-  );
-  return { mine, remainingForExercise, remainingForSession };
+  return { mine, remainingForExercise, remainingForSession: totalRemainingSets(slots) };
 }
 
 export async function getWorkoutSet(db: DbHandle, exerciseId: string): Promise<WorkoutSet | null> {
@@ -269,7 +271,7 @@ export async function getWorkoutSet(db: DbHandle, exerciseId: string): Promise<W
     loggedSets: mine.loggedSets,
     currentSet: remainingForExercise === 0 ? null : mine.loggedSets + 1,
     isFinalSet: remainingForExercise === 1 && remainingForSession === 1,
-    lastSession: (await getLastSessionSet(db, exerciseId, inFlight?.id ?? null)) ?? null,
+    lastSession: (await getLastSessionSet(db, exerciseId)) ?? null,
   };
 }
 
@@ -511,25 +513,136 @@ export async function rollBackRest(db: DbHandle, setLogId: string): Promise<bool
   });
 }
 
-// The FINISH transition's minimal completion: stamps endedAt once and
-// refuses a second call (null). Deliberately does not set an outcome or
-// rotate the queue - a later domain change owns both and will backfill
-// outcome for sessions ended before it lands. This alone lets the run
-// today go start -> lift -> rest -> FINISH -> home, where the CTA reads
-// Start Workout again because getWorkoutStart only resumes a session
-// with a null endedAt.
-export async function finishSession(
+// Appends the circuit to the back of its kind's rotation queue
+// (builder's nextRotationOrder owns the append rule). Rotating an
+// archived or emptied circuit is harmless - the startable predicate
+// keeps it out of the queue regardless.
+async function rotateCircuitToBack(tx: DbHandle, circuitId: string): Promise<void> {
+  const target = await tx
+    .select({ kind: circuit.kind })
+    .from(circuit)
+    .where(eq(circuit.id, circuitId))
+    .get();
+  if (!target) {
+    // session.circuit_id is FK-restricted; a missing row means the DB
+    // is corrupt, not a state to write around.
+    throw new Error(`cannot rotate missing circuit ${circuitId}`);
+  }
+  await tx
+    .update(circuit)
+    .set({ rotationOrder: await nextRotationOrder(tx, target.kind) })
+    .where(eq(circuit.id, circuitId));
+}
+
+export type SessionOutcome = NonNullable<SessionRow['outcome']>;
+
+// The one terminal write, shared by every path that ends a session:
+// endedAt + outcome stamp together, and the circuit rotates to the
+// back of its kind's queue in the same transaction (either outcome -
+// "did not finish, want to move on" is the common abandon case).
+// set_logs are never touched: the sets happened.
+async function endSessionRow(
+  tx: DbHandle,
+  row: SessionRow,
+  outcome: SessionOutcome,
+  endedAt: string,
+): Promise<SessionRow> {
+  await tx.update(session).set({ endedAt, outcome }).where(eq(session.id, row.id));
+  await rotateCircuitToBack(tx, row.circuitId);
+  return { ...row, endedAt, outcome };
+}
+
+// The orphan reap, run at every session mint (and startWorkout's
+// resume): any OTHER in-flight session is a fact that can no longer be
+// true - its circuit was archived or emptied mid-session, or a stale
+// route minted into another circuit - so beginning new work abandons
+// it. This one seam is what keeps "at most one in-flight session" true
+// by construction without builder.ts ever knowing sessions exist, and
+// without an editing lock: an emptied circuit's session stays
+// resumable-by-refill right up until a new workout actually starts.
+async function abandonOtherInFlightSessions(
+  tx: DbHandle,
+  keepSessionId: string | null,
+  endedAt: string,
+): Promise<void> {
+  const conditions = [isNull(session.endedAt)];
+  if (keepSessionId !== null) {
+    conditions.push(ne(session.id, keepSessionId));
+  }
+  const orphans = await tx
+    .select()
+    .from(session)
+    .where(and(...conditions));
+  for (const orphan of orphans) {
+    await endSessionRow(tx, orphan, 'abandoned', endedAt);
+  }
+}
+
+// One transaction shared by both explicit terminal verbs: look the row
+// up, refuse an already-ended session (null), end it.
+async function endSessionById(
   db: DbHandle,
   sessionId: string,
-  endedAt = nowIso(),
+  outcome: SessionOutcome,
+  endedAt: string,
 ): Promise<SessionRow | null> {
   return db.transaction(async (tx) => {
     const existing = await tx.select().from(session).where(eq(session.id, sessionId)).get();
     if (!existing || existing.endedAt !== null) {
       return null;
     }
-    await tx.update(session).set({ endedAt }).where(eq(session.id, sessionId));
-    return { ...existing, endedAt };
+    return endSessionRow(tx, existing, outcome, endedAt);
+  });
+}
+
+// The FINISH transition (and what the grid-arrival completion
+// reconcile writes): endedAt + 'completed' + rotation, refusing a
+// second call. After this, getWorkoutStart no longer resumes the
+// session and the home CTA reads Start Workout again.
+export async function finishSession(
+  db: DbHandle,
+  sessionId: string,
+  endedAt = nowIso(),
+): Promise<SessionRow | null> {
+  return endSessionById(db, sessionId, 'completed', endedAt);
+}
+
+// The manager's explicit abandon (02-06): the same terminal machinery
+// with outcome 'abandoned'. set_logs are kept - history follows the
+// exercise, and the sets happened.
+export async function abandonSession(
+  db: DbHandle,
+  sessionId: string,
+  endedAt = nowIso(),
+): Promise<SessionRow | null> {
+  return endSessionById(db, sessionId, 'abandoned', endedAt);
+}
+
+// The completion reconcile on grid arrival (owner ruling 2026-07-17):
+// mid-session workbench edits can zero out the remaining sets with no
+// final rest arrival - sets lowered below the logged count, the last
+// unfinished workout deleted - leaving a session no FINISH affordance
+// can reach. When the facts already say done, arrival acknowledges:
+// an in-flight session on a still-startable circuit with zero
+// remaining sets ends here with the same terminal machinery as FINISH.
+// Its own verb on the grid's load path, never a side effect inside
+// getWorkoutStart - reads stay pure. Returns the completed row when
+// the reconcile fired, else null. An orphaned session (archived or
+// emptied circuit) is deliberately NOT completed here - zero slots is
+// not a finished workout; the mint-time reap owns that fate.
+export async function reconcileWorkoutCompletion(
+  db: DbHandle,
+  endedAt = nowIso(),
+): Promise<SessionRow | null> {
+  return db.transaction(async (tx) => {
+    const start = await getWorkoutStart(tx);
+    if (!start?.session) {
+      return null;
+    }
+    if (totalRemainingSets(start.exercises) > 0) {
+      return null;
+    }
+    return endSessionRow(tx, start.session, 'completed', endedAt);
   });
 }
 
@@ -558,7 +671,18 @@ export async function startRest(
       return null;
     }
     if (!inFlight) {
-      inFlight = { id: newId(), circuitId: owned.circuitId, startedAt, endedAt: null };
+      // The fallback mint is a mint like any other: another circuit's
+      // in-flight session (the stale-route third door) is abandoned in
+      // the same transaction, so starting a rest here converges the
+      // rows to one in-flight session.
+      await abandonOtherInFlightSessions(tx, null, startedAt);
+      inFlight = {
+        id: newId(),
+        circuitId: owned.circuitId,
+        startedAt,
+        endedAt: null,
+        outcome: null,
+      };
       await tx.insert(session).values(inFlight);
     }
     return { sessionId: inFlight.id, exerciseId, setIndex: loggedSets + 1 };
@@ -569,14 +693,17 @@ export async function startRest(
 // starting, so the session row is minted here and its persisted
 // startedAt anchors the total-time readout across restarts. A tap
 // while a session is in flight is a resume and rides the existing row.
-// Null when nothing is startable (the CTA was stale). One transaction:
-// a double-tap must not mint twins.
+// Either way, every OTHER in-flight row is reaped in the same
+// transaction (see abandonOtherInFlightSessions). Null when nothing is
+// startable (the CTA was stale). One transaction: a double-tap must
+// not mint twins.
 export async function startWorkout(db: DbHandle, startedAt = nowIso()): Promise<SessionRow | null> {
   return db.transaction(async (tx) => {
     const start = await getWorkoutStart(tx);
     if (!start) {
       return null;
     }
+    await abandonOtherInFlightSessions(tx, start.session?.id ?? null, startedAt);
     if (start.session) {
       return start.session;
     }
@@ -585,6 +712,7 @@ export async function startWorkout(db: DbHandle, startedAt = nowIso()): Promise<
       circuitId: start.circuit.id,
       startedAt,
       endedAt: null,
+      outcome: null,
     };
     await tx.insert(session).values(minted);
     return minted;
@@ -608,7 +736,8 @@ export async function getWorkoutStart(db: DbHandle): Promise<WorkoutStart | null
     // slot). Archiving or emptying a circuit mid-session leaves nothing
     // to resume into, so the rotation rules as if the session had
     // ended; derived per read, so re-adding a workout restores the
-    // resume. Ending/reaping the orphaned session row is 03-05's.
+    // resume. The orphaned row itself is reaped at the next session
+    // mint (abandonOtherInFlightSessions).
     if (owner.archivedAt === null && owner.kind === 'workout') {
       const exercises = await listStartExercises(db, owner.id, inFlight.id);
       if (exercises.length > 0) {
@@ -625,4 +754,34 @@ export async function getWorkoutStart(db: DbHandle): Promise<WorkoutStart | null
     session: null,
     exercises: await listStartExercises(db, front.id, null),
   };
+}
+
+export type ResumePoint =
+  { screen: 'workout-start' } | { screen: 'rest'; exerciseId: string; setIndex: number };
+
+// The cold-open restore read: which screen the in-flight session's
+// facts imply. Null when nothing is resumable. Any logged set implies
+// the rest screen for the newest one - "resting" includes an expired
+// rest sitting at 0:00, because backgrounding mid-rest is the normal
+// case and no persisted fact records having left the screen; the rest
+// route is idempotent (arriveAtRest finds the existing row), so
+// re-landing there never re-logs. No sets yet, or the newest set's
+// exercise no longer held by the circuit (the rest route would not
+// resolve), restores the exercise grid instead.
+export async function getResumePoint(db: DbHandle): Promise<ResumePoint | null> {
+  const start = await getWorkoutStart(db);
+  if (!start?.session) {
+    return null;
+  }
+  const newest = await db
+    .select({ exerciseId: setLog.exerciseId, setIndex: setLog.setIndex })
+    .from(setLog)
+    .where(eq(setLog.sessionId, start.session.id))
+    .orderBy(desc(setLog.loggedAt), desc(setLog.setIndex))
+    .limit(1)
+    .get();
+  if (!newest || !start.exercises.some((slot) => slot.exerciseId === newest.exerciseId)) {
+    return { screen: 'workout-start' };
+  }
+  return { screen: 'rest', exerciseId: newest.exerciseId, setIndex: newest.setIndex };
 }
