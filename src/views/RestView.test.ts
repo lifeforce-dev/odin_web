@@ -665,6 +665,71 @@ describe('RestView', () => {
       expect(wrapper.text()).not.toContain("Couldn't roll back");
     });
 
+    it('an expired rest leaves without rolling back: row kept, no notice, label reads Workout', async () => {
+      // The cold-open restore case (owner ruling 2026-07-17): the
+      // seeded arrival is an hour past its 90s window, and re-arrival
+      // keeps the original loggedAt, so the row's own age disarms the
+      // rollback - back is a plain leave and the up row stops
+      // promising destruction.
+      vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-07-16T11:00:00.000Z') });
+      const { circuitId, exercises } = await seedCircuit();
+      const sessionId = await startSession(circuitId);
+      await testDb.db.insert(setLog).values({
+        id: newId(),
+        sessionId,
+        exerciseId: exercises[0].id,
+        setIndex: 1,
+        reps: 10,
+        weight: 10,
+        weightUnit: 'lb',
+        loggedAt: '2026-07-16T10:00:30.000Z',
+      });
+      const wrapper = await mountView(exercises[0].id, 1);
+
+      expect(wrapper.get('.nav-up-row').text()).toContain('Workout');
+      expect(wrapper.get('.nav-up-row').text()).not.toContain('Roll Back');
+
+      await wrapper.get('.nav-up-row').trigger('click');
+      await flushPromises();
+
+      expect(await allSetLogs()).toHaveLength(1);
+      expect(routerReplace).toHaveBeenCalledExactlyOnceWith({
+        name: 'workout-set',
+        params: { exerciseId: exercises[0].id },
+      });
+      expect(consumeRollbackNotice()).toBe(false);
+    });
+
+    it('edits on an expired rest still overwrite the restored set in place', async () => {
+      // The other half of the same ruling: the kept set is not frozen -
+      // coming back to the restored screen and changing the numbers
+      // updates THAT row (same id, loggedAt untouched), never a
+      // duplicate.
+      vi.useFakeTimers({ now: new Date('2026-07-16T11:00:00.000Z') });
+      const { circuitId, exercises } = await seedCircuit();
+      const sessionId = await startSession(circuitId);
+      await testDb.db.insert(setLog).values({
+        id: newId(),
+        sessionId,
+        exerciseId: exercises[0].id,
+        setIndex: 1,
+        reps: 10,
+        weight: 10,
+        weightUnit: 'lb',
+        loggedAt: '2026-07-16T10:00:30.000Z',
+      });
+      const wrapper = await mountView(exercises[0].id, 1);
+
+      tapFirstStepper(wrapper);
+      await vi.advanceTimersByTimeAsync(300);
+      await flushPromises();
+
+      const rows = await allSetLogs();
+      expect(rows).toHaveLength(1);
+      expect(rows[0].reps).toBe(9);
+      expect(rows[0].loggedAt).toBe('2026-07-16T10:00:30.000Z');
+    });
+
     it('a stale route (no arrival) still replaces on press but arms no notice', async () => {
       const { exercises } = await seedCircuit();
 
