@@ -9,6 +9,7 @@ import {
   getPool,
   listCircuitSlots,
   removeCircuitItem,
+  renameCircuit as renameCircuitDomain,
   renameExercise,
   reorderCircuitItems,
   restoreExercise,
@@ -375,6 +376,35 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }).then(() => outcome);
   }
 
+  // The workbench title pencil's rename: unlike renameWorkout there is
+  // no active-name index on circuits, so there is no rejected-by-
+  // collision branch - only blank and missing/archived.
+  function renameCircuit(name: string): Promise<RenameWorkoutOutcome> {
+    if (!db) {
+      return Promise.resolve({ kind: 'failed' });
+    }
+    let outcome: RenameWorkoutOutcome = { kind: 'failed' };
+    return enqueue(async () => {
+      try {
+        const renamed = await renameCircuitDomain(db, circuitId(), name);
+        if (!renamed) {
+          // Vanished or archived underneath the pencil: the DB is the
+          // truth, and the workbench's 'missing' status takes over.
+          await load();
+          return;
+        }
+        circuitName.value = name.trim();
+        outcome = { kind: 'renamed' };
+      } catch (error) {
+        if (error instanceof BuilderError && error.code === 'blank-name') {
+          outcome = { kind: 'rejected', message: 'Name must not be blank' };
+          return;
+        }
+        throw error;
+      }
+    }).then(() => outcome);
+  }
+
   // The drag-to-trash delete: the workout disappears entirely, from
   // whichever zone it was lifted out of (domain frees a held slot and
   // archives in one transaction; history is kept). Resolves to the undo
@@ -427,6 +457,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     stealFromPool,
     createWorkout,
     renameWorkout,
+    renameCircuit,
     trashWorkout,
     undoTrash,
   };

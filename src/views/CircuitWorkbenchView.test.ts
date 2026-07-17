@@ -7,8 +7,11 @@ import { createTestDb } from '@/db/test-db';
 import type { TestDb } from '@/db/test-db';
 import {
   addExerciseToCircuit,
+  archiveCircuit,
   createCircuit,
   findOrCreateExercise,
+  getCircuitById,
+  listActiveCircuits,
   listCircuitSlots,
   setPrescription,
 } from '@/domain/builder';
@@ -410,6 +413,108 @@ describe('CircuitWorkbenchView', () => {
     expect(wrapper.text()).toContain('Loading circuit');
     await flushPromises();
     expect(wrapper.get('h1').text()).toBe('Push Day');
+  });
+});
+
+describe('CircuitWorkbenchView / rename pencil', () => {
+  it('renders the pencil only once ready', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+
+    expect(wrapper.find('.screen-header__pencil').exists()).toBe(false);
+    await flushPromises();
+    expect(wrapper.find('.screen-header__pencil').exists()).toBe(true);
+  });
+
+  it('renders no pencil on the missing screen', async () => {
+    const circuitId = await seedCircuit();
+    await archiveCircuit(testDb.db, circuitId);
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('No circuit here');
+    expect(wrapper.find('.screen-header__pencil').exists()).toBe(false);
+  });
+
+  it('edit opens an empty entry with the current name as the placeholder', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    await wrapper.get('.screen-header__pencil').trigger('click');
+
+    // Empty entry + name-as-placeholder: the created circuit's "New
+    // Circuit" default is typed straight over, not backspaced first.
+    expect(wrapper.find('h1').exists()).toBe(false);
+    expect(wrapper.get('.name-entry__entry').element.textContent).toBe('');
+    expect(wrapper.get('.name-entry__entry').attributes('data-placeholder')).toBe('Legs');
+  });
+
+  it('an unchanged or blank commit closes silently with no write', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    await wrapper.get('.screen-header__pencil').trigger('click');
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+
+    expect(wrapper.get('h1').text()).toBe('Legs');
+    expect(wrapper.find('.workbench__circuit-notice').exists()).toBe(false);
+    expect((await getCircuitById(testDb.db, circuitId))?.name).toBe('Legs');
+
+    await wrapper.get('.screen-header__pencil').trigger('click');
+    wrapper.get('.name-entry__entry').element.textContent = '  Legs  ';
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+
+    expect(wrapper.get('h1').text()).toBe('Legs');
+    expect((await getCircuitById(testDb.db, circuitId))?.name).toBe('Legs');
+
+    await wrapper.get('.screen-header__pencil').trigger('click');
+    wrapper.get('.name-entry__entry').element.textContent = '';
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+
+    expect(wrapper.get('h1').text()).toBe('Legs');
+    expect(wrapper.find('.workbench__circuit-notice').exists()).toBe(false);
+    expect((await getCircuitById(testDb.db, circuitId))?.name).toBe('Legs');
+  });
+
+  it('a changed name commits, updates the header, and a fresh circuits-screen read sees it', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    await wrapper.get('.screen-header__pencil').trigger('click');
+    wrapper.get('.name-entry__entry').element.textContent = 'Leg Day Heavy';
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+
+    expect(wrapper.get('h1').text()).toBe('Leg Day Heavy');
+    expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
+    const persisted = await getCircuitById(testDb.db, circuitId);
+    expect(persisted?.name).toBe('Leg Day Heavy');
+    // The circuits screen's own read (getRotationView / listActiveCircuits)
+    // sees the same persisted name.
+    const queue = await listActiveCircuits(testDb.db, 'workout');
+    expect(queue.map((row) => row.name)).toContain('Leg Day Heavy');
+  });
+
+  it('shows a notice when the rename fails (archived underneath the pencil)', async () => {
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+    await archiveCircuit(testDb.db, circuitId);
+
+    await wrapper.get('.screen-header__pencil').trigger('click');
+    wrapper.get('.name-entry__entry').element.textContent = 'New Name';
+    await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
+    await flushPromises();
+
+    expect(wrapper.get('.workbench__circuit-notice').text()).toContain("Couldn't save");
+    // The chain resynced: the workbench's 'missing' status takes over.
+    expect(wrapper.text()).toContain('No circuit here');
   });
 });
 

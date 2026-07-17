@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
 import ForgeSlot from '@/components/ForgeSlot.vue';
+import InlineNameEntry from '@/components/InlineNameEntry.vue';
 import NavUpRow from '@/components/NavUpRow.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
 import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
@@ -12,6 +13,9 @@ import ScreenNote from '@/components/ScreenNote.vue';
 import TransientCardGhost from '@/components/TransientCardGhost.vue';
 import TrashSnackbar from '@/components/TrashSnackbar.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
+import { measureRowMidpoints } from '@/composables/measure-midpoints';
+import { rackBadge } from '@/composables/rack-badge';
+import { settlePointer } from '@/composables/settle-pointer';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
 import { useForgeChoreography } from '@/composables/useForgeChoreography';
 import type { TransientCard } from '@/composables/useForgeChoreography';
@@ -44,6 +48,11 @@ const openCardId = ref<string | null>(null);
 const flashExerciseId = ref<string | null>(null);
 const createNotice = ref<string | null>(null);
 const renameNotice = ref<{ exerciseId: string; message: string } | null>(null);
+
+// The title pencil's rename state: the header swaps for an inline
+// entry seeded with the current name until it commits or cancels.
+const renamingCircuit = ref(false);
+const circuitRenameNotice = ref<string | null>(null);
 
 const workbenchEl = ref<HTMLElement | null>(null);
 const circuitZoneEl = ref<HTMLElement | null>(null);
@@ -185,6 +194,8 @@ watch(
     flashExerciseId.value = null;
     createNotice.value = null;
     renameNotice.value = null;
+    renamingCircuit.value = false;
+    circuitRenameNotice.value = null;
     forge.reset();
     seamTickShot.cancel();
     seamTickCount.value = 0;
@@ -233,27 +244,11 @@ const displayRows = computed<SlotListRow[]>(() => {
   return rows;
 });
 
-function rackBadge(index: number): string {
-  return String(index).padStart(2, '0');
-}
-
-// Measured from offsetTop, never getBoundingClientRect: rects include
-// the in-flight FLIP transforms, so measuring mid-animation feeds
-// animating positions back into the insertion test and the gap flaps.
-// Measured on the rack wrappers, not the cards inside: the wrappers
-// carry the FLIP transform, offsetTop only ignores the measured
-// element's own transform, and a transformed ancestor becomes its
-// descendants' offsetParent, so a card inside a sliding wrapper
-// measures ~0.
+// The offsetTop formula and its offsetParent invariant live in
+// measureRowMidpoints; the zone's position: relative satisfies it.
 function measureSlotMidpoints(draggedId: string): number[] {
   const zone = circuitZoneEl.value;
-  if (!zone) {
-    return [];
-  }
-  const zoneTop = zone.getBoundingClientRect().top - zone.scrollTop;
-  return [...zone.querySelectorAll<HTMLElement>('[data-rack-id]')]
-    .filter((element) => element.dataset.rackId !== draggedId)
-    .map((element) => zoneTop + element.offsetTop + element.offsetHeight / 2);
+  return zone ? measureRowMidpoints(zone, 'rackId', draggedId) : [];
 }
 
 // The drag session tracks exercise ids; persistence wants item ids.
@@ -295,36 +290,6 @@ function removeSlot(slot: CircuitSlot): void {
   void workbench.removeSlot(slot.id);
 }
 
-// Waits out the re-render after the caller closed any open fold: drag
-// measurements must describe settled geometry. The finger keeps moving
-// during the tick with no session listening yet, so the freshest move
-// is carried across (beginning from the original event painted the
-// ghost frames behind the finger). A release during the tick returns
-// null: the flick ended before the drag could begin, and starting
-// anyway would leave the ghost stuck.
-async function settleGeometry(event: PointerEvent): Promise<PointerEvent | null> {
-  let released = false;
-  let liveEvent = event;
-  const onEarlyRelease = (releaseEvent: PointerEvent): void => {
-    if (releaseEvent.pointerId === event.pointerId) {
-      released = true;
-    }
-  };
-  const onEarlyMove = (moveEvent: PointerEvent): void => {
-    if (moveEvent.pointerId === event.pointerId) {
-      liveEvent = moveEvent;
-    }
-  };
-  document.addEventListener('pointerup', onEarlyRelease);
-  document.addEventListener('pointercancel', onEarlyRelease);
-  document.addEventListener('pointermove', onEarlyMove);
-  await nextTick();
-  document.removeEventListener('pointerup', onEarlyRelease);
-  document.removeEventListener('pointercancel', onEarlyRelease);
-  document.removeEventListener('pointermove', onEarlyMove);
-  return released ? null : liveEvent;
-}
-
 async function startCardDrag(
   origin: 'circuit' | 'pool',
   exerciseId: string,
@@ -334,7 +299,7 @@ async function startCardDrag(
   // and the measurements need closed-card geometry.
   openCardId.value = null;
   dropCommitted = false;
-  const liveEvent = await settleGeometry(event);
+  const liveEvent = await settlePointer(event);
   const card = workbenchEl.value?.querySelector<HTMLElement>(`[data-card-id="${exerciseId}"]`);
   if (!liveEvent || !card) {
     return;
@@ -433,6 +398,31 @@ function noticeFor(exerciseId: string): string | null {
   return renameNotice.value?.exerciseId === exerciseId ? renameNotice.value.message : null;
 }
 
+function openCircuitRename(): void {
+  circuitRenameNotice.value = null;
+  renamingCircuit.value = true;
+}
+
+// A blank or unchanged commit means cancel - the parent decides, per
+// InlineNameEntry's contract. Either way the entry closes; a verdict
+// only shows when a real rename attempt failed.
+async function handleCircuitRenameCommit(name: string): Promise<void> {
+  renamingCircuit.value = false;
+  if (name.length === 0 || name === circuitName.value) {
+    return;
+  }
+  const target = props.id;
+  const outcome = await workbench.renameCircuit(name);
+  if (target !== props.id) {
+    return;
+  }
+  if (outcome.kind === 'rejected') {
+    circuitRenameNotice.value = outcome.message;
+  } else if (outcome.kind === 'failed') {
+    circuitRenameNotice.value = "Couldn't save // try again";
+  }
+}
+
 // Add or steal follows from where the exercise lives right now.
 function applyPoolDrop(exerciseId: string, insertAt: number): void {
   const stolen = pool.value.heldElsewhere.some((entry) => entry.exerciseId === exerciseId);
@@ -486,9 +476,32 @@ async function handleCreate(name: string): Promise<void> {
       class="workbench"
       :class="{ 'workbench--lifted': drag.state.draggingId !== null }"
     >
-      <ScreenHeader :title="headerTitle">
+      <ScreenHeader
+        v-if="!renamingCircuit"
+        :title="headerTitle"
+        :editable="status === 'ready'"
+        @edit="openCircuitRename"
+      >
         <template #eyebrow>{{ eyebrowText }}</template>
       </ScreenHeader>
+      <!-- The current name is the PLACEHOLDER, not the seed: a created
+           circuit lands as "New Circuit", so opening rename on an empty
+           entry lets the user type straight over it instead of clearing
+           the default first. A blank commit means keep the current name
+           (handleCircuitRenameCommit). This is the create-then-name
+           flow's ergonomics; the workout card rename stays seeded (there
+           the name is real and usually tweaked, not replaced). -->
+      <InlineNameEntry
+        v-else
+        class="workbench__circuit-rename"
+        size="display"
+        :placeholder="circuitName"
+        entry-label="Circuit name"
+        confirm-label="Rename circuit"
+        @commit="(name) => void handleCircuitRenameCommit(name)"
+        @cancel="renamingCircuit = false"
+      />
+      <p v-if="circuitRenameNotice" class="workbench__circuit-notice">{{ circuitRenameNotice }}</p>
 
       <template v-if="status === 'ready'">
         <!-- The zones own only the space below the header, so
@@ -759,6 +772,28 @@ async function handleCreate(name: string): Promise<void> {
   overflow: hidden;
 }
 
+/* Sits where ScreenHeader's title row would; the eyebrow disappears
+   for the duration of the rename. flex: none is load-bearing: the
+   entry's root is flex: 1 1 auto for its row call sites, and in this
+   column it would grow into the screen's free height and render as a
+   giant panel instead of editing in place. */
+.workbench__circuit-rename {
+  flex: none;
+  margin-bottom: var(--space-6);
+  border: var(--hairline) solid var(--border-strong);
+}
+
+/* Same recipe as workout-card__notice / pool-create__notice - these
+   move together. */
+.workbench__circuit-notice {
+  margin: 0 0 var(--space-4);
+  color: var(--accent);
+  font-size: var(--type-micro);
+  line-height: var(--leading-notice);
+  letter-spacing: var(--tracking-1);
+  text-transform: uppercase;
+}
+
 /* The zone pair only; the header is deliberately outside so
    --zone-circuit splits just the zone area. */
 .workbench__zones {
@@ -839,6 +874,10 @@ async function handleCreate(name: string): Promise<void> {
   align-items: stretch;
 }
 
+/* Badge-cell recipe (shared with .circuit-row__order and
+   .circuits__gap-index): this one owns its own --bg plate and a full
+   border because it sits beside card surfaces in a rack slot, not a
+   row's own surface. */
 .workbench__rack-index {
   display: flex;
   flex: 0 0 var(--rack-index);
@@ -1017,7 +1056,10 @@ async function handleCreate(name: string): Promise<void> {
    focusing the create row would pop the keyboard, resize the viewport,
    and invalidate the frozen zone boundaries. The up row joins through
    its own class because the #action slot renders outside .workbench's
-   tree, out of reach of a descendant selector. */
+   tree, out of reach of a descendant selector. Unlike the circuits
+   screen's mid-drag rule (which blankets its whole root), this one
+   enumerates each tap surface - two scoping strategies, kept
+   deliberately unmerged for now. */
 .workbench--lifted .workbench__circuit-zone,
 .workbench--lifted .workbench__pool-stock,
 .workbench--lifted .workbench__forge-dock,
@@ -1028,7 +1070,8 @@ async function handleCreate(name: string): Promise<void> {
 
 /* The wrapper only positions the real card and adds the lifted glow.
    will-change promotes it to its own layer at mount, so the first
-   frames do not repaint mid-gesture. */
+   frames do not repaint mid-gesture. --dim-drag-ghost also binds the
+   circuits screen's drag ghost. */
 .workbench__drag-ghost {
   position: fixed;
   top: 0;
@@ -1036,7 +1079,7 @@ async function handleCreate(name: string): Promise<void> {
   z-index: var(--z-ghost);
   pointer-events: none;
   box-shadow: var(--glow-drag-ghost);
-  opacity: 0.94;
+  opacity: var(--dim-drag-ghost);
   will-change: transform;
 
   /* A stepped micro-flicker on lift, then held one grade bright. */
@@ -1067,7 +1110,7 @@ async function handleCreate(name: string): Promise<void> {
   }
 
   to {
-    opacity: 0.94;
+    opacity: var(--dim-drag-ghost);
     filter: brightness(1.05);
   }
 }
@@ -1162,7 +1205,7 @@ async function handleCreate(name: string): Promise<void> {
 @keyframes fly-home {
   from {
     transform: translate3d(var(--fly-from-x), var(--fly-from-y), 0);
-    opacity: 0.94;
+    opacity: var(--dim-drag-ghost);
   }
 
   to {

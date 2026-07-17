@@ -8,6 +8,7 @@ import {
   archiveCircuit,
   createCircuit,
   findOrCreateExercise,
+  getCircuitById,
   listCircuitSlots,
   removeCircuitItem,
   trashExercise,
@@ -127,6 +128,19 @@ describe('useWorkbench', () => {
     expect(await workbench.undoTrash({ exerciseId: 'anything', held: null })).toBe('failed');
 
     expect(workbench.status.value).toBe('unavailable');
+  });
+
+  it('renameCircuit rejects a blank name without writing', async () => {
+    // Unreachable through the view while its blank guard holds (a
+    // trimmed-empty commit never calls renameCircuit) - pinned here at
+    // the composable layer instead.
+    const workbench = useWorkbench(db, () => circuit.id);
+    await workbench.load();
+
+    const outcome = await workbench.renameCircuit('   ');
+
+    expect(outcome).toEqual({ kind: 'rejected', message: 'Name must not be blank' });
+    expect((await getCircuitById(db, circuit.id))?.name).toBe('Legs');
   });
 
   it('applies a stepper tick optimistically and persists it', async () => {
