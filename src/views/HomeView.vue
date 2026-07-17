@@ -6,10 +6,11 @@ import AppShell from '@/components/AppShell.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
+import { useCoalescedWrite } from '@/composables/useCoalescedWrite';
 import { useDb } from '@/composables/useDb';
 import { useScreenLoad } from '@/composables/useScreenLoad';
 import type { WorkoutStart } from '@/domain/workout';
-import { getWorkoutStart } from '@/domain/workout';
+import { getWorkoutStart, startWorkout } from '@/domain/workout';
 
 // Home screen. The lockup puts the mark left of the ODIN wordmark on
 // one axis, a hairline rule between them like a machined insignia
@@ -41,9 +42,24 @@ function openCircuits(): void {
   void router.push({ name: 'circuits' });
 }
 
-function openWorkout(): void {
-  void router.push({ name: 'workout-start' });
-}
+// Tapping the CTA starts (or resumes) the workout BEFORE navigating:
+// the session's persisted startedAt is what the total-time readout
+// runs on, so the clock starts here, not at the first rest. A
+// double-tap joins the in-flight start (useCoalescedWrite); a write
+// failure renders on the glass.
+const { failed: startFailed, run: openWorkout } = useCoalescedWrite('start workout', async () => {
+  if (!db) {
+    return null;
+  }
+  const inFlight = await startWorkout(db);
+  if (inFlight) {
+    await router.push({ name: 'workout-start' });
+  } else {
+    // Nothing startable anymore: the CTA was stale; re-derive.
+    await refresh();
+  }
+  return inFlight;
+});
 </script>
 
 <template>
@@ -69,6 +85,9 @@ function openWorkout(): void {
         @action="() => void refresh()"
       >
         Couldn't load workout state
+      </ScreenNote>
+      <ScreenNote v-if="startFailed" class="home__note">
+        Couldn't start the workout // try again
       </ScreenNote>
     </div>
   </AppShell>
