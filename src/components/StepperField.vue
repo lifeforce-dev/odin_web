@@ -12,8 +12,10 @@ const RAMP_INTERVAL_MS = 110;
 const props = withDefaults(
   defineProps<{
     label: string;
-    // The value, already formatted (raw count, m:ss, ...).
-    display: string;
+    // The value, already formatted (raw count, m:ss, ...). Optional: a
+    // caller that always fills the #value slot (LogSetControl) never
+    // reads this prop, so the fallback span renders empty for it.
+    display?: string;
     decLabel: string;
     incLabel: string;
     // Emitted as -step / +step per adjust.
@@ -22,11 +24,20 @@ const props = withDefaults(
     // --glow-rest-value recipe) - the app's rest channel.
     tone?: 'plain' | 'rest';
   }>(),
-  { tone: 'plain' },
+  { tone: 'plain', display: '' },
 );
 
 const emit = defineEmits<{
   adjust: [delta: number];
+}>();
+
+// The optional #value slot lets a caller swap the plain display span
+// for its own content (e.g. LogSetControl's contenteditable well) while
+// still riding this field's shared label, pads, and hold-to-ramp: one
+// shared hold-to-ramp control, swapped via this slot instead of minting
+// another press-hold machine.
+defineSlots<{
+  value?: () => unknown;
 }>();
 
 let holdTimer: ReturnType<typeof setTimeout> | null = null;
@@ -86,7 +97,9 @@ onBeforeUnmount(stopStepping);
         {{ decLabel }}
       </button>
       <span class="stepper-field__value" :class="{ 'stepper-field__value--rest': tone === 'rest' }">
-        <span class="stepper-field__value-num">{{ display }}</span>
+        <slot name="value">
+          <span class="stepper-field__value-num">{{ display }}</span>
+        </slot>
       </span>
       <button
         type="button"
@@ -142,31 +155,29 @@ onBeforeUnmount(stopStepping);
   transform: scale(0.96);
 }
 
+/* Typography lives on the container, not the fallback num span, so
+   slotted content (LogSetControl's contenteditable well) inherits the
+   same display recipe without restating it. */
 .stepper-field__value {
   display: flex;
   flex: 1;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: var(--tap-min);
-  background: var(--bg);
-  border: var(--hairline) solid var(--border);
-  box-shadow: var(--shadow-well);
-}
-
-.stepper-field__value-num {
   color: var(--text);
   font-family: var(--font-display);
   font-size: var(--type-display-value);
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  background: var(--bg);
+  border: var(--hairline) solid var(--border);
+  box-shadow: var(--shadow-well);
 }
 
 .stepper-field__value--rest {
-  border-color: var(--warning);
-}
-
-.stepper-field__value--rest .stepper-field__value-num {
   color: var(--warning);
   text-shadow: var(--glow-rest-value);
+  border-color: var(--warning);
 }
 </style>
