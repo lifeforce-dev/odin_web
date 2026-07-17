@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
 import CircuitCard from '@/components/CircuitCard.vue';
+import NavUpRow from '@/components/NavUpRow.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import TotalTime from '@/components/TotalTime.vue';
@@ -38,7 +39,7 @@ function openExercise(exerciseId: string): void {
 <template>
   <AppShell>
     <div class="workout-start">
-      <ScreenHeader :title="start?.circuit.name ?? 'Workout'" :back-to="{ name: 'home' }" />
+      <ScreenHeader :title="start?.circuit.name ?? 'Workout'" />
       <ScreenNote v-if="!db">{{ DEVICE_ONLY_NOTE }}</ScreenNote>
       <ScreenNote v-else-if="loadFailed" action="Retry" @action="() => void refresh()">
         Couldn't load the workout
@@ -61,6 +62,7 @@ function openExercise(exerciseId: string): void {
       </template>
     </div>
     <template #action>
+      <NavUpRow />
       <div class="workout-start__footer">
         <TotalTime :started-at="start?.session?.startedAt ?? null" />
       </div>

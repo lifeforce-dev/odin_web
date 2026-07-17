@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import AppShell from '@/components/AppShell.vue';
 import DockedAction from '@/components/DockedAction.vue';
 import LogSetControl from '@/components/LogSetControl.vue';
+import NavUpRow from '@/components/NavUpRow.vue';
 import RestDigits from '@/components/RestDigits.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
@@ -12,14 +13,18 @@ import TotalTime from '@/components/TotalTime.vue';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
 import { useRestSession } from '@/composables/useRestSession';
 import { useRestTimer } from '@/composables/useRestTimer';
+import { armRollbackNotice } from '@/composables/useRollbackNotice';
 import { restEndsAtIso } from '@/domain/rest-timer';
+import { resolveUpTo, useUpOverride } from '@/router/up';
 
 // The rest screen, timer-as-fact + auto-log: the just-finished set is
 // logged on arrival (it already happened, so a forgettable save button
 // would lose data), edited in place above a countdown hero that
 // derives from the persisted endsAt every render. Final mode (the
 // session's last set) drops the countdown outright and docks FINISH
-// instead of NEXT SET; same screen, same auto-log.
+// instead of NEXT SET; same screen, same auto-log. Back on this screen
+// IS the rollback: the up affordance (OS or on-screen) undoes the
+// arrival instead of leaving quietly.
 
 const PULSE_AT_SECONDS = 10;
 
@@ -38,14 +43,36 @@ const {
   refresh,
   writeFailed,
   finishFailed,
+  rollbackState,
   commitEdit,
   flushPendingWrites,
   finish,
+  rollBack,
 } = useRestSession(
   db,
   () => props.exerciseId,
   () => props.setIndex,
 );
+
+useUpOverride(async () => {
+  const outcome = await rollBack();
+  if (outcome === 'failed') {
+    // Destructive intent unfulfilled: stay put, the note renders below.
+    return;
+  }
+  if (outcome === 'rolled-back') {
+    armRollbackNotice();
+  }
+  // The structural map owns the destination (rest's meta.upTo already
+  // carries the exerciseId); the literal mirrors that meta entry and
+  // covers only a current route that no longer resolves mid-transition.
+  void router.replace(
+    resolveUpTo(router.currentRoute.value) ?? {
+      name: 'workout-set',
+      params: { exerciseId: props.exerciseId },
+    },
+  );
+});
 
 const logSetControlRef = ref<InstanceType<typeof LogSetControl> | null>(null);
 
@@ -108,13 +135,7 @@ async function handleAction(): Promise<void> {
   <AppShell>
     <div class="rest">
       <div class="rest__content">
-        <ScreenHeader
-          title="Rest"
-          :back-to="{ name: 'workout-set', params: { exerciseId: props.exerciseId } }"
-          back-label="Skip"
-          eyebrow="Set"
-          :eyebrow-value="props.setIndex"
-        />
+        <ScreenHeader title="Rest" eyebrow="Set" :eyebrow-value="props.setIndex" />
         <ScreenNote v-if="!db">{{ DEVICE_ONLY_NOTE }}</ScreenNote>
         <ScreenNote v-else-if="loadFailed" action="Retry" @action="() => void refresh()">
           Couldn't load the rest screen
@@ -128,6 +149,7 @@ async function handleAction(): Promise<void> {
             @commit="handleCommit"
           />
           <ScreenNote v-if="writeFailed">Couldn't save the edit // try again</ScreenNote>
+          <ScreenNote v-if="rollbackState === 'failed'">Couldn't roll back // try again</ScreenNote>
           <div v-if="arrival.mode === 'countdown'" class="rest__hero">
             <p class="rest__eyebrow">Recover // Rest</p>
             <RestDigits :remaining="remaining" />
@@ -137,9 +159,12 @@ async function handleAction(): Promise<void> {
       </div>
     </div>
     <template #action>
-      <!-- loadFailed and a null arrival both gate here too: this footer
-           is its own template tree (the AppShell #action slot), not
-           covered by the body's v-else chain above. -->
+      <!-- loadFailed and a null arrival both gate the footer below, but
+           the up row must survive both (a failed load or a stale route
+           must never strand an iOS user): this slot is its own
+           template tree (the AppShell #action slot), so NavUpRow sits
+           outside that gate. -->
+      <NavUpRow />
       <div v-if="!loadFailed && arrival" class="rest__footer">
         <ScreenNote v-if="finishFailed">Couldn't finish // try again</ScreenNote>
         <TotalTime :started-at="arrival.sessionStartedAt" />

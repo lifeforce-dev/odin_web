@@ -14,6 +14,7 @@ import {
   findOrCreateExercise,
   setPrescription,
 } from '@/domain/builder';
+import { consumeRollbackNotice, resetRollbackNotice } from '@/composables/useRollbackNotice';
 import { firePointer } from '@/test-utils/pointer-events';
 
 import RestView from './RestView.vue';
@@ -23,12 +24,20 @@ import RestView from './RestView.vue';
 // the edit write-behind, and the NEXT SET / FINISH routing are view
 // wiring the domain and composable-unit tests cannot see on their own.
 
-const nativeState: { isNative: boolean; db: DbClient | null } = { isNative: true, db: null };
+const nativeState: { isNative: boolean; hasSystemBack: boolean; db: DbClient | null } = {
+  isNative: true,
+  hasSystemBack: false,
+  db: null,
+};
 
 vi.mock('@/native', () => ({
   get isNative() {
     return nativeState.isNative;
   },
+  get hasSystemBack() {
+    return nativeState.hasSystemBack;
+  },
+  minimizeApp: vi.fn().mockResolvedValue(undefined),
   getDb: () => {
     if (!nativeState.db) {
       throw new Error('test database not prepared');
@@ -38,24 +47,51 @@ vi.mock('@/native', () => ({
 }));
 
 const routerPush = vi.hoisted(() => vi.fn());
+const routerReplace = vi.hoisted(() => vi.fn());
+const routeParams = vi.hoisted(() => ({ current: {} as Record<string, string> }));
 
-vi.mock('vue-router', () => ({
-  useRouter: () => ({
-    push: routerPush,
-    back: vi.fn(),
-    replace: vi.fn().mockResolvedValue(undefined),
-    options: { history: { state: {} } },
-  }),
-}));
+// RestView reads exerciseId/setIndex from props, not useRoute(); the
+// route object serves NavUpRow (rendered in the #action slot) and the
+// override's resolveUpTo call, so its meta mirrors the real rest
+// route's function-form upTo - params flow from routeParams, set per
+// mount by mountView.
+vi.mock('vue-router', () => {
+  const route = {
+    get params() {
+      return routeParams.current;
+    },
+    meta: {
+      upTo: (current: { params: Record<string, string> }) => ({
+        name: 'workout-set',
+        params: { exerciseId: current.params.exerciseId },
+      }),
+      upLabel: 'Roll Back Set',
+    },
+  };
+  return {
+    useRoute: () => route,
+    useRouter: () => ({
+      push: routerPush,
+      back: vi.fn(),
+      replace: routerReplace,
+      currentRoute: { value: route },
+      options: { history: { state: {} } },
+    }),
+  };
+});
 
 let testDb: TestDb;
 
 beforeEach(async () => {
   testDb = await createTestDb();
   nativeState.isNative = true;
+  nativeState.hasSystemBack = false;
   nativeState.db = testDb.db;
   routerPush.mockClear();
   routerPush.mockResolvedValue(undefined);
+  routerReplace.mockClear();
+  routerReplace.mockResolvedValue(undefined);
+  resetRollbackNotice();
 });
 
 afterEach(() => {
@@ -96,6 +132,7 @@ async function allSetLogs() {
 }
 
 async function mountView(exerciseId: string, setIndex: number) {
+  routeParams.current = { exerciseId, setIndex: String(setIndex) };
   const wrapper = mount(RestView, { props: { exerciseId, setIndex } });
   await flushPromises();
   return wrapper;
@@ -493,6 +530,9 @@ describe('RestView', () => {
     expect(wrapper.text()).toContain("Couldn't load the rest screen");
     expect(wrapper.find('.docked-action').exists()).toBe(false);
     expect(wrapper.find('.rest__footer').exists()).toBe(false);
+    // The up affordance sits outside the load gate: a failed read must
+    // never strand an iOS user on this screen.
+    expect(wrapper.find('.nav-up-row').exists()).toBe(true);
   });
 
   it('shows the device-only note in browser dev mode', async () => {
@@ -501,5 +541,143 @@ describe('RestView', () => {
     const wrapper = await mountView(newId(), 1);
 
     expect(wrapper.text()).toContain('Data lives on the device');
+  });
+
+  describe('back = rollback', () => {
+    it('a NavUpRow press rolls back: row deleted, session untouched, replaces to the lift page, notice armed', async () => {
+      const { circuitId, exercises } = await seedCircuit();
+      const sessionId = await startSession(circuitId);
+      const wrapper = await mountView(exercises[0].id, 1);
+
+      await wrapper.get('.nav-up-row').trigger('click');
+      await flushPromises();
+
+      expect(await allSetLogs()).toHaveLength(0);
+      const [row] = await testDb.db.select().from(session);
+      expect(row).toMatchObject({ id: sessionId, endedAt: null });
+      expect(routerReplace).toHaveBeenCalledExactlyOnceWith({
+        name: 'workout-set',
+        params: { exerciseId: exercises[0].id },
+      });
+      expect(consumeRollbackNotice()).toBe(true);
+    });
+
+    it('a rollback failure stays put, notes it, and leaves the row intact', async () => {
+      const { circuitId, exercises } = await seedCircuit();
+      await startSession(circuitId);
+      nativeState.db = failTransaction(testDb.db, 2);
+      const wrapper = await mountView(exercises[0].id, 1);
+
+      await wrapper.get('.nav-up-row').trigger('click');
+      await flushPromises();
+
+      expect(routerReplace).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain("Couldn't roll back");
+      expect(await allSetLogs()).toHaveLength(1);
+    });
+
+    it('THE TRAP: a rollback must not let the teardown flush resurrect the deleted row', async () => {
+      vi.useFakeTimers();
+      const { circuitId, exercises } = await seedCircuit();
+      await startSession(circuitId);
+      const wrapper = await mountView(exercises[0].id, 1);
+
+      // Opens the settle window: the edit has not reached commitEdit yet.
+      tapFirstStepper(wrapper);
+
+      await wrapper.get('.nav-up-row').trigger('click');
+      await flushPromises();
+
+      // Unmount flushes LogSetControl's pending edit; without the
+      // rolled-back latch this would updateRestLog-miss, refresh, and
+      // arriveAtRest would re-insert the just-deleted row.
+      wrapper.unmount();
+      await flushPromises();
+
+      expect(await allSetLogs()).toHaveLength(0);
+    });
+
+    it('a back press racing the arrival load rolls back the insert it raced', async () => {
+      const { circuitId, exercises } = await seedCircuit();
+      await startSession(circuitId);
+      routeParams.current = { exerciseId: exercises[0].id, setIndex: '1' };
+      // No flush after mount: the press lands while arriveAtRest's
+      // insert is still in flight - the exact reflex this screen's
+      // back exists for. The rollback must wait out the load and
+      // delete the row it raced, never leave as 'clean'.
+      const wrapper = mount(RestView, {
+        props: { exerciseId: exercises[0].id, setIndex: 1 },
+      });
+
+      await wrapper.get('.nav-up-row').trigger('click');
+      await flushPromises();
+
+      expect(await allSetLogs()).toHaveLength(0);
+      expect(consumeRollbackNotice()).toBe(true);
+      expect(routerReplace).toHaveBeenCalledExactlyOnceWith({
+        name: 'workout-set',
+        params: { exerciseId: exercises[0].id },
+      });
+      wrapper.unmount();
+    });
+
+    it('THE TRAP, in-op half: an edit enqueued while the rollback is in flight stays inert', async () => {
+      vi.useFakeTimers();
+      const { circuitId, exercises } = await seedCircuit();
+      await startSession(circuitId);
+      const wrapper = await mountView(exercises[0].id, 1);
+
+      tapFirstStepper(wrapper);
+      // Deliberately un-awaited: the rollback op is enqueued but has
+      // not run when the settle window fires below, so commitEdit's
+      // call-time guard still passes and the edit lands BEHIND the
+      // delete on the chain - only the in-op guard stops it from
+      // resurrecting the row.
+      void wrapper.get('.nav-up-row').trigger('click');
+      vi.advanceTimersByTime(300);
+      await flushPromises();
+
+      wrapper.unmount();
+      await flushPromises();
+
+      expect(await allSetLogs()).toHaveLength(0);
+    });
+
+    it('a second press after a failed rollback retries: row gone, replace fires, note clears', async () => {
+      const { circuitId, exercises } = await seedCircuit();
+      await startSession(circuitId);
+      nativeState.db = failTransaction(testDb.db, 2);
+      const wrapper = await mountView(exercises[0].id, 1);
+
+      await wrapper.get('.nav-up-row').trigger('click');
+      await flushPromises();
+      expect(routerReplace).not.toHaveBeenCalled();
+
+      await wrapper.get('.nav-up-row').trigger('click');
+      await flushPromises();
+
+      expect(await allSetLogs()).toHaveLength(0);
+      expect(routerReplace).toHaveBeenCalledExactlyOnceWith({
+        name: 'workout-set',
+        params: { exerciseId: exercises[0].id },
+      });
+      expect(consumeRollbackNotice()).toBe(true);
+      expect(wrapper.text()).not.toContain("Couldn't roll back");
+    });
+
+    it('a stale route (no arrival) still replaces on press but arms no notice', async () => {
+      const { exercises } = await seedCircuit();
+
+      const wrapper = await mountView(exercises[0].id, 1);
+
+      await wrapper.get('.nav-up-row').trigger('click');
+      await flushPromises();
+
+      expect(routerReplace).toHaveBeenCalledExactlyOnceWith({
+        name: 'workout-set',
+        params: { exerciseId: exercises[0].id },
+      });
+      expect(consumeRollbackNotice()).toBe(false);
+    });
   });
 });

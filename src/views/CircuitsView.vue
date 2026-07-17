@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
 import MenuButton from '@/components/MenuButton.vue';
+import NavUpRow from '@/components/NavUpRow.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
@@ -73,7 +74,7 @@ function openWorkbench(id: string): void {
 <template>
   <AppShell>
     <div class="circuits">
-      <ScreenHeader title="Circuits" eyebrow="Rotation // Order" :back-to="{ name: 'home' }" />
+      <ScreenHeader title="Circuits" eyebrow="Rotation // Order" />
       <ScreenNote v-if="!db">{{ DEVICE_ONLY_NOTE }}</ScreenNote>
       <ScreenNote v-else-if="loadFailed" action="Retry" @action="() => void refresh()">
         Couldn't load the rotation
@@ -96,6 +97,9 @@ function openWorkbench(id: string): void {
         </ScreenNote>
       </template>
     </div>
+    <template #action>
+      <NavUpRow />
+    </template>
   </AppShell>
 </template>
 

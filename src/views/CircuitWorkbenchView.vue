@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
 import ForgeSlot from '@/components/ForgeSlot.vue';
+import NavUpRow from '@/components/NavUpRow.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
 import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
 import PoolGroupHeader from '@/components/PoolGroupHeader.vue';
@@ -485,7 +486,7 @@ async function handleCreate(name: string): Promise<void> {
       class="workbench"
       :class="{ 'workbench--lifted': drag.state.draggingId !== null }"
     >
-      <ScreenHeader :title="headerTitle" back-label="Circuits" :back-to="{ name: 'circuits' }">
+      <ScreenHeader :title="headerTitle">
         <template #eyebrow>{{ eyebrowText }}</template>
       </ScreenHeader>
 
@@ -736,6 +737,13 @@ async function handleCreate(name: string): Promise<void> {
     >
       <TransientCardGhost :content="flyGhost.content" />
     </div>
+
+    <template #action>
+      <!-- The slot content sits outside .workbench--lifted's descendant
+           selectors, so the mid-drag inert rule reaches it only through
+           this class. -->
+      <NavUpRow :class="{ 'workbench__up--inert': drag.state.draggingId !== null }" />
+    </template>
   </AppShell>
 </template>
 
@@ -1007,11 +1015,14 @@ async function handleCreate(name: string): Promise<void> {
 
 /* While a card is lifted the tap surfaces go inert: a second finger
    focusing the create row would pop the keyboard, resize the viewport,
-   and invalidate the frozen zone boundaries. */
+   and invalidate the frozen zone boundaries. The up row joins through
+   its own class because the #action slot renders outside .workbench's
+   tree, out of reach of a descendant selector. */
 .workbench--lifted .workbench__circuit-zone,
 .workbench--lifted .workbench__pool-stock,
 .workbench--lifted .workbench__forge-dock,
-.workbench--lifted .workbench__snack-dock {
+.workbench--lifted .workbench__snack-dock,
+.workbench__up--inert {
   pointer-events: none;
 }
 

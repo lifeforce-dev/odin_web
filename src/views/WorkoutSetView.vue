@@ -1,23 +1,29 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
 import DockedAction from '@/components/DockedAction.vue';
 import LastCircuitData from '@/components/LastCircuitData.vue';
+import NavUpRow from '@/components/NavUpRow.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import SetProgress from '@/components/SetProgress.vue';
 import TotalTime from '@/components/TotalTime.vue';
+import TrashSnackbar from '@/components/TrashSnackbar.vue';
 import { useActiveSession } from '@/composables/useActiveSession';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
+import { consumeRollbackNotice } from '@/composables/useRollbackNotice';
 
 // The lift (workout-set) screen, three zones per the styleguide:
-// CONTEXT (back + white title + last-session card, quiet), STATE
-// (flex-grow centered set boxes + giant LIFT!), ACTION (docked total
-// time + the amber rest CTA). Mid-set the vermilion LIFT! owns the
-// screen; the title never wears the accent. The CTA reads FINISH on
-// the session's final unlogged set and both labels route to the rest
-// screen - final mode derives there from session facts.
+// CONTEXT (white title + last-session card, quiet), STATE (flex-grow
+// centered set boxes + giant LIFT!), ACTION (docked total time + the
+// amber rest CTA). Mid-set the vermilion LIFT! owns the screen; the
+// title never wears the accent. The CTA reads FINISH on the session's
+// final unlogged set and both labels route to the rest screen - final
+// mode derives there from session facts. A rest rollback lands back
+// here and arms a one-shot SET ROLLED BACK snackbar (consumed once, so
+// a later remount stays quiet).
 
 const props = defineProps<{
   exerciseId: string;
@@ -30,6 +36,8 @@ const { workoutSet, hasLoaded, loadFailed, refresh, restFailed, startRest } = us
   db,
   () => props.exerciseId,
 );
+
+const showRolledBack = ref(consumeRollbackNotice());
 
 async function handleRest(): Promise<void> {
   const entry = await startRest();
@@ -45,10 +53,7 @@ async function handleRest(): Promise<void> {
 <template>
   <AppShell>
     <div class="workout-set">
-      <ScreenHeader
-        :title="workoutSet?.exerciseName ?? 'Workout Set'"
-        :back-to="{ name: 'workout-start' }"
-      />
+      <ScreenHeader :title="workoutSet?.exerciseName ?? 'Workout Set'" />
       <ScreenNote v-if="!db">{{ DEVICE_ONLY_NOTE }}</ScreenNote>
       <ScreenNote v-else-if="loadFailed" action="Retry" @action="() => void refresh()">
         Couldn't load the workout set
@@ -71,11 +76,21 @@ async function handleRest(): Promise<void> {
       </ScreenNote>
     </div>
     <template #action>
-      <!-- loadFailed gates here too: the body's v-else chain already
-           hides stale facts behind the Retry note, but this footer is
-           its own tree and would keep rendering the previous read's
-           clock and CTA label over a button that writes against the
-           current route. -->
+      <!-- loadFailed gates the footer below too: the body's v-else
+           chain already hides stale facts behind the Retry note, but
+           this footer is its own tree and would keep rendering the
+           previous read's clock and CTA label over a button that
+           writes against the current route. NavUpRow and the snackbar
+           sit outside that gate: the up affordance must survive a
+           failed load, and the rollback notice has nothing to do with
+           this load's outcome. -->
+      <NavUpRow />
+      <TrashSnackbar
+        v-if="showRolledBack"
+        class="workout-set__snack"
+        message="Set rolled back"
+        :undoable="false"
+      />
       <div
         v-if="!loadFailed && workoutSet && workoutSet.currentSet !== null"
         class="workout-set__footer"
@@ -128,5 +143,11 @@ async function handleRest(): Promise<void> {
   flex-direction: column;
   gap: var(--space-2);
   padding: 0 var(--space-4) var(--space-2);
+}
+
+/* Matches the footer's side padding so the snack lines up with the
+   docked action below it. */
+.workout-set__snack {
+  margin: 0 var(--space-4);
 }
 </style>

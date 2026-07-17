@@ -10,6 +10,7 @@ import InlineNameEntry from '@/components/InlineNameEntry.vue';
 import LastCircuitData from '@/components/LastCircuitData.vue';
 import LogSetControl from '@/components/LogSetControl.vue';
 import MenuButton from '@/components/MenuButton.vue';
+import NavUpRow from '@/components/NavUpRow.vue';
 import OdinMark from '@/components/OdinMark.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
 import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
@@ -367,7 +368,18 @@ onMounted(() => {
 
       <section class="board-section">
         <h2 class="board-eyebrow">Screen header</h2>
-        <ScreenHeader title="Circuits" eyebrow="Rotation // Order" :back-to="{ name: 'gallery' }" />
+        <ScreenHeader title="Circuits" eyebrow="Rotation // Order" />
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Nav up row (label override, render-only)</h2>
+        <NavUpRow label="Home" />
+        <p class="board-note">
+          The quiet vermilion-ghost up affordance: self-wired from route meta everywhere else, so
+          the gallery route (which carries no upTo) exercises the label override instead. The press
+          path is inert here - with no upTo to resolve, goUp has nowhere to go on this route.
+          Android renders nothing - the system back drives the same map.
+        </p>
       </section>
 
       <section class="board-section">

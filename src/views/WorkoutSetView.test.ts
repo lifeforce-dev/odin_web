@@ -13,6 +13,7 @@ import {
   findOrCreateExercise,
   setPrescription,
 } from '@/domain/builder';
+import { armRollbackNotice, resetRollbackNotice } from '@/composables/useRollbackNotice';
 
 import WorkoutSetView from './WorkoutSetView.vue';
 
@@ -21,12 +22,20 @@ import WorkoutSetView from './WorkoutSetView.vue';
 // route push are view wiring the domain tests cannot see - and there is
 // no device walk of the logged states until 03-03 writes set logs.
 
-const nativeState: { isNative: boolean; db: DbClient | null } = { isNative: true, db: null };
+const nativeState: { isNative: boolean; hasSystemBack: boolean; db: DbClient | null } = {
+  isNative: true,
+  hasSystemBack: false,
+  db: null,
+};
 
 vi.mock('@/native', () => ({
   get isNative() {
     return nativeState.isNative;
   },
+  get hasSystemBack() {
+    return nativeState.hasSystemBack;
+  },
+  minimizeApp: vi.fn().mockResolvedValue(undefined),
   getDb: () => {
     if (!nativeState.db) {
       throw new Error('test database not prepared');
@@ -37,12 +46,18 @@ vi.mock('@/native', () => ({
 
 const routerPush = vi.hoisted(() => vi.fn());
 
-// ScreenHeader reads the router at the composable seam (see its test).
+// ScreenHeader no longer touches the router; NavUpRow does instead, and
+// its render gate needs meta.upTo/upLabel present.
 vi.mock('vue-router', () => ({
+  useRoute: () => ({
+    params: {},
+    meta: { upTo: { name: 'workout-start' }, upLabel: 'Workout' },
+  }),
   useRouter: () => ({
     push: routerPush,
     back: vi.fn(),
     replace: vi.fn().mockResolvedValue(undefined),
+    currentRoute: { value: { meta: { upTo: { name: 'workout-start' }, upLabel: 'Workout' } } },
     options: { history: { state: {} } },
   }),
 }));
@@ -52,9 +67,11 @@ let testDb: TestDb;
 beforeEach(async () => {
   testDb = await createTestDb();
   nativeState.isNative = true;
+  nativeState.hasSystemBack = false;
   nativeState.db = testDb.db;
   routerPush.mockClear();
   routerPush.mockResolvedValue(undefined);
+  resetRollbackNotice();
 });
 
 afterEach(() => {
@@ -342,5 +359,27 @@ describe('WorkoutSetView', () => {
     const wrapper = await mountView(newId());
 
     expect(wrapper.text()).toContain('Data lives on the device');
+  });
+
+  describe('rollback notice handoff', () => {
+    it('renders the SET ROLLED BACK snackbar with no Undo button when armed', async () => {
+      const { exercises } = await seedCircuit();
+      armRollbackNotice();
+
+      const wrapper = await mountView(exercises[0].id);
+
+      expect(wrapper.get('.trash-snackbar__msg').text()).toBe('Set rolled back');
+      expect(wrapper.find('.trash-snackbar__undo').exists()).toBe(false);
+    });
+
+    it('renders no snackbar on a second mount: consume clears the one-shot flag', async () => {
+      const { exercises } = await seedCircuit();
+      armRollbackNotice();
+      await mountView(exercises[0].id);
+
+      const wrapper = await mountView(exercises[0].id);
+
+      expect(wrapper.find('.trash-snackbar').exists()).toBe(false);
+    });
   });
 });

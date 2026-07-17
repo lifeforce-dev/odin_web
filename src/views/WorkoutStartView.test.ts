@@ -21,12 +21,20 @@ import WorkoutStartView from './WorkoutStartView.vue';
 // the domain tests cannot see, and the in-flight states have no device
 // walk until 03-05 writes sessions.
 
-const nativeState: { isNative: boolean; db: DbClient | null } = { isNative: true, db: null };
+const nativeState: { isNative: boolean; hasSystemBack: boolean; db: DbClient | null } = {
+  isNative: true,
+  hasSystemBack: false,
+  db: null,
+};
 
 vi.mock('@/native', () => ({
   get isNative() {
     return nativeState.isNative;
   },
+  get hasSystemBack() {
+    return nativeState.hasSystemBack;
+  },
+  minimizeApp: vi.fn().mockResolvedValue(undefined),
   getDb: () => {
     if (!nativeState.db) {
       throw new Error('test database not prepared');
@@ -37,12 +45,18 @@ vi.mock('@/native', () => ({
 
 const routerPush = vi.hoisted(() => vi.fn());
 
-// ScreenHeader reads the router at the composable seam (see its test).
+// ScreenHeader no longer touches the router; NavUpRow does instead, and
+// its render gate needs meta.upTo/upLabel present.
 vi.mock('vue-router', () => ({
+  useRoute: () => ({
+    params: {},
+    meta: { upTo: { name: 'home' }, upLabel: 'Home' },
+  }),
   useRouter: () => ({
     push: routerPush,
     back: vi.fn(),
     replace: vi.fn().mockResolvedValue(undefined),
+    currentRoute: { value: { meta: { upTo: { name: 'home' }, upLabel: 'Home' } } },
     options: { history: { state: {} } },
   }),
 }));
@@ -52,6 +66,7 @@ let testDb: TestDb;
 beforeEach(async () => {
   testDb = await createTestDb();
   nativeState.isNative = true;
+  nativeState.hasSystemBack = false;
   nativeState.db = testDb.db;
   routerPush.mockClear();
   routerPush.mockResolvedValue(undefined);

@@ -48,6 +48,9 @@ const emit = defineEmits<{
   text-transform: uppercase;
 }
 
+/* Accent-ghost recipe family with NavUpRow - these move together;
+   extract at a third copy. 800 here vs the row's 700 is deliberate
+   (see NavUpRow.vue). */
 .trash-snackbar__undo {
   min-width: var(--tap-min);
   min-height: var(--tap-min);

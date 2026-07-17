@@ -18,12 +18,20 @@ import CircuitWorkbenchView from './CircuitWorkbenchView.vue';
 // Integration over the real DB double: the screen, the composable, and
 // the domain layer wired together, with only the native seam replaced.
 
-const nativeState: { isNative: boolean; db: DbClient | null } = { isNative: true, db: null };
+const nativeState: { isNative: boolean; hasSystemBack: boolean; db: DbClient | null } = {
+  isNative: true,
+  hasSystemBack: false,
+  db: null,
+};
 
 vi.mock('@/native', () => ({
   get isNative() {
     return nativeState.isNative;
   },
+  get hasSystemBack() {
+    return nativeState.hasSystemBack;
+  },
+  minimizeApp: vi.fn().mockResolvedValue(undefined),
   getDb: () => {
     if (!nativeState.db) {
       throw new Error('test database not prepared');
@@ -32,11 +40,17 @@ vi.mock('@/native', () => ({
   },
 }));
 
-// ScreenHeader reads the router at the composable seam (see its test).
+// ScreenHeader no longer touches the router; NavUpRow does instead, and
+// its render gate needs meta.upTo/upLabel present.
 vi.mock('vue-router', () => ({
+  useRoute: () => ({
+    params: {},
+    meta: { upTo: { name: 'circuits' }, upLabel: 'Circuits' },
+  }),
   useRouter: () => ({
     back: vi.fn(),
     replace: vi.fn().mockResolvedValue(undefined),
+    currentRoute: { value: { meta: { upTo: { name: 'circuits' }, upLabel: 'Circuits' } } },
     options: { history: { state: {} } },
   }),
 }));
@@ -46,6 +60,7 @@ let testDb: TestDb;
 beforeEach(async () => {
   testDb = await createTestDb();
   nativeState.isNative = true;
+  nativeState.hasSystemBack = false;
   nativeState.db = testDb.db;
 });
 
@@ -515,6 +530,33 @@ describe('CircuitWorkbenchView / drag seams', () => {
     expect(restored.map((slot) => slot.exerciseId)[0]).toBe(first.exerciseId);
     expect(circuitCards(wrapper)).toHaveLength(2);
     expect(wrapper.find('.trash-snackbar').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it('the up row goes inert mid-drag and revives on release', async () => {
+    // The lifted-inert rule reaches the #action slot only through this
+    // class (the slot sits outside .workbench--lifted's descendant
+    // selectors), so its wiring needs its own pin.
+    const circuitId = await seedCircuit();
+    const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
+    await flushPromises();
+
+    expect(wrapper.get('.nav-up-row').classes()).not.toContain('workbench__up--inert');
+
+    cardByName(wrapper, 'Cable Row').vm.$emit(
+      'drag-start',
+      syntheticPress({ clientX: 10, clientY: 5 }),
+    );
+    await flushPromises();
+    dragPointer('pointermove', { clientX: 10, clientY: -50 });
+    await flushPromises();
+
+    expect(wrapper.get('.nav-up-row').classes()).toContain('workbench__up--inert');
+
+    dragPointer('pointerup', { clientX: 10, clientY: -50 });
+    await flushPromises();
+
+    expect(wrapper.get('.nav-up-row').classes()).not.toContain('workbench__up--inert');
     wrapper.unmount();
   });
 
