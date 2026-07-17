@@ -1,22 +1,13 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
+import { firePointer } from '@/test-utils/pointer-events';
+
 import PoolElsewhereRow from './PoolElsewhereRow.vue';
 
 // Render + emit wiring only; the grip's press-to-drag decision logic is
-// pinned in useDragHandle.test.ts. Pointer interactions use the jsdom
-// expando pattern (see WorkoutCard.test.ts).
-
-function firePointer(
-  target: EventTarget,
-  type: string,
-  coords: { clientX: number; clientY: number },
-  pointerId = 1,
-): void {
-  const event = new Event(type);
-  Object.assign(event, coords, { pointerId, button: 0 });
-  target.dispatchEvent(event);
-}
+// pinned in useDragHandle.test.ts. Pointer interactions use the shared
+// jsdom expando helper (see src/test-utils/pointer-events.ts).
 
 describe('PoolElsewhereRow', () => {
   it('renders the muted name with the owner pill and a grip', () => {

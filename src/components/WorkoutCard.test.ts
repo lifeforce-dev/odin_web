@@ -1,23 +1,17 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { firePointer } from '@/test-utils/pointer-events';
+
 import WorkoutCard from './WorkoutCard.vue';
 
-// Pointer events are dispatched as plain Events with coordinate expandos:
-// jsdom has no PointerEvent constructor, and VTU's trigger() cannot set
-// MouseEvent's readonly button/clientX getters. The handlers only read
-// those properties, and gesture tracking lives on document anyway.
-// Every event carries a pointerId (the handlers filter on it); the
-// primary finger is pointer 1 unless a test says otherwise.
-function firePointer(
-  target: EventTarget,
-  type: string,
-  coords: { clientX?: number; clientY?: number; button?: number; pointerId?: number } = {},
-): void {
-  const event = new Event(type, { bubbles: true });
-  Object.assign(event, { pointerId: 1, ...coords });
-  target.dispatchEvent(event);
-}
+// Pointer events are dispatched as plain Events with coordinate expandos
+// (see src/test-utils/pointer-events.ts): jsdom has no PointerEvent
+// constructor, and VTU's trigger() cannot set MouseEvent's readonly
+// button/clientX getters. The handlers only read those properties, and
+// gesture tracking lives on document anyway. Every event carries a
+// pointerId (the handlers filter on it); the primary finger is pointer
+// 1 unless a test says otherwise.
 
 function mountCard(props: Record<string, unknown> = {}) {
   return mount(WorkoutCard, {
