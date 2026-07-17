@@ -2,8 +2,7 @@ import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 
 import { applyMigrations } from './migrate';
-import migrationBundle from './migrations/migrations';
-import { betterSqliteExecutor } from './test-db';
+import { betterSqliteExecutor, bundleThrough } from './test-db';
 
 // Migration 0001 moves sets/rest_seconds from circuit_item onto
 // exercise and CARRIES existing per-slot values across (the correlated
@@ -14,18 +13,11 @@ import { betterSqliteExecutor } from './test-db';
 // would corrupt every existing device on upgrade with every other test
 // green, and migrated data cannot be hotfixed back).
 
-function v1Bundle() {
-  return {
-    journal: { entries: migrationBundle.journal.entries.slice(0, 1) },
-    migrations: migrationBundle.migrations,
-  };
-}
-
 describe('migration 0001 data carry', () => {
   it('carries each held slot prescription onto its exercise; unheld get defaults', async () => {
     const sqlite = new Database(':memory:');
     sqlite.pragma('foreign_keys = ON');
-    await applyMigrations(v1Bundle(), betterSqliteExecutor(sqlite));
+    await applyMigrations(bundleThrough(1), betterSqliteExecutor(sqlite));
 
     // A populated v1 device: two held workouts with DISTINCT non-default
     // prescriptions (a swapped sets/rest pair or a broken correlation
@@ -44,7 +36,7 @@ describe('migration 0001 data carry', () => {
         ('i2', 'c1', 'e2', 1, 2, 120);
     `);
 
-    expect(await applyMigrations(migrationBundle, betterSqliteExecutor(sqlite))).toBe(1);
+    expect(await applyMigrations(bundleThrough(2), betterSqliteExecutor(sqlite))).toBe(1);
 
     const carried = sqlite.prepare('SELECT id, sets, rest_seconds FROM exercise ORDER BY id').all();
     expect(carried).toEqual([

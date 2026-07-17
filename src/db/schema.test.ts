@@ -43,7 +43,7 @@ function itemRow(circuitId: string, exerciseId: string): CircuitItemRow {
 }
 
 function sessionRow(circuitId: string): SessionRow {
-  return { id: newId(), circuitId, startedAt: nowIso(), endedAt: null };
+  return { id: newId(), circuitId, startedAt: nowIso(), endedAt: null, outcome: null };
 }
 
 function setLogRow(sessionId: string, exerciseId: string): SetLogRow {
@@ -215,6 +215,12 @@ describe('schema constraints', () => {
         VALUES (${newId()}, ${sess.id}, ${ex.id}, 1, 10, 135, 'stone', ${nowIso()})
       `),
       /CHECK constraint failed: set_log_weight_unit_check/,
+    );
+    await expectRejectsWithCause(
+      db.run(sql`
+        UPDATE session SET outcome = 'paused' WHERE id = ${sess.id}
+      `),
+      /CHECK constraint failed: session_outcome_check/,
     );
   });
 

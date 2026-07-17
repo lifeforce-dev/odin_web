@@ -58,12 +58,31 @@ const circuitItemArb: fc.Arbitrary<CircuitItemRow> = fc.record({
   position: fc.integer({ min: 0, max: 99 }),
 });
 
-const sessionArb: fc.Arbitrary<SessionRow> = fc.record({
-  id: fc.uuid(),
-  circuitId: fc.uuid(),
-  startedAt: isoDate,
-  endedAt: fc.option(isoDate, { nil: null }),
-});
+// endedAt and outcome are one fact: both null in flight, both set on
+// either terminal path. Generated as a pair so the property only
+// exercises rows the app can actually write.
+const sessionEnd = fc.option(
+  fc.record({
+    endedAt: isoDate,
+    outcome: fc.constantFrom<'completed' | 'abandoned'>('completed', 'abandoned'),
+  }),
+  { nil: null },
+);
+
+const sessionArb: fc.Arbitrary<SessionRow> = fc
+  .record({
+    id: fc.uuid(),
+    circuitId: fc.uuid(),
+    startedAt: isoDate,
+    end: sessionEnd,
+  })
+  .map(({ id, circuitId, startedAt, end }) => ({
+    id,
+    circuitId,
+    startedAt,
+    endedAt: end?.endedAt ?? null,
+    outcome: end?.outcome ?? null,
+  }));
 
 const setLogArb: fc.Arbitrary<SetLogRow> = fc.record({
   id: fc.uuid(),
@@ -101,7 +120,7 @@ describe('export contract', () => {
 
     expect(data).toEqual({
       format: 'odin-export',
-      schemaVersion: 2,
+      schemaVersion: 3,
       exportedAt: '2026-07-11T20:00:00.000Z',
       exercises: [],
       circuits: [],

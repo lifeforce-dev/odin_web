@@ -15,6 +15,13 @@
       "when": 1784101580916,
       "tag": "0001_kind_khan",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784275006237,
+      "tag": "0002_long_sir_ram",
+      "breakpoints": true
     }
   ]
 }

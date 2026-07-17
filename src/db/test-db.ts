@@ -8,7 +8,7 @@ import type { AsyncRemoteCallback } from 'drizzle-orm/sqlite-proxy';
 
 import type { DbClient } from './client';
 import { applyMigrations } from './migrate';
-import type { MigrationExecutor } from './migrate';
+import type { MigrationBundle, MigrationExecutor } from './migrate';
 import migrationBundle from './migrations/migrations';
 import { toPositionalRows } from './proxy-rows';
 import { isRowReturningWrite, rowReturningWriteError } from './proxy-statements';
@@ -54,6 +54,18 @@ export async function createTestDb(): Promise<TestDb> {
       sqlite.close();
       removeDir();
     },
+  };
+}
+
+// Sliced migration bundle for populated-upgrade tests: seed at version
+// count-1, then apply exactly the migration under test. A later
+// migration joining the full bundle must not change what those tests
+// execute - the full-bundle shortcut silently widens the subject the
+// day the next migration lands.
+export function bundleThrough(count: number): MigrationBundle {
+  return {
+    journal: { entries: migrationBundle.journal.entries.slice(0, count) },
+    migrations: migrationBundle.migrations,
   };
 }
 

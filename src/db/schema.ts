@@ -56,8 +56,10 @@ export const exercise = sqliteTable(
   ],
 );
 
-// Circuits are an ordered rotation scoped by kind; "up next" is derived from
-// the last session at read time, never stored.
+// Circuits are an ordered rotation scoped by kind: a mutable queue, not
+// a derived view. Ending a session (either outcome) rotates its circuit
+// to the back of its kind's queue; "up next" is the front among
+// startable circuits.
 export const circuit = sqliteTable(
   'circuit',
   {
@@ -113,10 +115,19 @@ export const session = sqliteTable(
       .notNull()
       .references(() => circuit.id, { onDelete: 'restrict' }),
     startedAt: text('started_at').notNull(),
-    // Null = in flight or abandoned.
+    // Null = in flight. Sessions end only explicitly; both terminal
+    // paths stamp endedAt and outcome together.
     endedAt: text('ended_at'),
+    // How the session ended: FINISH (or the grid-arrival completion
+    // reconcile) writes 'completed', the manager abandon and the
+    // orphan reap write 'abandoned'. Null while in flight; set_logs
+    // are kept on both paths.
+    outcome: text('outcome', { enum: ['completed', 'abandoned'] }),
   },
-  (table) => [index('session_started_idx').on(table.startedAt)],
+  (table) => [
+    index('session_started_idx').on(table.startedAt),
+    check('session_outcome_check', sql`${table.outcome} IN ('completed', 'abandoned')`),
+  ],
 );
 
 // Immutable facts of what happened. No slot/item FK: history follows the

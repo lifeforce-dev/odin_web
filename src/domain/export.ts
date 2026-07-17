@@ -11,8 +11,9 @@ export const EXPORT_FORMAT = 'odin-export';
 // The DB schema version the rows conform to. Importers branch on it;
 // bump it in the same change as any migration that alters an exported
 // shape. v2: the prescription moved onto the exercise row (sets,
-// restSeconds) and circuit_item became a pure association.
-export const EXPORT_SCHEMA_VERSION = 2;
+// restSeconds) and circuit_item became a pure association. v3: session
+// gained outcome ('completed' | 'abandoned', null while in flight).
+export const EXPORT_SCHEMA_VERSION = 3;
 
 export interface ExportRows {
   exercises: ExerciseRow[];
@@ -69,10 +70,12 @@ export function deserialize(text: string): OdinExport {
   }
   if (envelope.schemaVersion !== EXPORT_SCHEMA_VERSION) {
     // Deliberately hard: only the version this app writes. When a
-    // device-side restore ships it needs a v1 -> v2 upgrade branch here
-    // (hoist each held slot's sets/restSeconds onto its exercise row),
-    // not a bigger error message - v1 files exist in the wild the
-    // moment anyone exported before migration 0001.
+    // device-side restore ships it needs upgrade branches here, not a
+    // bigger error message - older files exist in the wild the moment
+    // anyone exported before the matching migration. v1 -> v2: hoist
+    // each held slot's sets/restSeconds onto its exercise row.
+    // v2 -> v3: backfill outcome 'completed' onto ended sessions (the
+    // same rule as migration 0002).
     throw new Error(
       `unsupported export schemaVersion: expected ${EXPORT_SCHEMA_VERSION}, ` +
         `got ${String(envelope.schemaVersion)}`,
