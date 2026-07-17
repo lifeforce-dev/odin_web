@@ -14,12 +14,13 @@ import {
   setPrescription,
 } from '@/domain/builder';
 
+import HomeView from './HomeView.vue';
+import { workoutCta } from './test-support';
 import WorkoutStartView from './WorkoutStartView.vue';
 
 // Integration over the real DB double: the grid's prop passthrough,
-// the tap-through route params, and the TotalTime feed are the seams
-// the domain tests cannot see, and the in-flight states have no device
-// walk until 03-05 writes sessions.
+// the tap-through route params, the TotalTime feed, and the arrival
+// completion reconcile are the seams the domain tests cannot see.
 
 const nativeState: { isNative: boolean; hasSystemBack: boolean; db: DbClient | null } = {
   isNative: true,
@@ -44,6 +45,7 @@ vi.mock('@/native', () => ({
 }));
 
 const routerPush = vi.hoisted(() => vi.fn());
+const routerReplace = vi.hoisted(() => vi.fn());
 
 // ScreenHeader no longer touches the router; NavUpRow does instead, and
 // its render gate needs meta.upTo/upLabel present.
@@ -55,7 +57,7 @@ vi.mock('vue-router', () => ({
   useRouter: () => ({
     push: routerPush,
     back: vi.fn(),
-    replace: vi.fn().mockResolvedValue(undefined),
+    replace: routerReplace,
     currentRoute: { value: { meta: { upTo: { name: 'home' }, upLabel: 'Home' } } },
     options: { history: { state: {} } },
   }),
@@ -70,6 +72,8 @@ beforeEach(async () => {
   nativeState.db = testDb.db;
   routerPush.mockClear();
   routerPush.mockResolvedValue(undefined);
+  routerReplace.mockClear();
+  routerReplace.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -189,5 +193,63 @@ describe('WorkoutStartView', () => {
 
     expect(wrapper.text()).toContain('Nothing to start');
     expect(tiles(wrapper)).toHaveLength(0);
+  });
+
+  it('completes a stranded session on arrival and routes home; the CTA reads Start Workout after', async () => {
+    // The strand: Bench fully logged, Cable Row at 1/4, then a
+    // workbench edit lowers Cable Row to 1 set - zero sets remain, no
+    // lift page offers FINISH, and without the arrival reconcile the
+    // grid would render all-done over a session stuck in flight.
+    const { circuitId, exercises } = await seedCircuit();
+    const sessionId = await startSession(circuitId);
+    await logSets(sessionId, exercises[0].id, 2);
+    await logSets(sessionId, exercises[1].id, 1);
+    await setPrescription(testDb.db, exercises[1].id, { sets: 1 });
+
+    const wrapper = mount(WorkoutStartView);
+    await flushPromises();
+
+    // Arrival IS the acknowledgment: the same terminal write as FINISH.
+    const [row] = await testDb.db.select().from(session);
+    expect(row).toMatchObject({ id: sessionId, outcome: 'completed' });
+    expect(row.endedAt).not.toBeNull();
+    // Routed to home (the congrats splash when 03-07 lands), grid never
+    // rendered.
+    expect(routerReplace).toHaveBeenCalledExactlyOnceWith({ name: 'home' });
+    expect(tiles(wrapper)).toHaveLength(0);
+
+    // No Resume bounce loop: home derives Start Workout from the now
+    // ended session.
+    const home = mount(HomeView);
+    await flushPromises();
+    expect(workoutCta(home).text()).toContain('Start Workout');
+  });
+
+  it('holds the loading state during the completion redirect, never the empty-state note', async () => {
+    const { circuitId, exercises } = await seedCircuit();
+    const sessionId = await startSession(circuitId);
+    await logSets(sessionId, exercises[0].id, 2);
+    await logSets(sessionId, exercises[1].id, 1);
+    await setPrescription(testDb.db, exercises[1].id, { sets: 1 });
+
+    // The navigation is held open: until it lands, the screen must keep
+    // its blank loading body - "Nothing to start" over a just-completed
+    // workout is a lie about the user's circuits.
+    let landNavigation: () => void = () => {};
+    routerReplace.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          landNavigation = resolve;
+        }),
+    );
+
+    const wrapper = mount(WorkoutStartView);
+    await flushPromises();
+
+    expect(routerReplace).toHaveBeenCalledExactlyOnceWith({ name: 'home' });
+    expect(wrapper.text()).not.toContain('Nothing to start');
+
+    landNavigation();
+    await flushPromises();
   });
 });

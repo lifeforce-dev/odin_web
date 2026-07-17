@@ -11,13 +11,18 @@ import TotalTime from '@/components/TotalTime.vue';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
 import { useScreenLoad } from '@/composables/useScreenLoad';
 import type { WorkoutStart } from '@/domain/workout';
-import { getWorkoutStart } from '@/domain/workout';
+import { getWorkoutStart, reconcileWorkoutCompletion } from '@/domain/workout';
 
 // The workout start page: the up-next circuit's name as the screen
 // title (the circuit is auto-selected, so the title IS the header) and
 // the exercise-select grid. Progress on the tiles is session-scoped
 // and derived on every load; the docked total-time readout runs off
-// the in-flight session's persisted start.
+// the in-flight session's persisted start. Arrival is also the
+// completion reconcile point: an in-flight session whose remaining
+// sets hit zero through workbench edits has no FINISH affordance left
+// anywhere, so the grid acknowledges the facts - ends it and routes to
+// home (the congrats splash when 03-07 lands) - instead of rendering
+// an all-done grid that strands the session in flight.
 
 const router = useRouter();
 const db = useDb();
@@ -26,6 +31,18 @@ const start = ref<WorkoutStart | null>(null);
 
 const { hasLoaded, loadFailed, refresh } = useScreenLoad('workout start', async () => {
   if (!db) {
+    return;
+  }
+  // This write rides the mount load OFF any serialized chain (the
+  // screen has none): a back-tap racing a still-open transaction
+  // (startRest's commit) rejects this BEGIN and lands on Retry - an
+  // accepted, self-healing failure mode, arriveAtRest's precedent.
+  const completed = await reconcileWorkoutCompletion(db);
+  if (completed) {
+    // Awaited so hasLoaded stays false until the navigation lands;
+    // otherwise the nothing-to-start note flashes over a
+    // just-completed workout while home's lazy chunk loads.
+    await router.replace({ name: 'home' });
     return;
   }
   start.value = await getWorkoutStart(db);

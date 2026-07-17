@@ -14,6 +14,7 @@ import {
 } from '@/domain/builder';
 
 import HomeView from './HomeView.vue';
+import { workoutCta } from './test-support';
 
 // Integration over the real DB double: the home CTA's mapping of
 // getWorkoutStart onto label/disabled and its start-the-clock write on
@@ -62,16 +63,6 @@ async function seedStartableCircuit(): Promise<string> {
   const exercise = await findOrCreateExercise(testDb.db, 'workout', 'Lat Pulldown');
   await addExerciseToCircuit(testDb.db, circuit.id, exercise.id);
   return circuit.id;
-}
-
-function workoutCta(wrapper: ReturnType<typeof mount>) {
-  const button = wrapper
-    .findAll('button')
-    .find((candidate) => /Start Workout|Resume/.test(candidate.text()));
-  if (!button) {
-    throw new Error('workout CTA not rendered');
-  }
-  return button;
 }
 
 describe('HomeView', () => {
