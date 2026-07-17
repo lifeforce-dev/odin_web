@@ -207,6 +207,40 @@ export async function archiveCircuit(
   });
 }
 
+// Rewrites rotationOrder densely (0..n-1, in list order) from the given
+// order. The id list must be exactly the ACTIVE circuits of the kind -
+// same exact-permutation contract as reorderCircuitItems. Archived
+// circuits keep their existing rotationOrder untouched: a collision with
+// an archived row is harmless (archived rows never appear in any queue
+// read) and nextRotationOrder's max-over-all-rows append stays monotonic.
+export async function reorderCircuits(
+  db: DbHandle,
+  kind: CircuitKind,
+  orderedCircuitIds: string[],
+): Promise<void> {
+  return db.transaction(async (tx) => {
+    const current = await tx
+      .select({ id: circuit.id })
+      .from(circuit)
+      .where(and(eq(circuit.kind, kind), isNull(circuit.archivedAt)));
+    const currentIds = new Set(current.map((row) => row.id));
+    const isExactPermutation =
+      orderedCircuitIds.length === currentIds.size &&
+      new Set(orderedCircuitIds).size === orderedCircuitIds.length &&
+      orderedCircuitIds.every((id) => currentIds.has(id));
+    if (!isExactPermutation) {
+      throw new BuilderError(
+        'reorder-mismatch',
+        `reorder list does not match the active ${kind} circuits: ` +
+          `expected the ${currentIds.size} active circuit ids exactly once each`,
+      );
+    }
+    for (const [rotationOrder, id] of orderedCircuitIds.entries()) {
+      await tx.update(circuit).set({ rotationOrder }).where(eq(circuit.id, id));
+    }
+  });
+}
+
 // --- Workout pool -----------------------------------------------------------
 
 // Find-or-create on the normalized name. Matching folds both sides

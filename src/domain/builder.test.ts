@@ -21,6 +21,7 @@ import {
   renameCircuit,
   renameExercise,
   reorderCircuitItems,
+  reorderCircuits,
   restoreExercise,
   setPrescription,
   stealExercise,
@@ -138,6 +139,72 @@ describe('builder', () => {
       await expect(addExerciseToCircuit(db, legs.id, pushups.id)).resolves.toMatchObject({
         circuitId: legs.id,
       });
+    });
+  });
+
+  describe('reorderCircuits', () => {
+    it('rewrites rotationOrder densely from the given order', async () => {
+      const db = testDb.db;
+      const a = await createCircuit(db, { kind: 'workout', name: 'A' });
+      const b = await createCircuit(db, { kind: 'workout', name: 'B' });
+      const c = await createCircuit(db, { kind: 'workout', name: 'C' });
+
+      await reorderCircuits(db, 'workout', [c.id, a.id, b.id]);
+
+      expect(await listActiveCircuits(db, 'workout')).toMatchObject([
+        { id: c.id, rotationOrder: 0 },
+        { id: a.id, rotationOrder: 1 },
+        { id: b.id, rotationOrder: 2 },
+      ]);
+    });
+
+    it('rejects a missing, duplicate, extra, or archived id, changing nothing', async () => {
+      const db = testDb.db;
+      const a = await createCircuit(db, { kind: 'workout', name: 'A' });
+      const b = await createCircuit(db, { kind: 'workout', name: 'B' });
+      const archived = await createCircuit(db, { kind: 'workout', name: 'Archived' });
+      await archiveCircuit(db, archived.id);
+
+      await expectBuilderError(reorderCircuits(db, 'workout', [a.id]), 'reorder-mismatch');
+      await expectBuilderError(
+        reorderCircuits(db, 'workout', [a.id, b.id, 'stranger']),
+        'reorder-mismatch',
+      );
+      await expectBuilderError(reorderCircuits(db, 'workout', [a.id, a.id]), 'reorder-mismatch');
+      await expectBuilderError(
+        reorderCircuits(db, 'workout', [a.id, b.id, archived.id]),
+        'reorder-mismatch',
+      );
+      // Same length as the active set (2), no duplicates: only the
+      // membership check (not length or duplicate) can catch this one.
+      await expectBuilderError(
+        reorderCircuits(db, 'workout', [a.id, archived.id]),
+        'reorder-mismatch',
+      );
+      expect(await listActiveCircuits(db, 'workout')).toMatchObject([
+        { id: a.id, rotationOrder: a.rotationOrder },
+        { id: b.id, rotationOrder: b.rotationOrder },
+      ]);
+      expect((await getCircuitById(db, archived.id))?.rotationOrder).toBe(archived.rotationOrder);
+    });
+
+    it('leaves an archived row untouched, so a later create still appends past it', async () => {
+      const db = testDb.db;
+      const a = await createCircuit(db, { kind: 'workout', name: 'A' });
+      const b = await createCircuit(db, { kind: 'workout', name: 'B' });
+      const archived = await createCircuit(db, { kind: 'workout', name: 'Archived' });
+      const archivedOrder = archived.rotationOrder;
+      await archiveCircuit(db, archived.id);
+
+      await reorderCircuits(db, 'workout', [b.id, a.id]);
+
+      const archivedRow = await getCircuitById(db, archived.id);
+      expect(archivedRow?.rotationOrder).toBe(archivedOrder);
+      // The append rule stays monotonic over ALL rows of the kind, archived
+      // included - a collision with the archived slot is harmless since it
+      // never appears in any queue read.
+      const created = await createCircuit(db, { kind: 'workout', name: 'New' });
+      expect(created.rotationOrder).toBeGreaterThan(archivedOrder);
     });
   });
 

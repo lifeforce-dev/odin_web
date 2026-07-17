@@ -607,8 +607,8 @@ export async function finishSession(
   return endSessionById(db, sessionId, 'completed', endedAt);
 }
 
-// The manager's explicit abandon (02-06): the same terminal machinery
-// with outcome 'abandoned'. set_logs are kept - history follows the
+// The manager's explicit abandon: the same terminal machinery with
+// outcome 'abandoned'. set_logs are kept - history follows the
 // exercise, and the sets happened.
 export async function abandonSession(
   db: DbHandle,
@@ -616,6 +616,108 @@ export async function abandonSession(
   endedAt = nowIso(),
 ): Promise<SessionRow | null> {
   return endSessionById(db, sessionId, 'abandoned', endedAt);
+}
+
+// One row of the circuits screen's queue.
+export interface RotationQueueRow {
+  id: string;
+  name: string;
+  rotationOrder: number;
+  workoutCount: number;
+}
+
+// The circuits screen's one read: the queue in play order plus which
+// circuit (if any) is in flight.
+export interface RotationView {
+  queue: RotationQueueRow[];
+  active: { sessionId: string; circuitId: string } | null;
+}
+
+// The manager's one read. workoutCount is a correlated scalar
+// subquery embedded via drizzle's own query builder (a bare sql
+// template interpolating both tables' columns loses its table
+// qualification here - drizzle-orm 0.45.2 only qualifies columns
+// correctly when the correlated reference is built through
+// db.select().from().where(), not through raw ${column} interpolation
+// spanning two tables in one template). Single table + this nested
+// builder is safe against the same-named-bare-column collision rule
+// (src/db/proxy-rows.ts).
+export async function getRotationView(db: DbHandle): Promise<RotationView> {
+  const workoutCountSubquery = db
+    .select({ n: sql<number>`count(*)`.as('n') })
+    .from(circuitItem)
+    .where(eq(circuitItem.circuitId, circuit.id));
+
+  const queue = await db
+    .select({
+      id: circuit.id,
+      name: circuit.name,
+      rotationOrder: circuit.rotationOrder,
+      workoutCount: sql<number>`(${workoutCountSubquery})`.as('workout_count'),
+    })
+    .from(circuit)
+    .where(and(eq(circuit.kind, 'workout'), isNull(circuit.archivedAt)))
+    .orderBy(circuit.rotationOrder);
+
+  const inFlight = await getInFlightSession(db);
+  const active =
+    inFlight && queue.some((row) => row.id === inFlight.circuitId)
+      ? { sessionId: inFlight.id, circuitId: inFlight.circuitId }
+      : null;
+
+  return { queue, active };
+}
+
+// The active-circuit box's swap: ends the in-flight session (the same
+// terminal machinery as abandonSession) and fronts the chosen circuit in
+// one transaction. Never mints a session - Start Workout stays the
+// single entry point (2026-07-13 owner decision). Every refusal path
+// returns null with zero writes: a stale screen resyncs from the DB
+// rather than trusting what it was shown.
+export async function swapActiveCircuit(
+  db: DbHandle,
+  sessionId: string,
+  toCircuitId: string,
+): Promise<SessionRow | null> {
+  return db.transaction(async (tx) => {
+    const existing = await tx.select().from(session).where(eq(session.id, sessionId)).get();
+    if (!existing || existing.endedAt !== null) {
+      return null;
+    }
+    if (toCircuitId === existing.circuitId) {
+      return null;
+    }
+    const target = await tx.select().from(circuit).where(eq(circuit.id, toCircuitId)).get();
+    if (!target || target.archivedAt !== null || target.kind !== 'workout') {
+      return null;
+    }
+    const targetHasItems = await tx
+      .select({ id: circuitItem.id })
+      .from(circuitItem)
+      .where(eq(circuitItem.circuitId, toCircuitId))
+      .get();
+    if (!targetHasItems) {
+      // An empty target would make "Start Workout will start X" a lie -
+      // the startable predicate skips empties.
+      return null;
+    }
+
+    const endedAt = nowIso();
+    const ended = await endSessionRow(tx, existing, 'abandoned', endedAt);
+    const frontRow = await tx
+      .select({
+        min: sql<number>`coalesce(min(${circuit.rotationOrder}), 0)`.as('min_rotation_order'),
+      })
+      .from(circuit)
+      .where(eq(circuit.kind, target.kind))
+      .get();
+    // Negative values are fine (INTEGER column; ordering is relative).
+    await tx
+      .update(circuit)
+      .set({ rotationOrder: (frontRow?.min ?? 0) - 1 })
+      .where(eq(circuit.id, toCircuitId));
+    return ended;
+  });
 }
 
 // The completion reconcile on grid arrival (owner ruling 2026-07-17):

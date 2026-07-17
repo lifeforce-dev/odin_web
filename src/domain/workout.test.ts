@@ -26,12 +26,14 @@ import {
   finishSession,
   getInFlightSession,
   getResumePoint,
+  getRotationView,
   getWorkoutSet,
   getWorkoutStart,
   reconcileWorkoutCompletion,
   rollBackRest,
   startRest,
   startWorkout,
+  swapActiveCircuit,
   updateRestLog,
 } from './workout';
 
@@ -1059,6 +1061,142 @@ describe('session end', () => {
       await finishSession(testDb.db, (await insertSession(c.circuit.id)).id);
       expect(await activeOrder()).toEqual(['A', 'B', 'C']);
       expect((await getWorkoutStart(testDb.db))?.circuit.id).toBe(a.circuit.id);
+    });
+  });
+});
+
+describe('circuit manager (02-06)', () => {
+  async function allSessions(): Promise<SessionRow[]> {
+    return testDb.db.select().from(session);
+  }
+
+  describe('getRotationView', () => {
+    it('counts workouts and orders the queue by rotationOrder, and reports active null with no session in flight', async () => {
+      const push = await makeCircuitWithWorkouts('Push', ['Bench Press', 'Dips']);
+      const pull = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+      const empty = await createCircuit(testDb.db, { kind: 'workout', name: 'Empty' });
+
+      const view = await getRotationView(testDb.db);
+
+      expect(view.queue).toEqual([
+        {
+          id: push.circuit.id,
+          name: 'Push',
+          rotationOrder: push.circuit.rotationOrder,
+          workoutCount: 2,
+        },
+        {
+          id: pull.circuit.id,
+          name: 'Pull',
+          rotationOrder: pull.circuit.rotationOrder,
+          workoutCount: 1,
+        },
+        { id: empty.id, name: 'Empty', rotationOrder: empty.rotationOrder, workoutCount: 0 },
+      ]);
+      expect(view.active).toBeNull();
+    });
+
+    it('excludes archived and stretch-kind circuits from the queue', async () => {
+      const push = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const archived = await makeCircuitWithWorkouts('Archived', ['Rows']);
+      await archiveCircuit(testDb.db, archived.circuit.id);
+      const stretch = await createCircuit(testDb.db, { kind: 'stretch', name: 'Mobility' });
+
+      const view = await getRotationView(testDb.db);
+
+      expect(view.queue.map((row) => row.id)).toEqual([push.circuit.id]);
+      expect(view.queue.map((row) => row.id)).not.toContain(stretch.id);
+    });
+
+    it('reports active when a session is in flight on a queued circuit', async () => {
+      const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const inFlight = await insertSession(circuit.id);
+
+      const view = await getRotationView(testDb.db);
+
+      expect(view.active).toEqual({ sessionId: inFlight.id, circuitId: circuit.id });
+    });
+
+    it("reports active null when the in-flight session's circuit is archived", async () => {
+      const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+      await archiveCircuit(testDb.db, circuit.id);
+
+      expect((await getRotationView(testDb.db)).active).toBeNull();
+    });
+
+    it('still reports active on an empty-but-active circuit (resumable by refill)', async () => {
+      const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const inFlight = await insertSession(circuit.id);
+      for (const slot of await listCircuitSlots(testDb.db, circuit.id)) {
+        await removeCircuitItem(testDb.db, slot.id);
+      }
+
+      const view = await getRotationView(testDb.db);
+
+      expect(view.active).toEqual({ sessionId: inFlight.id, circuitId: circuit.id });
+      expect(view.queue.find((row) => row.id === circuit.id)?.workoutCount).toBe(0);
+    });
+  });
+
+  describe('swapActiveCircuit', () => {
+    it('ends the session, rotates the old circuit back, fronts the target, mints nothing new', async () => {
+      const from = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const to = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+      const third = await makeCircuitWithWorkouts('Legs', ['Squat']);
+      const inFlight = await insertSession(from.circuit.id);
+
+      const ended = await swapActiveCircuit(testDb.db, inFlight.id, to.circuit.id);
+
+      expect(ended).toMatchObject({
+        id: inFlight.id,
+        circuitId: from.circuit.id,
+        outcome: 'abandoned',
+      });
+      expect(ended?.endedAt).not.toBeNull();
+      // Swap never mints - Start Workout stays the single entry point.
+      expect(await allSessions()).toHaveLength(1);
+      const order = await listActiveCircuits(testDb.db, 'workout');
+      expect(order.map((row) => row.id)).toEqual([
+        to.circuit.id,
+        third.circuit.id,
+        from.circuit.id,
+      ]);
+    });
+
+    it('refuses every invalid target, writing nothing', async () => {
+      const from = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const to = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
+      const empty = await createCircuit(testDb.db, { kind: 'workout', name: 'Empty' });
+      const archived = await makeCircuitWithWorkouts('Archived', ['Rows']);
+      await archiveCircuit(testDb.db, archived.circuit.id);
+      const stretchCircuit = await createCircuit(testDb.db, { kind: 'stretch', name: 'Mobility' });
+      const stretchHold = await findOrCreateExercise(testDb.db, 'stretch', 'Pigeon Hold');
+      await addExerciseToCircuit(testDb.db, stretchCircuit.id, stretchHold.id);
+
+      const inFlight = await insertSession(from.circuit.id);
+      const alreadyEnded = await insertSession(to.circuit.id, {
+        endedAt: '2026-07-15T11:00:00.000Z',
+      });
+
+      expect(await swapActiveCircuit(testDb.db, alreadyEnded.id, to.circuit.id)).toBeNull();
+      expect(await swapActiveCircuit(testDb.db, 'no-such-session', to.circuit.id)).toBeNull();
+      expect(await swapActiveCircuit(testDb.db, inFlight.id, archived.circuit.id)).toBeNull();
+      expect(await swapActiveCircuit(testDb.db, inFlight.id, empty.id)).toBeNull();
+      expect(await swapActiveCircuit(testDb.db, inFlight.id, from.circuit.id)).toBeNull();
+      expect(await swapActiveCircuit(testDb.db, inFlight.id, stretchCircuit.id)).toBeNull();
+      expect(await swapActiveCircuit(testDb.db, inFlight.id, 'no-such-circuit')).toBeNull();
+
+      const rows = await allSessions();
+      expect(rows.find((row) => row.id === inFlight.id)).toMatchObject({
+        endedAt: null,
+        outcome: null,
+      });
+      expect(await listActiveCircuits(testDb.db, 'workout')).toMatchObject([
+        { id: from.circuit.id },
+        { id: to.circuit.id },
+        { id: empty.id },
+      ]);
     });
   });
 });
