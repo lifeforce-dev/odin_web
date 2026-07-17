@@ -1,16 +1,15 @@
 # Stack Binding: Vue 3 + Capacitor + SQLite App
 
-This repo is bound to the Vue + Capacitor + SQLite standards. The following are
-loaded unconditionally for every session in this project:
-
-@~/.claude/skills/vue-builder/SKILL.md
-@~/.claude/skills/css-architect/SKILL.md
-@~/.claude/skills/sqlite-builder/SKILL.md
-@~/.claude/skills/capacitor-builder/SKILL.md
-
-All code written in this repo must comply with the standards above. When two skills
-overlap, the more specific one wins (capacitor-builder over vue-builder for
-bridge-touching code, sqlite-builder for schema and query design).
+This repo is bound to the vue-builder, css-architect, sqlite-builder, and
+capacitor-builder skills. They are NOT imported here on purpose (cost):
+load the matching skill before writing any Vue/TS, styling, schema/query,
+or native-bridge code, and let skill descriptions auto-load them. When two
+skills overlap, the more specific one wins (capacitor-builder over
+vue-builder for bridge-touching code, sqlite-builder for schema and query
+design). The response footer must name the skills that applied; a footer
+without them on stack work means a skill failed to load. The stylelint
+token wall, check:themes, and dependency-cruiser rules still enforce the
+hard constraints mechanically either way.
 
 # Theme System Compatibility (binding for ALL UI work)
 
