@@ -5,8 +5,13 @@
   <head>
     <meta charset="UTF-8" />
     <!-- viewport-fit=cover is required: safe-area env() vars report 0
-         without it. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+         without it. maximum-scale/user-scalable lock the WebView's
+         zoom: without them Android zooms the page in on text-field
+         focus, and pinch zoom breaks the fixed HUD scale. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>ODIN</title>
   </head>
   <body>
