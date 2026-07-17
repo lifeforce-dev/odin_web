@@ -24,6 +24,7 @@ import {
   getInFlightSession,
   getWorkoutSet,
   getWorkoutStart,
+  rollBackRest,
   startRest,
   startWorkout,
   updateRestLog,
@@ -767,6 +768,91 @@ describe('rest screen', () => {
       await expect(
         updateRestLog(testDb.db, arrival!.setLogId, { reps: -1, weight: 10 }),
       ).rejects.toThrow('non-negative integer');
+    });
+  });
+
+  describe('rollBackRest', () => {
+    it('deletes the row outright, edits and all - aborting the set is the point', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 1);
+      await updateRestLog(testDb.db, arrival!.setLogId, { reps: 8, weight: 135 });
+
+      const ok = await rollBackRest(testDb.db, arrival!.setLogId);
+
+      expect(ok).toBe(true);
+      expect(await allSetLogs()).toHaveLength(0);
+    });
+
+    it('re-derives the lift page back to the pre-arrival state', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await setPrescription(testDb.db, exercises[0].id, { sets: 4 });
+      await insertSession(circuit.id);
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 1);
+
+      await rollBackRest(testDb.db, arrival!.setLogId);
+      const workoutSet = await getWorkoutSet(testDb.db, exercises[0].id);
+
+      expect(workoutSet).toMatchObject({ loggedSets: 0, currentSet: 1 });
+    });
+
+    it('deletes ONLY the target row: sibling logs in the same session survive', async () => {
+      // A predicate widened to sessionId/exerciseId (or a dropped
+      // where) would wipe the table and still pass every single-row
+      // case above.
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', [
+        'Bench Press',
+        'Cable Row',
+      ]);
+      await insertSession(circuit.id);
+      const firstSet = await arriveAtRest(testDb.db, exercises[0].id, 1);
+      const secondSet = await arriveAtRest(testDb.db, exercises[0].id, 2);
+      const otherExercise = await arriveAtRest(testDb.db, exercises[1].id, 1);
+
+      const ok = await rollBackRest(testDb.db, secondSet!.setLogId);
+
+      expect(ok).toBe(true);
+      const survivors = (await allSetLogs()).map((row) => row.id).sort();
+      expect(survivors).toEqual([firstSet!.setLogId, otherExercise!.setLogId].sort());
+    });
+
+    it('returns false and writes nothing for a missing id: the state already matches the intent', async () => {
+      expect(await rollBackRest(testDb.db, newId())).toBe(false);
+      expect(await allSetLogs()).toHaveLength(0);
+    });
+
+    it('leaves the session row untouched either way - no orphan-session mutation', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      const inFlight = await insertSession(circuit.id, { startedAt: '2026-07-16T10:00:00.000Z' });
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 1);
+
+      await rollBackRest(testDb.db, arrival!.setLogId);
+      await rollBackRest(testDb.db, newId());
+
+      const [row] = await testDb.db.select().from(session);
+      expect(row).toMatchObject({
+        id: inFlight.id,
+        startedAt: '2026-07-16T10:00:00.000Z',
+        endedAt: null,
+      });
+    });
+
+    it('a re-arrival after rollback inserts a FRESH row: the recovery path', async () => {
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await insertSession(circuit.id);
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 1, '2026-07-16T10:05:00.000Z');
+
+      await rollBackRest(testDb.db, arrival!.setLogId);
+      const recovered = await arriveAtRest(
+        testDb.db,
+        exercises[0].id,
+        1,
+        '2026-07-16T10:06:00.000Z',
+      );
+
+      expect(recovered?.setLogId).not.toBe(arrival?.setLogId);
+      expect(recovered?.loggedAt).toBe('2026-07-16T10:06:00.000Z');
+      expect(await allSetLogs()).toHaveLength(1);
     });
   });
 

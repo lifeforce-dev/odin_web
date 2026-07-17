@@ -11,13 +11,20 @@ export interface ScreenLoad {
   hasLoaded: Ref<boolean>;
   loadFailed: Ref<boolean>;
   refresh: () => Promise<void>;
+  settled: () => Promise<void>;
 }
 
 export function useScreenLoad(screenLabel: string, load: () => Promise<void>): ScreenLoad {
   const hasLoaded = ref(false);
   const loadFailed = ref(false);
 
-  async function refresh(): Promise<void> {
+  // The latest started refresh, mount load included. settled() lets a
+  // caller whose decision depends on the loaded facts (rest's rollback)
+  // wait out an in-flight read instead of acting on a stale null;
+  // refresh never rejects, so awaiting it is always safe.
+  let latest: Promise<void> = Promise.resolve();
+
+  async function runLoad(): Promise<void> {
     try {
       await load();
       hasLoaded.value = true;
@@ -28,9 +35,14 @@ export function useScreenLoad(screenLabel: string, load: () => Promise<void>): S
     }
   }
 
+  function refresh(): Promise<void> {
+    latest = runLoad();
+    return latest;
+  }
+
   onMounted(() => {
     void refresh();
   });
 
-  return { hasLoaded, loadFailed, refresh };
+  return { hasLoaded, loadFailed, refresh, settled: () => latest };
 }

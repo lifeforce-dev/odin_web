@@ -491,6 +491,26 @@ export async function updateRestLog(
   });
 }
 
+// The rest screen's back-as-rollback: undoes the arrival auto-log
+// outright, edits and all - aborting the set is the point. Touches ONLY
+// this row: no session mint, no outcome stamp, no other row ever moves.
+// False means the row is already gone - the state already matches the
+// intent, not an error the caller needs to handle differently.
+export async function rollBackRest(db: DbHandle, setLogId: string): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ id: setLog.id })
+      .from(setLog)
+      .where(eq(setLog.id, setLogId))
+      .get();
+    if (!existing) {
+      return false;
+    }
+    await tx.delete(setLog).where(eq(setLog.id, setLogId));
+    return true;
+  });
+}
+
 // The FINISH transition's minimal completion: stamps endedAt once and
 // refuses a second call (null). Deliberately does not set an outcome or
 // rotate the queue - a later domain change owns both and will backfill
