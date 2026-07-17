@@ -122,6 +122,7 @@ async function handleRest(): Promise<void> {
   text-transform: uppercase;
 }
 
+/* Byte-identical with RestView's .rest__footer - these move together. */
 .workout-set__footer {
   display: flex;
   flex-direction: column;
