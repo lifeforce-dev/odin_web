@@ -69,7 +69,8 @@ export const GEOMETRY_BOARD_TOKENS: readonly string[] = [
 // test, so the board-or-exempt decision is always made consciously.
 export const UNBOARDED_TOKENS: Readonly<Record<string, string>> = {
   '--tap-min': 'bespoke tap-target sample section',
-  '--type-display-hero': 'bespoke countdown sample under the display board',
+  '--type-display-hero':
+    'boarded live via the RestDigits component sample, plus the bespoke countdown sample under the display board',
   '--z-docked': 'z-layers stack; they do not swatch',
   '--z-float': 'z-layers stack; they do not swatch',
   '--z-scanline': 'z-layers stack; they do not swatch',

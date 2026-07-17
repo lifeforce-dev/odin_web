@@ -3,15 +3,18 @@ import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
 import CircuitCard from '@/components/CircuitCard.vue';
+import DockedAction from '@/components/DockedAction.vue';
 import ForgeSlot from '@/components/ForgeSlot.vue';
 import GripHandle from '@/components/GripHandle.vue';
 import InlineNameEntry from '@/components/InlineNameEntry.vue';
 import LastCircuitData from '@/components/LastCircuitData.vue';
+import LogSetControl from '@/components/LogSetControl.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import OdinMark from '@/components/OdinMark.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
 import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
 import PoolGroupHeader from '@/components/PoolGroupHeader.vue';
+import RestDigits from '@/components/RestDigits.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import SetProgress from '@/components/SetProgress.vue';
@@ -100,6 +103,17 @@ const demoGripEvent = ref<string | null>(null);
 const demoEntryOpen = ref(false);
 const demoEntryResult = ref<string | null>(null);
 const demoStepperRest = ref(60);
+
+// Live log-set sample: the real shipped control, its own commit echoed
+// below so the settle/blur write-behind path is visibly exercised too.
+const demoLogSet = reactive({ reps: 12, weight: 135 });
+const demoLogSetCommit = ref<string | null>(null);
+
+function onDemoLogSetCommit(payload: { reps: number; weight: number }): void {
+  demoLogSet.reps = payload.reps;
+  demoLogSet.weight = payload.weight;
+  demoLogSetCommit.value = `commit emitted: ${payload.reps} reps // ${payload.weight} lb`;
+}
 
 // Live forge sample: the real slot, each state and exit choreography
 // playable; the phase-drop timers use the same motion.ts mirrors the
@@ -444,6 +458,47 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
+        <h2 class="board-eyebrow">Docked action (amber / ghost / ghost pulsing / filled)</h2>
+        <DockedAction variant="amber" label="Start Rest" />
+        <DockedAction variant="ghost" label="Next Set" />
+        <DockedAction variant="ghost" :pulsing="true" label="Next Set" />
+        <DockedAction variant="filled" label="Next Set" />
+        <p class="board-note">
+          One geometry (03-02's docked CTA shape), three color variants: amber is the lift page's
+          rest channel, ghost is the rest screen's vermilion doorway back to the act-state (pulsing
+          past 0:10), filled is time-up - the loudest thing on the screen.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Log set control (live, reps / weight auto-log editor)</h2>
+        <LogSetControl
+          :reps="demoLogSet.reps"
+          :weight="demoLogSet.weight"
+          weight-unit="lb"
+          @commit="onDemoLogSetCommit"
+        />
+        <p v-if="demoLogSetCommit" class="board-note">{{ demoLogSetCommit }}</p>
+        <p class="board-note">
+          Reps/weight thumb pads ride StepperField's shared pointer-hold logic; the value wells are
+          contenteditable (the Bebas Neue line-box gotcha rules out &lt;input&gt;). Tap a pad or
+          type a value and tab away: the commit event settles after a pad/type burst or a blur.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Rest digits (normal / time-up)</h2>
+        <RestDigits :remaining="90" />
+        <RestDigits :remaining="0" />
+        <p class="board-note">
+          The hero countdown, the real shipped component: solid amber fill with one glow layer
+          (--glow-rest-value); at 0 the digits calm to --text-soft while the docked action (above)
+          fills solid instead - amber dominates while resting, red takes over at time-up. The pulse
+          state lives on DockedAction (see the board row above), not here.
+        </p>
+      </section>
+
+      <section class="board-section">
         <h2 class="board-eyebrow">Forge slot (create row + delete face, live)</h2>
         <ForgeSlot :fx="demoForge.fx" :lifted="demoForge.lifted" :armed="demoForge.armed">
           <PoolCreateRow @create="(name) => (demoCreatedName = name)" />
@@ -491,7 +546,7 @@ onMounted(() => {
 
     <template #action>
       <div class="gallery-action">
-        <button type="button" class="gallery-cta">Primary CTA</button>
+        <DockedAction variant="amber" label="Primary CTA" />
       </div>
     </template>
   </AppShell>
@@ -823,28 +878,5 @@ onMounted(() => {
 .gallery-action {
   padding: var(--space-3) var(--space-4);
   border-top: var(--hairline) solid var(--border);
-}
-
-/* The primary CTA recipe; the game-UI interaction reset comes from
-   base.css button wiring. */
-.gallery-cta {
-  width: 100%;
-  min-height: var(--tap-min);
-  padding: var(--space-3) var(--space-4);
-  font-family: var(--font-mono);
-  font-size: var(--type-data-lg);
-  font-weight: 700;
-  letter-spacing: var(--tracking-2);
-  color: var(--accent);
-  text-transform: uppercase;
-  cursor: pointer;
-  background: var(--accent-soft);
-  border: var(--rule) solid var(--accent);
-  box-shadow: var(--glow-cta);
-}
-
-.gallery-cta:active {
-  color: var(--accent-deep);
-  border-color: var(--accent-deep);
 }
 </style>
