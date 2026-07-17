@@ -34,10 +34,6 @@ export async function createExercise(
   return row;
 }
 
-export async function getExerciseById(db: DbHandle, id: string): Promise<ExerciseRow | undefined> {
-  return db.select().from(exercise).where(eq(exercise.id, id)).get();
-}
-
 export async function listActiveExercises(
   db: DbHandle,
   kind: ExerciseKind,

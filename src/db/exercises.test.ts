@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { archiveExercise, createExercise, getExerciseById, listActiveExercises } from './exercises';
+import { archiveExercise, createExercise, listActiveExercises } from './exercises';
 import { createTestDb } from './test-db';
 import type { TestDb } from './test-db';
 
@@ -19,23 +19,19 @@ describe('exercises', () => {
     testDb.close();
   });
 
-  it('creates an exercise readable by id', async () => {
+  it('creates a persisted exercise', async () => {
     const created = await createExercise(testDb.db, { kind: 'workout', name: 'Pushups' });
 
     expect(created.id).toMatch(UUID_V4);
     expect(created.createdAt).toMatch(ISO_UTC_MS);
-    expect(await getExerciseById(testDb.db, created.id)).toEqual(created);
-  });
-
-  it('returns undefined for an unknown id', async () => {
-    expect(await getExerciseById(testDb.db, 'no-such-id')).toBeUndefined();
+    expect(await listActiveExercises(testDb.db, 'workout')).toEqual([created]);
   });
 
   it('trims surrounding whitespace but keeps the user casing', async () => {
     const created = await createExercise(testDb.db, { kind: 'workout', name: '  Pushups Heavy ' });
 
     expect(created.name).toBe('Pushups Heavy');
-    expect((await getExerciseById(testDb.db, created.id))?.name).toBe('Pushups Heavy');
+    expect(await listActiveExercises(testDb.db, 'workout')).toEqual([created]);
   });
 
   it('lists only active exercises of the requested kind, ordered case-insensitively', async () => {
