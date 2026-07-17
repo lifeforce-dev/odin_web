@@ -44,6 +44,19 @@ const router = createRouter({
       props: true,
     },
     {
+      // setIndex is the one route-carried fact: which set this rest
+      // logs, captured at the START REST transition - the arrival
+      // auto-log (03-03) changes what a re-derivation would answer.
+      // Final mode derives from session facts, never a route flag.
+      path: '/workout/:exerciseId/rest/:setIndex(\\d+)',
+      name: 'rest',
+      component: () => import('@/views/RestView.vue'),
+      props: (route) => ({
+        exerciseId: String(route.params.exerciseId),
+        setIndex: Number(route.params.setIndex),
+      }),
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue'),
