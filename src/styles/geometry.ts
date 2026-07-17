@@ -85,5 +85,11 @@ export const UNBOARDED_TOKENS: Readonly<Record<string, string>> = {
   '--motion-pulse': 'durations animate; they do not swatch statically',
   '--rack-index': 'a single layout width; the workbench rack is its live sample',
   '--leading-notice': 'a unitless line-height; the verdict notices are its live sample',
+  '--leading-display-title':
+    'a unitless line-height; the screen-header editable sample is its live sample',
   '--circuit-card-min': 'a single tile floor; the circuit-card board rows are its live sample',
+  '--dim-drag-origin': 'a drag-only state opacity; not swatchable statically',
+  '--dim-drag-ghost': 'a drag-only state opacity; not swatchable statically',
+  '--dim-disabled':
+    'a state opacity; the circuit-row dimmed and menu-button disabled samples show it live',
 };

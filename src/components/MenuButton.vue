@@ -67,7 +67,7 @@ defineSlots<{
 
 /* Disabled rows drop the accent to the dim tier: no affordance, no lie. */
 .menu-button:disabled {
-  opacity: 0.4;
+  opacity: var(--dim-disabled);
   cursor: default;
 }
 

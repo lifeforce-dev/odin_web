@@ -20,7 +20,12 @@ const emit = defineEmits<{
 <template>
   <div class="screen-note">
     <p class="screen-note__text"><slot /></p>
-    <button v-if="action" type="button" class="screen-note__action" @click="emit('action')">
+    <button
+      v-if="action"
+      type="button"
+      class="screen-note__action red-ghost-btn"
+      @click="emit('action')"
+    >
       {{ action }}
     </button>
   </div>
@@ -41,21 +46,6 @@ const emit = defineEmits<{
 }
 
 .screen-note__action {
-  min-height: var(--tap-min);
   padding: var(--space-2) var(--space-4);
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: var(--type-label);
-  font-weight: 800;
-  letter-spacing: var(--tracking-2);
-  text-transform: uppercase;
-  cursor: pointer;
-  background: transparent;
-  border: var(--hairline) solid var(--accent);
-  transition: background var(--motion-press);
-}
-
-.screen-note__action:active {
-  background: var(--accent-soft);
 }
 </style>

@@ -78,6 +78,11 @@
      readable" is a one-line edit. Unitless, like all line-height. */
   --leading-notice: 1.7;
 
+  /* Display-title leading: ScreenHeader's title, InlineNameEntry's
+     display size, and CircuitsView's active-circuit name all read at
+     this line-height so the three stay in visual lockstep. */
+  --leading-display-title: 0.9;
+
   /* Tracking (letter-spacing) ramp: static px like all geometry, one
      token per value so retracking a recipe is a one-line edit. The -05
      step reads as the decimal: 05 = 0.5px, half a step below -1. */
@@ -119,6 +124,14 @@
      the 250ms interaction ceiling - it marks an ongoing state, not a
      response to a touch. */
   --motion-pulse: 1.6s;
+
+  /* Dim/opacity state grammars: one token per meaning so retuning a
+     state (not a color) is a one-line edit. drag-origin is the row a
+     lifted card/row leaves behind; drag-ghost is the lifted copy's own
+     translucency; disabled is any inert/dimmed row or control. */
+  --dim-drag-origin: 0.35;
+  --dim-drag-ghost: 0.94;
+  --dim-disabled: 0.4;
 
   /* Safe areas: indirection tokens consumed only by AppShell. If the
      Android WebView needs JS-injected inset values, only these four

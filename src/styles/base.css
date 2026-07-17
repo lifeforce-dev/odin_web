@@ -50,3 +50,26 @@ button {
   background: var(--border-strong);
   border-radius: 2px;
 }
+
+/* The STYLEGUIDE's red-ghost action dress: the destructive/state-
+   changing button recipe, wired once so every site shares it. Sites
+   keep their own layout (width, padding, flex) and may override
+   size/tracking/border weight locally - scoped specificity beats the
+   utility, which is the intended mechanism. */
+.red-ghost-btn {
+  min-height: var(--tap-min);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--type-label);
+  font-weight: 800;
+  letter-spacing: var(--tracking-2);
+  text-transform: uppercase;
+  cursor: pointer;
+  background: transparent;
+  border: var(--hairline) solid var(--accent);
+  transition: background var(--motion-press);
+}
+
+.red-ghost-btn:active {
+  background: var(--accent-soft);
+}

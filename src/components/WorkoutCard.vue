@@ -247,10 +247,20 @@ const metaText = computed(() =>
       </div>
       <!-- The card's one placement action, same slot either way: the
            pool card puts it in, the circuit card takes it out. -->
-      <button v-if="addable" type="button" class="workout-card__add" @click="emit('add')">
+      <button
+        v-if="addable"
+        type="button"
+        class="workout-card__add red-ghost-btn"
+        @click="emit('add')"
+      >
         Add to circuit
       </button>
-      <button v-if="removable" type="button" class="workout-card__remove" @click="emit('remove')">
+      <button
+        v-if="removable"
+        type="button"
+        class="workout-card__remove red-ghost-btn"
+        @click="emit('remove')"
+      >
         Remove from circuit
       </button>
     </div>
@@ -271,7 +281,7 @@ const metaText = computed(() =>
 }
 
 .workout-card--dragging {
-  opacity: 0.35;
+  opacity: var(--dim-drag-origin);
 }
 
 .workout-card--flash {
@@ -422,23 +432,7 @@ const metaText = computed(() =>
 .workout-card__add,
 .workout-card__remove {
   width: 100%;
-  min-height: var(--tap-min);
   padding: var(--space-3);
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: var(--type-label);
-  font-weight: 800;
-  letter-spacing: var(--tracking-2);
-  text-transform: uppercase;
-  cursor: pointer;
-  background: transparent;
-  border: var(--hairline) solid var(--accent);
-  transition: background var(--motion-press);
-}
-
-.workout-card__add:active,
-.workout-card__remove:active {
-  background: var(--accent-soft);
 }
 
 /* Reduced motion: the flash is a confirmation cue, not information the
