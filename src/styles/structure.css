@@ -114,6 +114,12 @@
      --motion-consume, never alone. */
   --motion-settle: 0.06s;
 
+  /* Ambient state pulse: the set-progress current box's background
+     fill-pulse (and future breathing states). Deliberately far above
+     the 250ms interaction ceiling - it marks an ongoing state, not a
+     response to a touch. */
+  --motion-pulse: 1.6s;
+
   /* Safe areas: indirection tokens consumed only by AppShell. If the
      Android WebView needs JS-injected inset values, only these four
      definitions change. */

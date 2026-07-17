@@ -15,6 +15,7 @@ export const MOTION_MS = {
   '--motion-consume': 360,
   '--motion-tick': 150,
   '--motion-settle': 60,
+  '--motion-pulse': 1600,
 } as const;
 
 // The named handles the choreography code reads.

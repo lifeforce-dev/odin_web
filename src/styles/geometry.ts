@@ -81,6 +81,7 @@ export const UNBOARDED_TOKENS: Readonly<Record<string, string>> = {
   '--motion-consume': 'durations animate; they do not swatch statically',
   '--motion-tick': 'durations animate; they do not swatch statically',
   '--motion-settle': 'durations animate; they do not swatch statically',
+  '--motion-pulse': 'durations animate; they do not swatch statically',
   '--rack-index': 'a single layout width; the workbench rack is its live sample',
   '--leading-notice': 'a unitless line-height; the verdict notices are its live sample',
   '--circuit-card-min': 'a single tile floor; the circuit-card board rows are its live sample',

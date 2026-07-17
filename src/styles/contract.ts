@@ -35,11 +35,17 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   '--accent-deep',
   '--accent-soft',
   '--accent-glow',
+  // The ambient state pulse's peak fill (set-progress current box): a
+  // near-solid accent wash, paired with --accent-soft as the trough.
+  '--accent-pulse',
   '--lock',
   // The done card's recede border: lock-tinted iron, quiet on purpose
   // (the DONE stamp is the only element that reads).
   '--border-lock',
   '--warning',
+  // The amber CTA's pressed fill, mirroring --accent-deep on the red
+  // channel.
+  '--warning-deep',
   '--warning-glow',
   // The floating alarm plate (the workbench's RELEASE TO REMOVE flag):
   // an opaque danger-tinted surface, not a translucent accent wash.

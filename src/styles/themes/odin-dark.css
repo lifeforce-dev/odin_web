@@ -27,8 +27,10 @@
   --raw-red-deep: #e23c3c;
   --raw-red-soft: rgb(255 80 80 / 10%);
   --raw-red-glow: rgb(255 80 80 / 30%);
+  --raw-red-pulse: rgb(255 80 80 / 85%);
   --raw-green: #46e08a;
   --raw-amber: #ffba3a;
+  --raw-amber-deep: #e0a52e;
   --raw-amber-glow: rgb(255 186 58 / 25%);
   --raw-red-iron: #170c0c;
   --raw-green-iron: #1f2a22;
@@ -52,9 +54,11 @@
   --accent-deep: var(--raw-red-deep);
   --accent-soft: var(--raw-red-soft);
   --accent-glow: var(--raw-red-glow);
+  --accent-pulse: var(--raw-red-pulse);
   --lock: var(--raw-green);
   --border-lock: var(--raw-green-iron);
   --warning: var(--raw-amber);
+  --warning-deep: var(--raw-amber-deep);
   --warning-glow: var(--raw-amber-glow);
   --surface-alarm: var(--raw-red-iron);
 
