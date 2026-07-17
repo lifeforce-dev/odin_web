@@ -3,6 +3,8 @@ import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
 import CircuitCard from '@/components/CircuitCard.vue';
+import CircuitRow from '@/components/CircuitRow.vue';
+import ConfirmStrip from '@/components/ConfirmStrip.vue';
 import DockedAction from '@/components/DockedAction.vue';
 import ForgeSlot from '@/components/ForgeSlot.vue';
 import GripHandle from '@/components/GripHandle.vue';
@@ -103,7 +105,16 @@ const galleryWorkoutStartedAt = new Date(Date.now() - 65_000).toISOString();
 const demoGripEvent = ref<string | null>(null);
 const demoEntryOpen = ref(false);
 const demoEntryResult = ref<string | null>(null);
+const demoDisplayEntryOpen = ref(false);
+const demoDisplayEntryResult = ref<string | null>(null);
 const demoStepperRest = ref(60);
+
+// Live circuit-row sample: the shipped row wired to a real ConfirmStrip
+// (the delete flow's exact wiring), plus the tag/dimmed states boarded
+// standalone.
+const demoCircuitStripOpen = ref(false);
+const demoConfirmEvent = ref<string | null>(null);
+const demoHeaderEditEvent = ref<string | null>(null);
 
 // Live log-set sample: the real shipped control, its own commit echoed
 // below so the settle/blur write-behind path is visibly exercised too.
@@ -367,8 +378,69 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Screen header</h2>
+        <h2 class="board-eyebrow">Screen header (default / editable pencil, live)</h2>
         <ScreenHeader title="Circuits" eyebrow="Rotation // Order" />
+        <ScreenHeader
+          title="Legs"
+          eyebrow="5 Workouts"
+          editable
+          @edit="demoHeaderEditEvent = 'edit emitted'"
+        />
+        <p v-if="demoHeaderEditEvent" class="board-note">{{ demoHeaderEditEvent }}</p>
+        <p class="board-note">
+          The pencil is opt-in (editable): dim ink, never accent - it edits identity, it does not
+          act on it. Every other screen's default render is untouched.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Circuit row (plain / next / active / dimmed, live delete)</h2>
+        <CircuitRow name="Push Day" :order="2" :workout-count="4" />
+        <CircuitRow name="Legs" :order="1" :workout-count="5" tag="next" />
+        <CircuitRow name="Upper Body" :order="1" :workout-count="3" tag="active" />
+        <CircuitRow name="Fresh Circuit" :order="3" :workout-count="0" dimmed />
+        <CircuitRow
+          name="Core"
+          :order="4"
+          :workout-count="2"
+          @delete="demoCircuitStripOpen = !demoCircuitStripOpen"
+        />
+        <ConfirmStrip
+          v-if="demoCircuitStripOpen"
+          message="Delete this circuit?"
+          detail="Its workouts and their history are kept"
+          confirm-label="Delete circuit"
+          @confirm="demoCircuitStripOpen = false"
+          @cancel="demoCircuitStripOpen = false"
+        />
+        <p class="board-note">
+          The rotation queue's row: a numbered rack socket (the workbench slot's badge idiom)
+          holding the name, its workout count, a dim delete affordance, and the grip. tag renders
+          one dress, two words (NEXT / ACTIVE); dimmed is swap mode's non-target dress. The last
+          row's x wires the real ConfirmStrip above, the circuits screen's exact delete flow.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">
+          Confirm strip (message / detail / detailValue / cancelLabel override, live)
+        </h2>
+        <ConfirmStrip
+          message="Your logged sets are recorded"
+          detail="Start Workout will start"
+          detail-value="Legs"
+          confirm-label="Swap to front"
+          cancel-label="Never mind"
+          @confirm="demoConfirmEvent = 'confirm emitted'"
+          @cancel="demoConfirmEvent = 'cancel emitted'"
+        />
+        <p v-if="demoConfirmEvent" class="board-note">{{ demoConfirmEvent }}</p>
+        <p class="board-note">
+          Generalizes PoolElsewhereRow's steal-strip grammar (accent-soft plate, a consequence line,
+          two actions) to any state-changing confirm, shown every time - never a modal. detailValue
+          is composed here (`detail // VALUE`), never string-interpolated by the caller. cancelLabel
+          overrides the default "Keep it" here, proving the prop works.
+        </p>
       </section>
 
       <section class="board-section">
@@ -450,6 +522,26 @@ onMounted(() => {
         />
         <MenuButton v-else @click="demoEntryOpen = true">Open inline entry</MenuButton>
         <p v-if="demoEntryResult" class="board-note">commit emitted: {{ demoEntryResult }}</p>
+        <InlineNameEntry
+          v-if="demoDisplayEntryOpen"
+          size="display"
+          seed="Legs"
+          entry-label="Circuit name"
+          confirm-label="Rename circuit"
+          @commit="
+            (text) => {
+              demoDisplayEntryResult = text || '(blank)';
+              demoDisplayEntryOpen = false;
+            }
+          "
+          @cancel="demoDisplayEntryOpen = false"
+        />
+        <MenuButton v-else @click="demoDisplayEntryOpen = true">
+          Open display-size entry (workbench rename)
+        </MenuButton>
+        <p v-if="demoDisplayEntryResult" class="board-note">
+          commit emitted: {{ demoDisplayEntryResult }}
+        </p>
         <StepperField
           label="Recover // Rest"
           :display="`${demoStepperRest}s`"
