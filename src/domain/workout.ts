@@ -1,15 +1,22 @@
-import { and, desc, eq, exists, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, exists, isNull, ne, sql } from 'drizzle-orm';
 
 import type { DbHandle } from '@/db/client';
-import { circuit, circuitItem, session, setLog } from '@/db/schema';
-import type { CircuitRow, SessionRow } from '@/db/schema';
+import { newId } from '@/db/ids';
+import { circuit, circuitItem, exercise, session, setLog } from '@/db/schema';
+import type { CircuitRow, SessionRow, SetLogRow } from '@/db/schema';
+import { nowIso } from '@/db/timestamps';
 
 import { getCircuitById, listCircuitSlots } from './builder';
 
-// The workout-flow domain layer, read side: which circuit is up next
-// and how far the in-flight session has gotten. Everything derives
-// from persisted facts (session rows, set_log counts, rotation order);
-// nothing here trusts UI state. Session writes land in 03-05.
+// The workout-flow domain layer: which circuit is up next, how far the
+// in-flight session has gotten, and the session-start writes -
+// startWorkout minting the session row at the home CTA tap (the owner
+// ruling: tapping Start Workout IS the workout starting, and the
+// total-time readout anchors on the persisted startedAt so it survives
+// restarts), with startRest keeping a stale-route fallback mint.
+// Everything derives from persisted facts (session rows, set_log
+// counts, rotation order); nothing here trusts UI state. Terminal
+// session writes (outcome, rotation) land in 03-05.
 
 export type ExerciseProgress = 'pending' | 'in-progress' | 'done';
 
@@ -116,6 +123,199 @@ async function listStartExercises(
       loggedSets,
       progress: toProgress(loggedSets, slot.sets),
     };
+  });
+}
+
+// The lift page's subject: an ACTIVE workout exercise held by a
+// circuit. The grid only navigates to slots, so a miss is a stale
+// route (an archive or removal since), answered with undefined rather
+// than an error. The kind filter keeps a manually-routed stretch
+// exercise off the lift page - and startRest's fallback mint off a
+// stretch circuit (exercise and circuit kinds match by construction;
+// addExerciseToCircuit rejects a mismatch).
+interface OwnedExercise {
+  exerciseId: string;
+  name: string;
+  sets: number;
+  circuitId: string;
+}
+
+async function getOwnedExercise(
+  db: DbHandle,
+  exerciseId: string,
+): Promise<OwnedExercise | undefined> {
+  return db
+    .select({
+      exerciseId: exercise.id,
+      name: exercise.name,
+      sets: exercise.sets,
+      circuitId: circuitItem.circuitId,
+    })
+    .from(exercise)
+    .innerJoin(circuitItem, eq(circuitItem.exerciseId, exercise.id))
+    .where(
+      and(eq(exercise.id, exerciseId), eq(exercise.kind, 'workout'), isNull(exercise.archivedAt)),
+    )
+    .get();
+}
+
+// The lift page scopes its session to the exercise's OWN circuit: an
+// in-flight session on another circuit must not lend its counts here.
+async function getInFlightSessionForCircuit(
+  db: DbHandle,
+  circuitId: string,
+): Promise<SessionRow | undefined> {
+  return db
+    .select()
+    .from(session)
+    .where(and(eq(session.circuitId, circuitId), isNull(session.endedAt)))
+    .orderBy(desc(session.startedAt))
+    .limit(1)
+    .get();
+}
+
+export interface LastSessionSet {
+  reps: number;
+  weight: number;
+  weightUnit: SetLogRow['weightUnit'];
+}
+
+// "Last Session" = the newest logged set from a previous visit to this
+// exercise. Excluded: THIS circuit's in-flight session, or the card
+// would echo the set just done. Another circuit's in-flight logs (the
+// exercise was stolen mid-workout) still surface here - nothing can
+// end a session until 03-05 lands, so an ended-sessions-only filter
+// would blank all history today; tighten to it there. setIndex breaks
+// loggedAt ties within one visit.
+async function getLastSessionSet(
+  db: DbHandle,
+  exerciseId: string,
+  excludeSessionId: string | null,
+): Promise<LastSessionSet | undefined> {
+  const conditions = [eq(setLog.exerciseId, exerciseId)];
+  if (excludeSessionId !== null) {
+    conditions.push(ne(setLog.sessionId, excludeSessionId));
+  }
+  return db
+    .select({ reps: setLog.reps, weight: setLog.weight, weightUnit: setLog.weightUnit })
+    .from(setLog)
+    .where(and(...conditions))
+    .orderBy(desc(setLog.loggedAt), desc(setLog.setIndex))
+    .limit(1)
+    .get();
+}
+
+// What the lift (workout-set) screen renders.
+export interface WorkoutSet {
+  session: SessionRow | null;
+  exerciseId: string;
+  exerciseName: string;
+  prescribedSets: number;
+  loggedSets: number;
+  // 1-based next unlogged set; null when the exercise is done this
+  // session (>= semantics, so a prescription lowered mid-session reads
+  // done instead of stranding the screen).
+  currentSet: number | null;
+  // True when this is the SESSION's final unlogged set anywhere in the
+  // circuit, so the action reads FINISH; the last set of a non-final
+  // exercise keeps START REST.
+  isFinalSet: boolean;
+  lastSession: LastSessionSet | null;
+}
+
+export async function getWorkoutSet(db: DbHandle, exerciseId: string): Promise<WorkoutSet | null> {
+  const owned = await getOwnedExercise(db, exerciseId);
+  if (!owned) {
+    return null;
+  }
+  const inFlight = (await getInFlightSessionForCircuit(db, owned.circuitId)) ?? null;
+  const slots = await listStartExercises(db, owned.circuitId, inFlight?.id ?? null);
+  const mine = slots.find((slot) => slot.exerciseId === exerciseId);
+  if (!mine) {
+    // The owned read joined on this circuit's items, so the slot list
+    // must contain the exercise; a miss means the DB changed mid-read.
+    throw new Error(`exercise ${exerciseId} vanished from circuit ${owned.circuitId} mid-read`);
+  }
+  const remainingTotal = slots.reduce(
+    (total, slot) => total + Math.max(0, slot.sets - slot.loggedSets),
+    0,
+  );
+  const remainingMine = Math.max(0, mine.sets - mine.loggedSets);
+  return {
+    session: inFlight,
+    exerciseId,
+    exerciseName: mine.name,
+    prescribedSets: mine.sets,
+    loggedSets: mine.loggedSets,
+    currentSet: remainingMine === 0 ? null : mine.loggedSets + 1,
+    isFinalSet: remainingMine === 1 && remainingTotal === 1,
+    lastSession: (await getLastSessionSet(db, exerciseId, inFlight?.id ?? null)) ?? null,
+  };
+}
+
+// What the rest screen needs from the transition: which set the lifter
+// just finished, so its arrival can auto-log it (03-03).
+export interface RestEntry {
+  sessionId: string;
+  exerciseId: string;
+  setIndex: number;
+}
+
+// The START REST / FINISH transition. The normal flow arrives with a
+// session already minted by startWorkout; the mint below is a fallback
+// for a stale or manual route onto a lift page with no session, so a
+// set that physically happened is never unrecordable (its startedAt is
+// then the rest tap, the closest surviving fact). Null when the
+// exercise is not liftable (missing, archived, unheld) or has no
+// unlogged set left - stale-screen races, not errors.
+export async function startRest(
+  db: DbHandle,
+  exerciseId: string,
+  startedAt = nowIso(),
+): Promise<RestEntry | null> {
+  return db.transaction(async (tx) => {
+    const owned = await getOwnedExercise(tx, exerciseId);
+    if (!owned) {
+      return null;
+    }
+    let inFlight = await getInFlightSessionForCircuit(tx, owned.circuitId);
+    const loggedSets = inFlight
+      ? ((await countLoggedSetsByExercise(tx, inFlight.id)).get(exerciseId) ?? 0)
+      : 0;
+    if (loggedSets >= owned.sets) {
+      return null;
+    }
+    if (!inFlight) {
+      inFlight = { id: newId(), circuitId: owned.circuitId, startedAt, endedAt: null };
+      await tx.insert(session).values(inFlight);
+    }
+    return { sessionId: inFlight.id, exerciseId, setIndex: loggedSets + 1 };
+  });
+}
+
+// The Start Workout transition: tapping the home CTA IS the workout
+// starting, so the session row is minted here and its persisted
+// startedAt anchors the total-time readout across restarts. A tap
+// while a session is in flight is a resume and rides the existing row.
+// Null when nothing is startable (the CTA was stale). One transaction:
+// a double-tap must not mint twins.
+export async function startWorkout(db: DbHandle, startedAt = nowIso()): Promise<SessionRow | null> {
+  return db.transaction(async (tx) => {
+    const start = await getWorkoutStart(tx);
+    if (!start) {
+      return null;
+    }
+    if (start.session) {
+      return start.session;
+    }
+    const minted: SessionRow = {
+      id: newId(),
+      circuitId: start.circuit.id,
+      startedAt,
+      endedAt: null,
+    };
+    await tx.insert(session).values(minted);
+    return minted;
   });
 }
 
