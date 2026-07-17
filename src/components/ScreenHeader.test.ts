@@ -35,4 +35,22 @@ describe('ScreenHeader', () => {
 
     expect(wrapper.get('.screen-header__eyebrow').text()).toBe('3 Workouts');
   });
+
+  it('renders no pencil and no title-row wrapper by default', () => {
+    const wrapper = mount(ScreenHeader, { props: { title: 'Circuits' } });
+
+    expect(wrapper.find('.screen-header__pencil').exists()).toBe(false);
+    expect(wrapper.find('.screen-header__title-row').exists()).toBe(false);
+    expect(wrapper.get('h1').classes()).toEqual(['screen-header__title']);
+  });
+
+  it('renders the pencil when editable and emits edit on tap', async () => {
+    const wrapper = mount(ScreenHeader, { props: { title: 'Legs', editable: true } });
+
+    const pencil = wrapper.get('.screen-header__pencil');
+    expect(pencil.attributes('aria-label')).toBe('Rename');
+    await pencil.trigger('click');
+
+    expect(wrapper.emitted('edit')).toHaveLength(1);
+  });
 });

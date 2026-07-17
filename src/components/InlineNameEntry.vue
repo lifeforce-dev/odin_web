@@ -21,8 +21,9 @@ const props = withDefaults(
     entryLabel: string;
     confirmLabel: string;
     // 'data' wears the card-name size (rename swaps in for the name in
-    // place); 'body' matches row body text (the create row).
-    size?: 'body' | 'data';
+    // place); 'body' matches row body text (the create row); 'display'
+    // mirrors ScreenHeader's title (the circuit workbench's rename).
+    size?: 'body' | 'data' | 'display';
   }>(),
   { seed: '', placeholder: undefined, size: 'body' },
 );
@@ -38,9 +39,20 @@ const rootEl = ref<HTMLElement | null>(null);
 const entryEl = ref<HTMLElement | null>(null);
 
 onMounted(() => {
-  if (entryEl.value) {
-    entryEl.value.textContent = props.seed;
-    entryEl.value.focus();
+  if (!entryEl.value) {
+    return;
+  }
+  entryEl.value.textContent = props.seed;
+  entryEl.value.focus();
+  // Focus alone parks the caret at the HEAD of the seeded text; a
+  // rename should pick up typing from the end of the current name.
+  const selection = window.getSelection();
+  if (selection) {
+    const range = document.createRange();
+    range.selectNodeContents(entryEl.value);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 });
 
@@ -61,7 +73,7 @@ function onFocusOut(event: FocusEvent): void {
   <div
     ref="rootEl"
     class="name-entry"
-    :class="{ 'name-entry--data': size === 'data' }"
+    :class="{ 'name-entry--data': size === 'data', 'name-entry--display': size === 'display' }"
     @focusout="onFocusOut"
   >
     <span
@@ -92,14 +104,20 @@ function onFocusOut(event: FocusEvent): void {
   flex: 1 1 auto;
   align-items: stretch;
   min-width: 0;
+  min-height: var(--tap-min);
 }
 
+/* Block host, centered via align-self - the contenteditable must not
+   be its own flex container: Chrome anchors the empty-state caret to
+   a flex container's top-left instead of the line box, so the caret
+   floats above the placeholder. The :empty placeholder ::before keeps
+   a line box alive (attr() falls back to '') so the caret stays on
+   the centered line even with no placeholder text. */
 .name-entry__entry {
-  display: flex;
+  display: block;
   flex: 1;
-  align-items: center;
+  align-self: center;
   min-width: 1ch;
-  min-height: var(--tap-min);
   padding: 0 var(--space-3);
   color: var(--text);
   font-family: var(--font-mono);
@@ -113,6 +131,18 @@ function onFocusOut(event: FocusEvent): void {
 
 .name-entry--data .name-entry__entry {
   font-size: var(--type-data);
+}
+
+/* Mirrors .screen-header__title (weight included): the workbench's
+   rename swaps the header for this entry, so the caret and typed name
+   land at the same scale and weight the title reads at.
+   --leading-display-title also binds CircuitsView's active-name. */
+.name-entry--display .name-entry__entry {
+  font-family: var(--font-display);
+  font-size: var(--type-display-title);
+  font-weight: 400;
+  line-height: var(--leading-display-title);
+  letter-spacing: var(--tracking-2);
 }
 
 .name-entry__entry:empty::before {
