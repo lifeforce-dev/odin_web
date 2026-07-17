@@ -2,6 +2,7 @@
 import { useRouter } from 'vue-router';
 
 import AppShell from '@/components/AppShell.vue';
+import DockedAction from '@/components/DockedAction.vue';
 import LastCircuitData from '@/components/LastCircuitData.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
@@ -81,9 +82,11 @@ async function handleRest(): Promise<void> {
       >
         <ScreenNote v-if="restFailed">Couldn't start the rest // try again</ScreenNote>
         <TotalTime :started-at="workoutSet.session?.startedAt ?? null" />
-        <button type="button" class="workout-set__rest" @click="handleRest">
-          {{ workoutSet.isFinalSet ? 'Finish' : 'Start Rest' }}
-        </button>
+        <DockedAction
+          variant="amber"
+          :label="workoutSet.isFinalSet ? 'Finish' : 'Start Rest'"
+          @press="handleRest"
+        />
       </div>
     </template>
   </AppShell>
@@ -124,29 +127,5 @@ async function handleRest(): Promise<void> {
   flex-direction: column;
   gap: var(--space-2);
   padding: 0 var(--space-4) var(--space-2);
-}
-
-/* The amber rest channel: "go rest" never wears the lifting red. */
-.workout-set__rest {
-  width: 100%;
-  min-height: var(--tap-min);
-  padding: var(--space-4);
-  color: var(--bg);
-  font-family: var(--font-mono);
-  font-size: var(--type-data);
-  font-weight: 700;
-  letter-spacing: var(--tracking-2);
-  text-transform: uppercase;
-  cursor: pointer;
-  background: var(--warning);
-  border: none;
-  transition:
-    transform var(--motion-press),
-    background var(--motion-press);
-}
-
-.workout-set__rest:active {
-  background: var(--warning-deep);
-  transform: scale(0.98);
 }
 </style>

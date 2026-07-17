@@ -132,7 +132,7 @@ describe('WorkoutSetView', () => {
     expect(boxes[0].classes()).toContain('set-progress__box--current');
     expect(boxes[1].classes()).toContain('set-progress__box--pending');
     expect(wrapper.get('.workout-set__word').text()).toBe('Lift!');
-    expect(wrapper.get('.workout-set__rest').text()).toBe('Start Rest');
+    expect(wrapper.get('.docked-action').text()).toBe('Start Rest');
     // No history yet: the quiet context zone drops the card entirely.
     expect(wrapper.find('.last-circuit').exists()).toBe(false);
     // No session in flight: the readout parks.
@@ -176,7 +176,7 @@ describe('WorkoutSetView', () => {
     const { circuitId, exercises } = await seedCircuit();
 
     const wrapper = await mountView(exercises[1].id);
-    await wrapper.get('.workout-set__rest').trigger('click');
+    await wrapper.get('.docked-action').trigger('click');
     await flushPromises();
 
     const rows = await allSessions();
@@ -193,7 +193,7 @@ describe('WorkoutSetView', () => {
     const { exercises } = await seedCircuit();
 
     const wrapper = await mountView(exercises[1].id);
-    const button = wrapper.get('.workout-set__rest');
+    const button = wrapper.get('.docked-action');
     void button.trigger('click');
     void button.trigger('click');
     await flushPromises();
@@ -228,7 +228,7 @@ describe('WorkoutSetView', () => {
     }) as DbClient;
 
     const wrapper = await mountView(exercises[1].id);
-    await wrapper.get('.workout-set__rest').trigger('click');
+    await wrapper.get('.docked-action').trigger('click');
     await flushPromises();
 
     expect(wrapper.text()).toContain("Couldn't start the rest");
@@ -244,12 +244,12 @@ describe('WorkoutSetView', () => {
     const sessionId = await startSession(circuitId);
     await logSets(sessionId, exercises[0].id, 2);
 
-    await wrapper.get('.workout-set__rest').trigger('click');
+    await wrapper.get('.docked-action').trigger('click');
     await flushPromises();
 
     expect(routerPush).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain('All sets logged');
-    expect(wrapper.find('.workout-set__rest').exists()).toBe(false);
+    expect(wrapper.find('.docked-action').exists()).toBe(false);
     // The refusal minted nothing; only the seeded session exists.
     expect(await allSessions()).toHaveLength(1);
   });
@@ -300,7 +300,7 @@ describe('WorkoutSetView', () => {
 
     const wrapper = await mountView(exercises[1].id);
 
-    const button = wrapper.get('.workout-set__rest');
+    const button = wrapper.get('.docked-action');
     expect(button.text()).toBe('Finish');
     await button.trigger('click');
     await flushPromises();
@@ -323,7 +323,7 @@ describe('WorkoutSetView', () => {
 
     expect(wrapper.text()).toContain('All sets logged');
     expect(wrapper.find('.workout-set__word').exists()).toBe(false);
-    expect(wrapper.find('.workout-set__rest').exists()).toBe(false);
+    expect(wrapper.find('.docked-action').exists()).toBe(false);
   });
 
   it('says so when the exercise is not on any circuit', async () => {
@@ -333,7 +333,7 @@ describe('WorkoutSetView', () => {
     const wrapper = await mountView(pooled.id);
 
     expect(wrapper.text()).toContain('Not on this workout');
-    expect(wrapper.find('.workout-set__rest').exists()).toBe(false);
+    expect(wrapper.find('.docked-action').exists()).toBe(false);
   });
 
   it('shows the device-only note in browser dev mode', async () => {
