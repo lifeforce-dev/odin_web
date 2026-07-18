@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Router } from 'vue-router';
 
 import { minimizeApp, onHardwareBackButton } from '@/native';
+import { useNotificationPrimer } from '@/composables/useNotificationPermission';
 
 import { installHardwareBack } from './hardware-back';
 
@@ -36,6 +37,7 @@ describe('installHardwareBack', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     nativeState.isNative = true;
+    useNotificationPrimer().visible.value = false;
   });
 
   it('replaces to the structural map destination and never calls router.back', async () => {
@@ -79,5 +81,16 @@ describe('installHardwareBack', () => {
     expect(minimizeApp).toHaveBeenCalledTimes(1);
     expect(router.back).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op while the permission primer is visible (does not run the destructive up handler)', async () => {
+    const router = makeRouter({ upTo: { name: 'home' } });
+    const handler = await registeredHandler(router);
+    useNotificationPrimer().visible.value = true;
+
+    handler(true);
+
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(minimizeApp).not.toHaveBeenCalled();
   });
 });
