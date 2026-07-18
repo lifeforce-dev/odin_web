@@ -343,24 +343,31 @@ async function findSetLog(
 type SetValues = Pick<SetLogRow, 'reps' | 'weight' | 'weightUnit'>;
 
 // The prefill chain (insert only, so re-arrival never re-derives it):
-// (a) the same exercise + setIndex from a DIFFERENT session, newest
-// first - the most relevant history for "what did I lift here last
-// time"; else (b) the previous set logged THIS session (progression
-// within one visit); else (c) the app default.
+// (a) the same exercise + setIndex from a COMPLETED prior session, newest
+// first - "what did I lift here last time"; else (b) the previous set
+// logged THIS session (carry-over within one visit); else (c) the app
+// default. Only COMPLETED sessions count as "last session": an abandoned
+// or backed-out (still-in-flight) session is not a workout to progress
+// from, and letting it seed the slot would mask the within-session
+// carry-over (b) whenever prior attempts pile up - exactly what device
+// testing produces. The full last-session semantics land in
+// 09-last-session-detail; this is the interim rule.
 async function prefillSetValues(
   tx: DbHandle,
   sessionId: string,
   exerciseId: string,
   setIndex: number,
 ): Promise<SetValues> {
-  const sameSlotElsewhere = await tx
+  const sameSlotLastSession = await tx
     .select({ reps: setLog.reps, weight: setLog.weight, weightUnit: setLog.weightUnit })
     .from(setLog)
+    .innerJoin(session, eq(session.id, setLog.sessionId))
     .where(
       and(
         eq(setLog.exerciseId, exerciseId),
         eq(setLog.setIndex, setIndex),
         ne(setLog.sessionId, sessionId),
+        eq(session.outcome, 'completed'),
       ),
     )
     // Every row here already shares setIndex (the where-clause pins it),
@@ -369,8 +376,8 @@ async function prefillSetValues(
     .orderBy(desc(setLog.loggedAt))
     .limit(1)
     .get();
-  if (sameSlotElsewhere) {
-    return sameSlotElsewhere;
+  if (sameSlotLastSession) {
+    return sameSlotLastSession;
   }
   const previousThisSession = await tx
     .select({ reps: setLog.reps, weight: setLog.weight, weightUnit: setLog.weightUnit })

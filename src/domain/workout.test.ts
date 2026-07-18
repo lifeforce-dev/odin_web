@@ -683,7 +683,7 @@ describe('rest screen', () => {
   }
 
   describe('arriveAtRest', () => {
-    it('mints the row with the SAME exercise + setIndex from a different session (branch a)', async () => {
+    it('mints the row with the SAME exercise + setIndex from a COMPLETED session (branch a)', async () => {
       const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       await setPrescription(testDb.db, exercises[0].id, { sets: 4 });
       const older = await insertSession(circuit.id, {
@@ -712,7 +712,36 @@ describe('rest screen', () => {
       expect(arrival?.sessionId).toBe(inFlight.id);
     });
 
-    it('falls back to the previous set THIS session when no other session has this slot (branch b)', async () => {
+    it('skips an ABANDONED prior session and carries over within this session instead', async () => {
+      // The device-testing case: a backed-out prior session (abandoned,
+      // set 2 left at the default) is NOT a workout to progress from, so it
+      // must not seed the slot - within-session carry-over (branch b) wins.
+      const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
+      await setPrescription(testDb.db, exercises[0].id, { sets: 4 });
+      const abandoned = await insertSession(circuit.id, {
+        startedAt: '2026-07-15T10:00:00.000Z',
+        endedAt: '2026-07-15T10:30:00.000Z',
+        outcome: 'abandoned',
+      });
+      await insertSetLog(abandoned.id, exercises[0].id, 2, {
+        reps: 10,
+        weight: 10,
+        loggedAt: '2026-07-15T10:05:00.000Z',
+      });
+      const inFlight = await insertSession(circuit.id);
+      await insertSetLog(inFlight.id, exercises[0].id, 1, {
+        reps: 8,
+        weight: 135,
+        loggedAt: '2026-07-16T10:05:00.000Z',
+      });
+
+      const arrival = await arriveAtRest(testDb.db, exercises[0].id, 2);
+
+      expect(arrival).toMatchObject({ reps: 8, weight: 135, weightUnit: 'lb' });
+      expect(arrival?.sessionId).toBe(inFlight.id);
+    });
+
+    it('falls back to the previous set THIS session when no completed session has this slot (branch b)', async () => {
       const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       await setPrescription(testDb.db, exercises[0].id, { sets: 4 });
       const inFlight = await insertSession(circuit.id);
