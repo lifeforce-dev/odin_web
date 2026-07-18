@@ -49,7 +49,21 @@ async function bootstrap(): Promise<void> {
   // mount waiting on one KV read.
   await initTheme();
 
-  createApp(App).use(createPinia()).use(router).mount('#app');
+  const app = createApp(App).use(createPinia()).use(router);
+
+  // Open-where-left (src/router/restore.ts) runs BEFORE the first paint:
+  // router.isReady() resolves the initial '/' navigation, then restore
+  // replaces to an in-flight session's implied screen (the rest screen
+  // mid-rest), so the app opens directly there instead of flashing home
+  // first. Still an enhancement, never a boot blocker - awaited under a
+  // catch so a failed or slow restore just leaves the app at home, which
+  // is always a safe landing.
+  await router.isReady();
+  await restoreWhereLeftOff(router).catch((error: unknown) => {
+    console.error('[odin] session restore failed', error);
+  });
+
+  app.mount('#app');
 
   // Android hardware back: follow the structural up-map, minimize at
   // the root (src/router/hardware-back.ts). An enhancement, not a boot
@@ -57,14 +71,6 @@ async function bootstrap(): Promise<void> {
   // is not awaited.
   void installHardwareBack(router).catch((error: unknown) => {
     console.error('[odin] hardware back registration failed', error);
-  });
-
-  // Open-where-left (src/router/restore.ts): an in-flight session
-  // restores its implied screen after mount. Same contract as the back
-  // handler: an enhancement, never a boot blocker - a failed restore
-  // read leaves the app at home, which is always a safe landing.
-  void restoreWhereLeftOff(router).catch((error: unknown) => {
-    console.error('[odin] session restore failed', error);
   });
 }
 
