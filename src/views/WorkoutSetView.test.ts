@@ -13,6 +13,7 @@ import {
   findOrCreateExercise,
   setPrescription,
 } from '@/domain/builder';
+import { REST_PRIMER_COPY } from '@/composables/useRestAlarm';
 import { armRollbackNotice, resetRollbackNotice } from '@/composables/useRollbackNotice';
 
 import WorkoutSetView from './WorkoutSetView.vue';
@@ -44,6 +45,18 @@ vi.mock('@/native', () => ({
   },
 }));
 
+// The Start Rest tap primes notification permission (fire-and-forget). The
+// gate itself is owned by useNotificationPermission.test.ts; here we spy on
+// the seam to assert WHICH taps raise it - a non-final Start Rest primes
+// with the rest copy, the final-set FINISH does not.
+const primerMocks = vi.hoisted(() => ({
+  ensureNotificationPermission: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/composables/useNotificationPermission', () => ({
+  ensureNotificationPermission: primerMocks.ensureNotificationPermission,
+}));
+
 const routerPush = vi.hoisted(() => vi.fn());
 
 // ScreenHeader no longer touches the router; NavUpRow does instead, and
@@ -71,6 +84,7 @@ beforeEach(async () => {
   nativeState.db = testDb.db;
   routerPush.mockClear();
   routerPush.mockResolvedValue(undefined);
+  primerMocks.ensureNotificationPermission.mockClear();
   resetRollbackNotice();
 });
 
@@ -204,6 +218,33 @@ describe('WorkoutSetView', () => {
       name: 'rest',
       params: { exerciseId: exercises[1].id, setIndex: 1 },
     });
+  });
+
+  it('primes the notification permission with the rest copy on a non-final Start Rest', async () => {
+    const { exercises } = await seedCircuit();
+
+    const wrapper = await mountView(exercises[1].id); // Cable Row, 4 sets: not final
+    expect(wrapper.get('.docked-action').text()).toBe('Start Rest');
+    await wrapper.get('.docked-action').trigger('click');
+    await flushPromises();
+
+    expect(primerMocks.ensureNotificationPermission).toHaveBeenCalledExactlyOnceWith(
+      REST_PRIMER_COPY,
+    );
+  });
+
+  it('does not prime the permission on the final-set FINISH', async () => {
+    const { circuitId, exercises } = await seedCircuit();
+    const sessionId = await startSession(circuitId);
+    await logSets(sessionId, exercises[0].id, 2);
+    await logSets(sessionId, exercises[1].id, 3); // Cable Row set 4 is the session's last
+
+    const wrapper = await mountView(exercises[1].id);
+    expect(wrapper.get('.docked-action').text()).toBe('Finish');
+    await wrapper.get('.docked-action').trigger('click');
+    await flushPromises();
+
+    expect(primerMocks.ensureNotificationPermission).not.toHaveBeenCalled();
   });
 
   it('coalesces a double-tap into one clean transition', async () => {

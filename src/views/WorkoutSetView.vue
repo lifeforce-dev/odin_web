@@ -13,6 +13,8 @@ import TotalTime from '@/components/TotalTime.vue';
 import TrashSnackbar from '@/components/TrashSnackbar.vue';
 import { useActiveSession } from '@/composables/useActiveSession';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
+import { ensureNotificationPermission } from '@/composables/useNotificationPermission';
+import { REST_PRIMER_COPY } from '@/composables/useRestAlarm';
 import { consumeRollbackNotice } from '@/composables/useRollbackNotice';
 
 // The lift (workout-set) screen, three zones per the styleguide:
@@ -40,6 +42,13 @@ const { workoutSet, hasLoaded, loadFailed, refresh, restFailed, startRest } = us
 const showRolledBack = ref(consumeRollbackNotice());
 
 async function handleRest(): Promise<void> {
+  // Starting a real rest (not the final-set FINISH) is the first
+  // relevant moment for rest alerts: prime the notification permission
+  // in our own voice before the OS surface. Fire-and-forget - it self-
+  // suppresses after the first time and never blocks the rest itself.
+  if (workoutSet.value && !workoutSet.value.isFinalSet) {
+    void ensureNotificationPermission(REST_PRIMER_COPY);
+  }
   const entry = await startRest();
   if (entry) {
     void router.push({
