@@ -35,3 +35,19 @@ export async function onHardwareBackButton(handler: (canGoBack: boolean) => void
 export async function minimizeApp(): Promise<void> {
   await App.minimizeApp();
 }
+
+// Foreground/background transitions (isActive true = foreground). Unlike
+// the singleton back handler, this returns a disposer: the rest alarm is
+// inherently screen-scoped (it only matters while a rest is on the
+// glass), so its consumer adds the listener on mount and removes it on
+// unmount rather than owning a permanent one. No-ops in the browser,
+// where nothing schedules OS notifications; the disposer stays callable.
+export async function onAppStateChange(handler: (isActive: boolean) => void): Promise<() => void> {
+  if (!isNative) {
+    return () => {};
+  }
+  const listener = await App.addListener('appStateChange', ({ isActive }) => {
+    handler(isActive);
+  });
+  return () => void listener.remove();
+}

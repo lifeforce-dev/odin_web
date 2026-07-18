@@ -71,3 +71,48 @@ describe('onHardwareBackButton', () => {
     expect(mocks.addListener).not.toHaveBeenCalled();
   });
 });
+
+describe('onAppStateChange', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mocks.addListener.mockReset();
+    mocks.isNative = true;
+  });
+
+  it('unwraps isActive from the plugin event for the handler', async () => {
+    mocks.addListener.mockResolvedValue(makeHandle());
+    const { onAppStateChange } = await importLifecycle();
+    const handler = vi.fn();
+
+    await onAppStateChange(handler);
+    const [eventName, pluginListener] = mocks.addListener.mock.calls[0] as [
+      string,
+      (event: { isActive: boolean }) => void,
+    ];
+    expect(eventName).toBe('appStateChange');
+
+    pluginListener({ isActive: false });
+    expect(handler).toHaveBeenCalledExactlyOnceWith(false);
+  });
+
+  it('returns a disposer that removes exactly this listener', async () => {
+    const handle = makeHandle();
+    mocks.addListener.mockResolvedValue(handle);
+    const { onAppStateChange } = await importLifecycle();
+
+    const dispose = await onAppStateChange(() => {});
+    expect(handle.remove).not.toHaveBeenCalled();
+    dispose();
+    expect(handle.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('never reaches the plugin in the browser, and the disposer stays callable', async () => {
+    mocks.isNative = false;
+    const { onAppStateChange } = await importLifecycle();
+
+    const dispose = await onAppStateChange(() => {});
+
+    expect(mocks.addListener).not.toHaveBeenCalled();
+    expect(() => dispose()).not.toThrow();
+  });
+});
