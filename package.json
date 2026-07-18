@@ -30,6 +30,7 @@
     "@capacitor/app": "8.1.0",
     "@capacitor/core": "8.4.1",
     "@capacitor/ios": "8.4.1",
+    "@capacitor/local-notifications": "8.0.1",
     "@capacitor/preferences": "8.0.1",
     "@fontsource/bebas-neue": "5.2.7",
     "@fontsource/jetbrains-mono": "5.2.8",
