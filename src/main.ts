@@ -15,7 +15,7 @@ import './styles/themes/odin-dark.css';
 
 import App from './App.vue';
 import { initTheme } from './composables/useTheme';
-import { initDatabase, isNative } from './native';
+import { ensureNotificationChannel, initDatabase, isNative } from './native';
 import router from './router';
 import { installHardwareBack } from './router/hardware-back';
 import { restoreWhereLeftOff } from './router/restore';
@@ -32,6 +32,12 @@ async function bootstrap(): Promise<void> {
       renderFatalError(error);
       throw error;
     }
+    // The heads-up channel for timer alerts (Android 8+; no-op on iOS).
+    // Non-fatal: a missing channel only downgrades the rest/stretch alert
+    // to a silent status-bar entry, so it must never block startup.
+    await ensureNotificationChannel().catch((error: unknown) => {
+      console.error('[odin] notification channel setup failed', error);
+    });
   } else {
     console.warn(
       '[odin] browser dev mode: on-device SQLite is unavailable; data features are disabled',
