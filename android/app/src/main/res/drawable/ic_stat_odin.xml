@@ -1,0 +1,25 @@
+<!-- Notification status-bar icon: the twin-raven silhouette from
+     resources/odin-mark.svg, flattened to a single alpha shape. Android
+     uses only the alpha channel and re-tints it (white in the status bar,
+     the LocalNotifications iconColor accent in the shade), so the fill is
+     opaque white and the fine carving detail + thin rings are dropped -
+     they are noise at 24dp. Odin's two ravens (body + wing each) are the
+     legible identity that survives the size. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 241,84.7 L 258.2,85.8 L 275.1,88.7 L 291.3,93.2 L 306.9,99.3 L 321.6,106.8 L 335.4,115.7 L 348.1,125.7 L 359.5,136.9 L 369.7,149 L 378.5,162 L 385.9,175.6 L 391.9,189.7 L 396.3,204.2 L 399.3,218.9 L 400.8,233.7 L 400.8,248.4 L 399.4,262.9 L 396.7,277 L 392.7,290.7 L 387.6,303.9 L 390.7,290.2 L 392.2,276.4 L 392.2,262.5 L 390.8,248.9 L 387.9,235.7 L 383.8,223 L 378.4,210.9 L 371.8,199.5 L 364.2,189.1 L 355.6,179.6 L 346.3,171.1 L 336.2,163.8 L 325.5,157.6 L 314.5,152.6 L 303.1,148.9 L 291.6,146.4 L 280.1,145.1 L 268.6,145.1 L 257.4,146.2 L 246.6,148.4 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 241,84.7 L 191.7,79.3 L 162.7,106.7 L 142.5,167.3 L 178.4,156.7 L 207,159.8 L 246.6,148.4 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 271,427.3 L 253.8,426.2 L 236.9,423.3 L 220.7,418.8 L 205.1,412.7 L 190.4,405.2 L 176.6,396.3 L 163.9,386.3 L 152.5,375.1 L 142.3,363 L 133.5,350 L 126.1,336.4 L 120.1,322.3 L 115.7,307.8 L 112.7,293.1 L 111.2,278.3 L 111.2,263.6 L 112.6,249.1 L 115.3,235 L 119.3,221.3 L 124.4,208.1 L 121.3,221.8 L 119.8,235.6 L 119.8,249.5 L 121.2,263.1 L 124.1,276.3 L 128.2,289 L 133.6,301.1 L 140.2,312.5 L 147.8,322.9 L 156.4,332.4 L 165.7,340.9 L 175.8,348.2 L 186.5,354.4 L 197.5,359.4 L 208.9,363.1 L 220.4,365.6 L 231.9,366.9 L 243.4,366.9 L 254.6,365.8 L 265.4,363.6 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M 271,427.3 L 320.3,432.7 L 349.3,405.3 L 369.5,344.7 L 333.6,355.3 L 305,352.2 L 265.4,363.6 Z" />
+</vector>

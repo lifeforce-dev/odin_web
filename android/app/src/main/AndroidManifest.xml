@@ -38,4 +38,16 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Rest/stretch timer notifications (@capacitor/local-notifications).
+         POST_NOTIFICATIONS is the runtime prompt on Android 13+.
+         SCHEDULE_EXACT_ALARM lets the OS fire the alert at the precise
+         endsAt, but it is denied by default on Android 13+ (user-grantable
+         in system settings); without the grant the plugin degrades to
+         inexact-but-idle delivery (possibly a little late), the accepted
+         fallback. USE_EXACT_ALARM is deliberately NOT declared: it is a
+         Play-restricted permission for alarm/clock/calendar apps, which a
+         workout rest timer does not clearly qualify as. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>
