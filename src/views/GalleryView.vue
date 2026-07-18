@@ -13,6 +13,7 @@ import LastCircuitData from '@/components/LastCircuitData.vue';
 import LogSetControl from '@/components/LogSetControl.vue';
 import MenuButton from '@/components/MenuButton.vue';
 import NavUpRow from '@/components/NavUpRow.vue';
+import NotificationPrimer from '@/components/NotificationPrimer.vue';
 import OdinMark from '@/components/OdinMark.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
 import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
@@ -28,6 +29,7 @@ import TrashSnackbar from '@/components/TrashSnackbar.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
 import { DEVICE_ONLY_NOTE } from '@/composables/useDb';
 import { useOneShot } from '@/composables/useOneShot';
+import { REST_PRIMER_COPY } from '@/composables/useRestAlarm';
 import { useTheme } from '@/composables/useTheme';
 import { clampPrescriptionValue } from '@/composables/useWorkbench';
 import type { PrescriptionField } from '@/composables/useWorkbench';
@@ -112,6 +114,7 @@ const demoStepperRest = ref(60);
 // Live circuit-row sample: the shipped row wired to a real ConfirmStrip
 // (the delete flow's exact wiring), plus the tag/dimmed states boarded
 // standalone.
+const demoPrimerOpen = ref(false);
 const demoCircuitStripOpen = ref(false);
 const demoConfirmEvent = ref<string | null>(null);
 const demoHeaderEditEvent = ref<string | null>(null);
@@ -440,6 +443,26 @@ onMounted(() => {
           two actions) to any state-changing confirm, shown every time - never a modal. detailValue
           is composed here (`detail // VALUE`), never string-interpolated by the caller. cancelLabel
           overrides the default "Keep it" here, proving the prop works.
+        </p>
+      </section>
+
+      <section class="board-section">
+        <h2 class="board-eyebrow">Notification primer (permission dialog, live overlay)</h2>
+        <MenuButton @click="demoPrimerOpen = true">Open notification primer</MenuButton>
+        <NotificationPrimer
+          v-if="demoPrimerOpen"
+          :headline="REST_PRIMER_COPY.headline"
+          :body="REST_PRIMER_COPY.body"
+          @enable="demoPrimerOpen = false"
+          @dismiss="demoPrimerOpen = false"
+        />
+        <p class="board-note">
+          The first-run, once-ever permission primer: makes the value case in the app's own voice
+          before the OS surface, then self-suppresses (a dismissal or an OS denial is final, never
+          re-prompted). Presentational - copy in, enable/dismiss out - so rest drives it today and
+          the stretch flow reuses the same dialog. Bound to the shipped REST_PRIMER_COPY so the
+          board cannot drift from the app's real copy. Open it and switch themes above to check the
+          scrim and card against each skin.
         </p>
       </section>
 
