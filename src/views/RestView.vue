@@ -11,6 +11,7 @@ import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import TotalTime from '@/components/TotalTime.vue';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
+import { useRestAlarm } from '@/composables/useRestAlarm';
 import { useRestSession } from '@/composables/useRestSession';
 import { useRestTimer } from '@/composables/useRestTimer';
 import { armRollbackNotice } from '@/composables/useRollbackNotice';
@@ -89,6 +90,11 @@ const endsAt = computed(() => {
   return restEndsAtIso(current.loggedAt, current.restSeconds);
 });
 const { remaining } = useRestTimer(() => endsAt.value);
+
+// The OS becomes the alarm clock while the app is backgrounded mid-rest;
+// endsAt is the same countdown fact the digits derive from (null in
+// final mode, so FINISH screens schedule nothing).
+useRestAlarm(() => endsAt.value);
 
 // The rollback window covers BOTH modes (final mode has no countdown,
 // but its arrival still ages by the same loggedAt + restSeconds rule

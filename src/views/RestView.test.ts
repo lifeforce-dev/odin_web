@@ -30,6 +30,18 @@ const nativeState: { isNative: boolean; hasSystemBack: boolean; db: DbClient | n
   db: null,
 };
 
+// useRestAlarm's seam: onMounted registers an app-state listener and
+// schedules/cancels the OS rest alert. useRestAlarm.test.ts owns the alarm
+// state machine; here the schedule mock is asserted for ONE thing - that
+// RestView hands useRestAlarm the countdown getter, not the adjacent
+// rollback-window computed (which is non-null in final mode and would
+// schedule a spurious alert on FINISH screens).
+const alarmMocks = vi.hoisted(() => ({
+  onAppStateChange: vi.fn().mockResolvedValue(() => {}),
+  scheduleNotifications: vi.fn().mockResolvedValue(undefined),
+  cancelNotifications: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/native', () => ({
   get isNative() {
     return nativeState.isNative;
@@ -38,6 +50,9 @@ vi.mock('@/native', () => ({
     return nativeState.hasSystemBack;
   },
   minimizeApp: vi.fn().mockResolvedValue(undefined),
+  onAppStateChange: alarmMocks.onAppStateChange,
+  scheduleNotifications: alarmMocks.scheduleNotifications,
+  cancelNotifications: alarmMocks.cancelNotifications,
   getDb: () => {
     if (!nativeState.db) {
       throw new Error('test database not prepared');
@@ -91,6 +106,9 @@ beforeEach(async () => {
   routerPush.mockResolvedValue(undefined);
   routerReplace.mockClear();
   routerReplace.mockResolvedValue(undefined);
+  alarmMocks.scheduleNotifications.mockClear();
+  alarmMocks.cancelNotifications.mockClear();
+  alarmMocks.onAppStateChange.mockClear();
   resetRollbackNotice();
 });
 
@@ -181,6 +199,54 @@ describe('RestView', () => {
     expect(rows).toMatchObject([
       { exerciseId: exercises[0].id, setIndex: 1, reps: 10, weight: 10 },
     ]);
+  });
+
+  it('schedules the OS rest alarm at the countdown endsAt on a countdown arrival', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-07-16T10:05:00.000Z') });
+    const { circuitId, exercises } = await seedCircuit();
+    await startSession(circuitId);
+
+    await mountView(exercises[0].id, 1); // Bench Press, 90s rest -> countdown mode
+
+    // Auto-log stamps loggedAt = now (10:05:00); +90s rest -> endsAt 10:06:30.
+    expect(alarmMocks.scheduleNotifications).toHaveBeenCalledWith([
+      expect.objectContaining({ fireAt: new Date('2026-07-16T10:06:30.000Z') }),
+    ]);
+  });
+
+  it('schedules no alarm on a final-mode FINISH arrival (the wrong-computed trap)', async () => {
+    const { circuitId, exercises } = await seedCircuit();
+    const sessionId = await startSession(circuitId);
+    // Bench Press fully logged; Cable Row's one set is the session's last,
+    // so this arrival is final mode: rollbackWindowEndsAt is non-null but
+    // the countdown endsAt is null, and only the latter may drive the alarm.
+    await testDb.db.insert(setLog).values([
+      {
+        id: newId(),
+        sessionId,
+        exerciseId: exercises[0].id,
+        setIndex: 1,
+        reps: 10,
+        weight: 10,
+        weightUnit: 'lb',
+        loggedAt: '2026-07-16T10:05:00.000Z',
+      },
+      {
+        id: newId(),
+        sessionId,
+        exerciseId: exercises[0].id,
+        setIndex: 2,
+        reps: 10,
+        weight: 10,
+        weightUnit: 'lb',
+        loggedAt: '2026-07-16T10:06:00.000Z',
+      },
+    ]);
+
+    const wrapper = await mountView(exercises[1].id, 1);
+
+    expect(wrapper.find('.rest__hero').exists()).toBe(false);
+    expect(alarmMocks.scheduleNotifications).not.toHaveBeenCalled();
   });
 
   it('pulses the docked action at <=10s remaining', async () => {
