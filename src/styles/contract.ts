@@ -26,6 +26,9 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   '--bg',
   '--surface',
   '--surface-raise',
+  // The modal backdrop wash (the notification primer): a translucent
+  // dim that drops the screen behind a dialog without hiding it.
+  '--scrim',
   '--border',
   '--border-strong',
   '--text',
