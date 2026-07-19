@@ -299,7 +299,7 @@ onMounted(() => {
         <p class="glow-display-sample">--glow-display-accent</p>
         <div class="delete-armed-sample">--glow-delete-armed</div>
         <div class="ghost-sample">--glow-drag-ghost</div>
-        <div class="well-sample">--shadow-well</div>
+        <div class="inset-sample">--shadow-inset</div>
         <div class="sweep-line-sample" aria-hidden="true"></div>
         <p class="board-note">
           --glow-sweep-line above: the workbench delete target's white sweep-line event glow, one
@@ -943,7 +943,7 @@ onMounted(() => {
   text-transform: uppercase;
 }
 
-.well-sample {
+.inset-sample {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -952,7 +952,7 @@ onMounted(() => {
   color: var(--text-soft);
   background: var(--bg);
   border: var(--hairline) solid var(--border);
-  box-shadow: var(--shadow-well);
+  box-shadow: var(--shadow-inset);
 }
 
 .delete-armed-sample {

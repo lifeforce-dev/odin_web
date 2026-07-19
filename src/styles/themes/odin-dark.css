@@ -34,7 +34,7 @@
   --raw-amber-glow: rgb(255 186 58 / 25%);
   --raw-red-iron: #170c0c;
   --raw-green-iron: #1f2a22;
-  --raw-well-ink: rgb(0 0 0 / 60%);
+  --raw-inset-ink: rgb(0 0 0 / 60%);
   --raw-scrim-ink: rgb(0 0 0 / 72%);
   --raw-scanline-ink: rgb(0 0 0 / 16%);
   --raw-white-glow: rgb(242 242 242 / 50%);
@@ -94,7 +94,7 @@
   --glow-lock-on: inset 0 0 16px var(--accent-glow);
   --glow-drag-ghost: 0 0 18px var(--accent-glow);
   --glow-rest-value: 0 0 12px var(--warning-glow);
-  --shadow-well: inset 0 2px 6px var(--raw-well-ink);
+  --shadow-inset: inset 0 2px 6px var(--raw-inset-ink);
 
   /* The page's stepped luminance drop while a card is lifted, and the
      white sweep-line event glow - the one glow off the red channel. */

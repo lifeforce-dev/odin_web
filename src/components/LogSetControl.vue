@@ -7,14 +7,14 @@ import { useOneShot } from '@/composables/useOneShot';
 
 // Auto-log editor for the just-finished set: reps + weight, each a
 // StepperField riding its shared pads/hold-to-ramp, with a
-// contenteditable well swapped in for the plain display (the Bebas
+// contenteditable field swapped in for the plain display (the Bebas
 // Neue line-box gotcha rules out <input>). Write-behind: every pad tap
 // or keystroke updates local state instantly and the parent commits on
 // a settle window, so a tap-tap-tap burst or a fast typed correction
 // coalesces into the row's last value instead of a write per keystroke.
 //
 // Focus invariant: a prop change (a fresh arrival, or a post-failure
-// DB-truth resync) skips the local + DOM rewrite while that well is
+// DB-truth resync) skips the local + DOM rewrite while that field is
 // document.activeElement - an active edit wins, and its own blur flush
 // re-commits it because local then differs from lastCommitted. A pad
 // tap always rewrites local + DOM, focused or not (an explicit user
@@ -86,7 +86,7 @@ interface NumericWellConfig {
 }
 
 // One shared implementation of sync/adjust/input/blur/paste/focus-guard
-// for a contenteditable numeric well; reps and weight differ only in
+// for a contenteditable numeric field; reps and weight differ only in
 // their config (integer vs 0.5-stepped decimal).
 function makeNumericWell(config: NumericWellConfig) {
   const value = ref(config.initial);
@@ -257,7 +257,7 @@ onMounted(() => {
 
 // A prop change means a fresh arrival or a post-failure re-derive
 // (the DB wins) - never a keystroke echoing back, since typing stays
-// local until commit. lastCommitted updates even when the well itself
+// local until commit. lastCommitted updates even when the field itself
 // is focused and skips the rewrite (see the focus invariant above).
 watch(
   () => props.reps,
@@ -294,7 +294,7 @@ onBeforeUnmount(flushCommit);
       <template #value>
         <div
           ref="repsEl"
-          class="log-set-control__well"
+          class="log-set-control__field"
           contenteditable="true"
           inputmode="numeric"
           role="textbox"
@@ -317,7 +317,7 @@ onBeforeUnmount(flushCommit);
       <template #value>
         <div
           ref="weightEl"
-          class="log-set-control__well"
+          class="log-set-control__field"
           contenteditable="true"
           inputmode="decimal"
           role="textbox"
@@ -340,7 +340,7 @@ onBeforeUnmount(flushCommit);
   gap: var(--space-4);
 }
 
-.log-set-control__well {
+.log-set-control__field {
   min-width: 1ch;
   text-align: center;
   caret-color: var(--warning);

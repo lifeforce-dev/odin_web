@@ -32,7 +32,7 @@ const emit = defineEmits<{
 }>();
 
 // The optional #value slot lets a caller swap the plain display span
-// for its own content (e.g. LogSetControl's contenteditable well) while
+// for its own content (e.g. LogSetControl's contenteditable field) while
 // still riding this field's shared label, pads, and hold-to-ramp: one
 // shared hold-to-ramp control, swapped via this slot instead of minting
 // another press-hold machine.
@@ -156,7 +156,7 @@ onBeforeUnmount(stopStepping);
 }
 
 /* Typography lives on the container, not the fallback num span, so
-   slotted content (LogSetControl's contenteditable well) inherits the
+   slotted content (LogSetControl's contenteditable field) inherits the
    same display recipe without restating it. */
 .stepper-field__value {
   display: flex;
@@ -172,7 +172,7 @@ onBeforeUnmount(stopStepping);
   line-height: 1;
   background: var(--bg);
   border: var(--hairline) solid var(--border);
-  box-shadow: var(--shadow-well);
+  box-shadow: var(--shadow-inset);
 }
 
 .stepper-field__value--rest {

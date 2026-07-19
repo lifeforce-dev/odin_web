@@ -35,15 +35,15 @@ afterEach(() => {
 });
 
 describe('LogSetControl', () => {
-  it('seeds both wells from props', () => {
+  it('seeds both fields from props', () => {
     const wrapper = mountControl();
-    const wells = wrapper.findAll('.log-set-control__well');
+    const fields = wrapper.findAll('.log-set-control__field');
 
-    expect(wells[0].element.textContent).toBe('12');
-    expect(wells[1].element.textContent).toBe('135');
+    expect(fields[0].element.textContent).toBe('12');
+    expect(fields[1].element.textContent).toBe('135');
   });
 
-  it('a reps pad tap updates the well instantly and commits after the settle window', () => {
+  it('a reps pad tap updates the field instantly and commits after the settle window', () => {
     vi.useFakeTimers();
     const wrapper = mountControl();
     const [repsDec] = wrapper.findAll('.stepper-field__step');
@@ -51,7 +51,7 @@ describe('LogSetControl', () => {
     firePointer(repsDec.element, 'pointerdown');
     firePointer(repsDec.element, 'pointerup');
 
-    expect(wrapper.findAll('.log-set-control__well')[0].element.textContent).toBe('11');
+    expect(wrapper.findAll('.log-set-control__field')[0].element.textContent).toBe('11');
     expect(wrapper.emitted('commit')).toBeUndefined();
 
     vi.advanceTimersByTime(COMMIT_DEBOUNCE_MS);
@@ -67,7 +67,7 @@ describe('LogSetControl', () => {
     firePointer(weightDec.element, 'pointerdown');
     firePointer(weightDec.element, 'pointerup');
 
-    expect(wrapper.findAll('.log-set-control__well')[1].element.textContent).toBe('0');
+    expect(wrapper.findAll('.log-set-control__field')[1].element.textContent).toBe('0');
   });
 
   it('a burst of pad taps coalesces into one trailing commit', () => {
@@ -86,7 +86,7 @@ describe('LogSetControl', () => {
 
   it('reps keydown blocks non-digit keys and Enter blurs', () => {
     const wrapper = mountControl();
-    const repsWell = wrapper.findAll('.log-set-control__well')[0].element as HTMLElement;
+    const repsWell = wrapper.findAll('.log-set-control__field')[0].element as HTMLElement;
 
     expect(fireKeydown(repsWell, 'a').defaultPrevented).toBe(true);
     expect(fireKeydown(repsWell, '5').defaultPrevented).toBe(false);
@@ -98,7 +98,7 @@ describe('LogSetControl', () => {
 
   it('weight keydown allows exactly one decimal point', () => {
     const wrapper = mountControl();
-    const weightWell = wrapper.findAll('.log-set-control__well')[1].element as HTMLElement;
+    const weightWell = wrapper.findAll('.log-set-control__field')[1].element as HTMLElement;
     weightWell.textContent = '12';
 
     expect(fireKeydown(weightWell, '.').defaultPrevented).toBe(false);
@@ -109,7 +109,7 @@ describe('LogSetControl', () => {
 
   it('typing sanitizes on input and flushes on blur, rounding weight to the nearest 0.5', async () => {
     const wrapper = mountControl();
-    const weightWell = wrapper.findAll('.log-set-control__well')[1];
+    const weightWell = wrapper.findAll('.log-set-control__field')[1];
 
     weightWell.element.textContent = '140.3';
     await weightWell.trigger('input');
@@ -121,7 +121,7 @@ describe('LogSetControl', () => {
 
   it('blur truncates reps to a whole number', async () => {
     const wrapper = mountControl();
-    const repsWell = wrapper.findAll('.log-set-control__well')[0];
+    const repsWell = wrapper.findAll('.log-set-control__field')[0];
 
     repsWell.element.textContent = '7abc';
     await repsWell.trigger('input');
@@ -134,7 +134,7 @@ describe('LogSetControl', () => {
   it('a typed weight snaps to the nearest 0.5 at the settle boundary, not just on blur', async () => {
     vi.useFakeTimers();
     const wrapper = mountControl();
-    const weightWell = wrapper.findAll('.log-set-control__well')[1];
+    const weightWell = wrapper.findAll('.log-set-control__field')[1];
 
     weightWell.element.textContent = '12.3';
     await weightWell.trigger('input');
@@ -148,7 +148,7 @@ describe('LogSetControl', () => {
   it('sanitizes a paste to digits (plus a single dot) and commits after the settle window', () => {
     vi.useFakeTimers();
     const wrapper = mountControl();
-    const weightWell = wrapper.findAll('.log-set-control__well')[1].element as HTMLElement;
+    const weightWell = wrapper.findAll('.log-set-control__field')[1].element as HTMLElement;
 
     firePaste(weightWell, 'ab12c.3xyz');
 
@@ -174,19 +174,19 @@ describe('LogSetControl', () => {
     expect(wrapper.emitted('commit')).toHaveLength(1);
   });
 
-  it('a post-failure prop change re-syncs the wells to the DB truth', async () => {
+  it('a post-failure prop change re-syncs the fields to the DB truth', async () => {
     const wrapper = mountControl();
 
     await wrapper.setProps({ reps: 5, weight: 45 });
 
-    const wells = wrapper.findAll('.log-set-control__well');
-    expect(wells[0].element.textContent).toBe('5');
-    expect(wells[1].element.textContent).toBe('45');
+    const fields = wrapper.findAll('.log-set-control__field');
+    expect(fields[0].element.textContent).toBe('5');
+    expect(fields[1].element.textContent).toBe('45');
   });
 
   it('a blur with nothing pending emits nothing (the lastCommitted contract)', async () => {
     const wrapper = mountControl();
-    const repsWell = wrapper.findAll('.log-set-control__well')[0];
+    const repsWell = wrapper.findAll('.log-set-control__field')[0];
 
     await repsWell.trigger('blur');
 
@@ -201,15 +201,15 @@ describe('LogSetControl', () => {
     expect(wrapper.emitted('commit')).toBeUndefined();
   });
 
-  it('a prop change while the well is focused does not rewrite it; blur then re-commits the user value', async () => {
+  it('a prop change while the field is focused does not rewrite it; blur then re-commits the user value', async () => {
     const wrapper = mount(LogSetControl, {
       props: { reps: 12, weight: 135, weightUnit: 'lb' },
       attachTo: document.body,
     });
-    const repsWell = wrapper.findAll('.log-set-control__well')[0].element as HTMLElement;
+    const repsWell = wrapper.findAll('.log-set-control__field')[0].element as HTMLElement;
     repsWell.focus();
     repsWell.textContent = '20';
-    await wrapper.findAll('.log-set-control__well')[0].trigger('input');
+    await wrapper.findAll('.log-set-control__field')[0].trigger('input');
 
     await wrapper.setProps({ reps: 5, weight: 135 });
     expect(repsWell.textContent).toBe('20');
@@ -221,13 +221,13 @@ describe('LogSetControl', () => {
     wrapper.unmount();
   });
 
-  it('a pad tap rewrites the well even while it is focused', () => {
+  it('a pad tap rewrites the field even while it is focused', () => {
     vi.useFakeTimers();
     const wrapper = mount(LogSetControl, {
       props: { reps: 12, weight: 135, weightUnit: 'lb' },
       attachTo: document.body,
     });
-    const repsWell = wrapper.findAll('.log-set-control__well')[0].element as HTMLElement;
+    const repsWell = wrapper.findAll('.log-set-control__field')[0].element as HTMLElement;
     repsWell.focus();
 
     const [repsDec] = wrapper.findAll('.stepper-field__step');

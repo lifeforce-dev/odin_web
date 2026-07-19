@@ -94,7 +94,7 @@ export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   '--glow-lock-on',
   '--glow-drag-ghost',
   '--glow-rest-value',
-  '--shadow-well',
+  '--shadow-inset',
   // The page's stepped luminance drop while a card is lifted (a filter
   // recipe)...
   '--lift-dim',
