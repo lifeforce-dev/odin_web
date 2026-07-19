@@ -23,7 +23,7 @@ import { restoreWhereLeftOff } from './router/restore';
 async function bootstrap(): Promise<void> {
   if (isNative) {
     // Migrations must complete before any screen can query. A failure
-    // here is fatal and must be loud on the glass, not just in the
+    // here is fatal and must be loud on the screen, not just in the
     // log: the person holding the phone has no console.
     try {
       await initDatabase();

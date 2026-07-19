@@ -148,7 +148,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
       library.value = await getLibrary(db, circuit.id);
       status.value = 'ready';
     } catch (error) {
-      // A failed read must fail on the glass, not only in the log: the
+      // A failed read must fail on the screen, not only in the log: the
       // screen renders this status with a retry. Also keeps the write
       // chain unbreakable - resync awaits load, so load must never
       // reject.

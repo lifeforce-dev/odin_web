@@ -17,7 +17,7 @@ export interface DragHandleOptions {
 
 export function useDragHandle(options: DragHandleOptions) {
   // The pressing finger. Document-level listeners hear every pointer
-  // on the glass: all tracking filters to this id, and a new press is
+  // on the screen: all tracking filters to this id, and a new press is
   // refused while one is live.
   let pressPointerId: number | null = null;
   let pressOrigin: { x: number; y: number } | null = null;

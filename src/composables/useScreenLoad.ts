@@ -4,7 +4,7 @@ import type { Ref } from 'vue';
 // The flow screens' shared load-state machine: refresh() runs the
 // screen's loader into its own refs; the twin flags gate the template
 // (loadFailed renders a Retry note - a failed read must fail on the
-// glass, not only in the log). One home, so the retry policy and error
+// screen, not only in the log). One home, so the retry policy and error
 // logging are a one-edit change. The workbench's richer status enum is
 // deliberately not this: its reads ride the serialized write chain.
 export interface ScreenLoad {

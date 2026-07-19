@@ -108,7 +108,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
   let grabOffsetY = 0;
 
   // The finger that lifted the card. Document-level listeners see every
-  // pointer on the glass; a stray second touch must not steer the ghost,
+  // pointer on the screen; a stray second touch must not steer the ghost,
   // end the session, or start a second one (multi-touch is an ordinary
   // accident on a phone, and this drag's drop can DELETE a workout).
   let sessionPointerId: number | null = null;
@@ -181,7 +181,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
   // The preview is the contract: release applies exactly the state the
   // user was shown, with NO re-track from the pointerup coordinates. A
   // lifting finger rolls its contact point a few px as it leaves the
-  // glass, so the release event routinely lands off the held position -
+  // screen, so the release event routinely lands off the held position -
   // re-tracking here shifted the insertion by a slot (a visible reshuffle
   // after letting go) and, near a boundary, could even flip a reorder into
   // a remove.

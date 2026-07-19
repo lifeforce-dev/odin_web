@@ -71,7 +71,7 @@ export function useRestSession(
 
   // The one legitimate mutation of an auto-logged row: a pre-advance
   // correction. A vanished row or a thrown write surfaces as a note on
-  // the glass and re-derives the facts (the DB is the truth) rather
+  // the screen and re-derives the facts (the DB is the truth) rather
   // than guessing, the same shape a failed rest-start write uses on
   // the lift screen.
   function commitEdit(reps: number, weight: number): Promise<void> {

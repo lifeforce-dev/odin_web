@@ -129,7 +129,7 @@ describe('HomeView', () => {
     expect(workoutCta(wrapper).attributes('disabled')).toBeDefined();
   });
 
-  it('surfaces a failed start on the glass and stays home', async () => {
+  it('surfaces a failed start on the screen and stays home', async () => {
     await seedStartableCircuit();
     // Reads keep working; only the transition's transaction fails. The
     // view captures useDb() at setup, so the proxy must precede mount.

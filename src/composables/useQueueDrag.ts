@@ -45,7 +45,7 @@ export function useQueueDrag(options: QueueDragOptions) {
   let grabOffsetY = 0;
 
   // The finger that lifted the row. Document-level listeners see every
-  // pointer on the glass; a stray second touch must not steer the ghost
+  // pointer on the screen; a stray second touch must not steer the ghost
   // or end the session.
   let sessionPointerId: number | null = null;
 

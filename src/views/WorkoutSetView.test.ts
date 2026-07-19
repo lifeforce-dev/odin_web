@@ -272,7 +272,7 @@ describe('WorkoutSetView', () => {
     }
   });
 
-  it('surfaces a failed transition on the glass and stays put', async () => {
+  it('surfaces a failed transition on the screen and stays put', async () => {
     const { exercises } = await seedCircuit();
     // Reads keep working; only the transition's transaction fails. The
     // view captures useDb() at setup, so the proxy must precede mount.

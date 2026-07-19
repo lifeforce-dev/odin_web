@@ -46,7 +46,7 @@ function openCircuits(): void {
 // the session's persisted startedAt is what the total-time readout
 // runs on, so the clock starts here, not at the first rest. A
 // double-tap joins the in-flight start (useCoalescedWrite); a write
-// failure renders on the glass.
+// failure renders on the screen.
 const { failed: startFailed, run: openWorkout } = useCoalescedWrite('start workout', async () => {
   if (!db) {
     return null;

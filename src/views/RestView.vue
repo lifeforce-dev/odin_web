@@ -135,7 +135,7 @@ async function handleAction(): Promise<void> {
     return;
   }
   // Flush BEFORE the mode branch and stop on a dirty outcome (the note
-  // is already on the glass): a failed edit must block both NEXT SET
+  // is already on the screen): a failed edit must block both NEXT SET
   // and FINISH, never let FINISH stamp endedAt on top of it.
   logSetControlRef.value?.flush();
   const clean = await flushPendingWrites();
