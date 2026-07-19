@@ -13,10 +13,9 @@ import type { WorkoutStart } from '@/domain/workout';
 import { getWorkoutStart, startWorkout } from '@/domain/workout';
 
 // Home screen. The lockup puts the mark left of the ODIN wordmark on
-// one axis, a hairline rule between them like a machined insignia
-// plate; red stays on the wordmark alone. Each flow adds its own menu
-// button as it becomes walkable. AppShell owns background, grain, and
-// scanlines.
+// one axis, a hairline rule between them; red stays on the wordmark
+// alone. Each flow adds its own menu button as it becomes navigable.
+// AppShell owns background, grain, and scanlines.
 
 const router = useRouter();
 const db = useDb();

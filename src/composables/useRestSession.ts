@@ -38,8 +38,9 @@ export function useRestSession(
   const writeFailed = ref(false);
   const finishFailed = ref(false);
 
-  // One machine, one carrier. Once 'rolled-back', the arrival row is
-  // gone: every write this screen could still queue (a pending edit's
+  // rollbackState is this screen's single rollback status. Once
+  // 'rolled-back', the arrival row is gone: every write this screen could
+  // still queue (a pending edit's
   // settle window, the teardown flush) must go inert instead of
   // resurrecting it via updateRestLog-miss -> refresh -> arriveAtRest.
   // Checked at both call time and inside the queued op: an edit

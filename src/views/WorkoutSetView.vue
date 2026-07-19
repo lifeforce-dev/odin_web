@@ -17,10 +17,10 @@ import { ensureNotificationPermission } from '@/composables/useNotificationPermi
 import { REST_PRIMER_COPY } from '@/composables/useRestAlarm';
 import { consumeRollbackNotice } from '@/composables/useRollbackNotice';
 
-// The lift (workout-set) screen, three zones per the styleguide:
+// The lift (workout-set) screen, three zones:
 // CONTEXT (white title + last-session card, quiet), STATE (flex-grow
 // centered set boxes + giant LIFT!), ACTION (docked total time + the
-// amber rest CTA). Mid-set the vermilion LIFT! owns the screen; the
+// amber rest CTA). Mid-set the accent-colored LIFT! owns the screen; the
 // title never wears the accent. The CTA reads FINISH on the session's
 // final unlogged set and both labels route to the rest screen - final
 // mode derives there from session facts. A rest rollback lands back
@@ -135,7 +135,7 @@ async function handleRest(): Promise<void> {
   justify-content: center;
 }
 
-/* Giant live word: vermilion FILL only, no text glow, no halo. */
+/* Giant live word: accent FILL only, no text glow, no halo. */
 .workout-set__word {
   margin: 0;
   color: var(--accent);

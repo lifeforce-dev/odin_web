@@ -495,8 +495,8 @@ const showEmptyHint = computed(() => status.value === 'ready' && queue.value.len
 }
 
 /* Badge-cell recipe (shared with .workbench__slot-number and
-   .circuit-row__order): shares the gap's dashed vacant grammar instead
-   of either badge's solid dress. */
+   .circuit-row__order): shares the gap's dashed empty-state styling
+   instead of either badge's solid dress. */
 .circuits__gap-index {
   display: flex;
   flex: 0 0 var(--badge-cell-width);

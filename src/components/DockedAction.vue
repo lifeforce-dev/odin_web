@@ -69,7 +69,7 @@ const emit = defineEmits<{
   background: var(--warning-deep);
 }
 
-/* Ghost: the vermilion-outline doorway back to the act-state. */
+/* Ghost: the accent-outlined NEXT SET button, back to the lift screen. */
 .docked-action--ghost {
   color: var(--accent);
   background: transparent;

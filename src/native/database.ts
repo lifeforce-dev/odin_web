@@ -45,7 +45,7 @@ export async function initDatabase(): Promise<void> {
 
   const applied = await applyMigrations(migrationBundle, pluginExecutor(connection));
   client = drizzle(drizzleCallback(connection), { schema });
-  // Visible in logcat / Xcode console: the device smoke signal that startup
+  // Visible in logcat / Xcode console: on-device confirmation that startup
   // migration ran.
   console.info(`[odin-db] ready, migrations applied this start: ${applied}`);
 }

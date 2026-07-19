@@ -3,7 +3,7 @@
 // value case in the app's own voice before the OS permission surface.
 // Purely presentational - copy in, two
 // intents out - so the same dialog serves rest today and the stretch
-// flow later, and the gallery can board it against every theme. The
+// flow later, and the gallery can show it against every theme. The
 // scrim never dismisses: a stray tap would permanently suppress the one
 // education pass, so both choices are explicit.
 //
