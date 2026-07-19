@@ -6,24 +6,19 @@ import StepperField from '@/components/StepperField.vue';
 import { useOneShot } from '@/composables/useOneShot';
 
 // Auto-log editor for the just-finished set: reps + weight, each a
-// StepperField riding its shared pads/hold-to-ramp, with a
-// contenteditable field swapped in for the plain display (the Bebas
-// Neue line-box gotcha rules out <input>). Write-behind: every pad tap
-// or keystroke updates local state instantly and the parent commits on
-// a settle window, so a tap-tap-tap burst or a fast typed correction
-// coalesces into the row's last value instead of a write per keystroke.
+// StepperField with a contenteditable field swapped in for the value
+// (the Bebas Neue line-box gotcha rules out <input>). Write-behind:
+// every pad tap or keystroke updates local state instantly and the
+// parent commits on a settle window, coalescing a burst into one write.
 //
-// Focus invariant: a prop change (a fresh arrival, or a post-failure
+// Focus invariant: a prop change (fresh arrival or post-failure
 // DB-truth resync) skips the local + DOM rewrite while that field is
-// document.activeElement - an active edit wins, and its own blur flush
-// re-commits it because local then differs from lastCommitted. A pad
-// tap always rewrites local + DOM, focused or not (an explicit user
-// action, never an echo), re-placing the caret at the end when
-// focused. lastCommitted tracks the last value actually emitted
-// (seeded from props, updated on every emit AND by both prop watches
-// even when they skip the rewrite), so a flush with nothing pending -
-// an action tap, an untouched blur, teardown - emits nothing instead
-// of a no-op write.
+// document.activeElement - the active edit wins, and its blur flush
+// re-commits because local then differs from lastCommitted. A pad tap
+// always rewrites local + DOM, focused or not, placing the caret at the
+// end. lastCommitted tracks the last value emitted (updated on every
+// emit AND by both prop watches even when they skip the rewrite), so a
+// flush with nothing pending emits nothing instead of a no-op write.
 
 const props = defineProps<{
   reps: number;
@@ -173,9 +168,9 @@ function makeNumericWell(config: NumericWellConfig) {
   }
 
   // Digits (plus a single dot when allowDecimal) only; Enter commits via
-  // blur. A nicety only: Android soft keyboards report 'Unidentified'
-  // for every key, which never matches these patterns, so onInput's
-  // parse-on-input is the guard that actually blocks bad input.
+  // blur. Filtering here is a nicety only: Android soft keyboards report
+  // 'Unidentified' for every key, so onInput's parse-on-input is the real
+  // guard against bad input.
   function onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -212,8 +207,7 @@ function scheduleCommit(): void {
 }
 
 // Cancels the settle shot and normalizes at the boundary; a flush that
-// lands on the same value already committed (an action tap with
-// nothing pending, an untouched blur, teardown) emits nothing.
+// lands on the value already committed emits nothing.
 function flushCommit(): void {
   settle.cancel();
   const normalized = {
@@ -255,10 +249,9 @@ onMounted(() => {
   weightWell.render();
 });
 
-// A prop change means a fresh arrival or a post-failure re-derive
-// (the DB wins) - never a keystroke echoing back, since typing stays
-// local until commit. lastCommitted updates even when the field itself
-// is focused and skips the rewrite (see the focus invariant above).
+// A prop change is a fresh arrival or post-failure re-derive, never a
+// keystroke echo (typing stays local until commit). lastCommitted
+// updates even when the rewrite is skipped (see the focus invariant).
 watch(
   () => props.reps,
   (value) => {
@@ -277,8 +270,8 @@ watch(
 defineExpose({ flush: flushCommit });
 
 // The parent's write chain outlives this component, so flushing here
-// lands an edit still pending inside the settle window (a Skip/back
-// navigation, or an unmount from advancing) instead of dropping it.
+// lands an edit still pending inside the settle window instead of
+// dropping it.
 onBeforeUnmount(flushCommit);
 </script>
 

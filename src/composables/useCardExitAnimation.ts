@@ -12,22 +12,18 @@ import { useOneShot } from './useOneShot';
 import type { UndoTrashOutcome } from './useWorkbench';
 import type { WorkbenchDragState } from './useWorkbenchDrag';
 
-// The card's exit animations. While a card is lifted the CSS drives the
-// reveal / rest / armed states straight from drag-state classes, but the
-// two exit animations play after the drag session has already reset, so
-// they need their own transient phase. The delete animation (the card
-// collapses to a line, the line flies into the target, a flash, then the
-// undo snackbar) follows a drop on the delete target; the cancel animation
-// (the face hides, plus the card flying back to its row when nothing was
-// committed) follows every other release. The screen hands geometry and
-// persistence in through the options and renders the state this returns;
-// DeleteTarget / TrashSnackbar / TransientCardGhost use it.
+// The card's exit animations. While a card is lifted the CSS drives its
+// states from drag-state classes, but the two exit animations play after the
+// drag session has already reset, so they need their own transient phase. The
+// delete animation follows a drop on the delete target; the cancel animation
+// follows every other release. The screen hands geometry and persistence in
+// through the options; DeleteTarget / TrashSnackbar / TransientCardGhost
+// render what this returns.
 
 // What a transient element renders - the drag ghost, the deleting card, and
-// the returning card all show the same content model, resolved from
-// whichever zone the card lives in. A discriminated union so the compiler
-// owns the card-vs-elsewhere branch: an elsewhere entry has no prescription,
-// and no branch can accidentally render one as "0x // 0s".
+// the returning card share one content model. A discriminated union so the
+// compiler owns the card-vs-elsewhere branch: an elsewhere entry has no
+// prescription to render.
 export type TransientCard =
   | {
       kind: 'card';
@@ -48,9 +44,8 @@ interface GhostSnapshot {
 }
 
 // The delete snackbar. `undo` lands when the trash write settles; a `notice`
-// replaces the "<name> deleted" line (and takes the Undo button with it)
-// when the delete or its undo could not deliver - the toast must never
-// promise an undo it does not have.
+// replaces the deleted-line and drops the Undo button when the delete or its
+// undo could not deliver, so the toast never promises an undo it lacks.
 export interface TrashToast {
   exerciseId: string;
   name: string;
@@ -71,8 +66,8 @@ export interface CardExitAnimationOptions {
   // The y the collapsing card's line flies to; null when the delete target
   // is not mounted.
   measureDeleteTargetY(): number | null;
-  // Whether the release that just ended committed anything (reorder,
-  // remove, add, delete): a commit's exit never returns the card to its row.
+  // Whether the release that just ended committed anything: a commit's exit
+  // never returns the card to its row.
   wasDropCommitted(): boolean;
   trashWorkout(exerciseId: string): Promise<TrashedWorkout | null>;
   undoTrash(trashed: TrashedWorkout): Promise<UndoTrashOutcome>;
@@ -143,8 +138,8 @@ export function useCardExitAnimation(options: CardExitAnimationOptions) {
         toast.undo = undo;
         return;
       }
-      // Nothing was deleted (already gone, or the chain resynced): the
-      // reload told the screen the truth; say so and drop the Undo.
+      // Nothing was deleted (already gone, or the chain resynced): the reload
+      // told the screen the truth, so drop the Undo.
       toast.notice = "Couldn't delete // try again";
       toastShot.set(dismissToast, NOTICE_HOLD_MS);
     });
@@ -161,8 +156,7 @@ export function useCardExitAnimation(options: CardExitAnimationOptions) {
       return;
     }
     // Either way the reload already told the screen the truth; the two
-    // non-restored outcomes still earn different copy (a retaken name and
-    // an I/O failure read differently).
+    // non-restored outcomes still earn different copy.
     toast.notice =
       outcome === 'spent'
         ? "Couldn't restore // name back in use"
@@ -170,9 +164,9 @@ export function useCardExitAnimation(options: CardExitAnimationOptions) {
     toastShot.set(dismissToast, NOTICE_HOLD_MS);
   }
 
-  // A cancelled drag returns the card to its row: functional motion showing
-  // where the card went. Commits deliberately do not animate (the release
-  // was the preview); a delete owns its own exit.
+  // A cancelled drag returns the card to its row, showing where it went.
+  // Commits do not animate (the release was the preview) and a delete owns
+  // its own exit.
   async function returnToRow(exerciseId: string): Promise<void> {
     const from = ghostSnapshot;
     const content = options.cardContent(exerciseId);
@@ -191,12 +185,11 @@ export function useCardExitAnimation(options: CardExitAnimationOptions) {
     }, MOTION_SLIDE_MS);
   }
 
-  // The exit watcher: every release that is not a delete plays the hide
-  // sweep (the same sweep covers every exit); a release that committed
-  // nothing also returns the card to its row. A new lift cancels any exit
-  // still playing. (Drop callbacks run synchronously inside the drag's
+  // The exit watcher: a non-delete release plays the hide sweep, and one that
+  // committed nothing also returns the card to its row; a new lift cancels
+  // any exit still playing. Drop callbacks run synchronously inside the drag's
   // drop(), before this deferred watcher fires - that ordering is what lets
-  // the delete branch win here.)
+  // the delete branch win here.
   watch(
     () => options.dragState.draggingId,
     (draggingId, previous) => {

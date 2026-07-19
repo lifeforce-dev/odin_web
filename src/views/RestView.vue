@@ -20,15 +20,11 @@ import { resolveUpTo, useUpOverride } from '@/router/up';
 
 // The rest screen, timer-as-fact + auto-log: the just-finished set is
 // logged on arrival (it already happened, so a forgettable save button
-// would lose data), edited in place above a countdown hero that
-// derives from the persisted endsAt every render. Final mode (the
-// session's last set) drops the countdown outright and docks FINISH
-// instead of NEXT SET; same screen, same auto-log. Back on this screen
-// IS the rollback while the rest window is open: the up affordance (OS
-// or on-screen) undoes the arrival instead of leaving quietly. Past
-// the window (sitting at 0:00, or a cold-open restore hours later)
-// back is a plain leave - the set stays logged, and the row's label
-// stops promising destruction.
+// would lose data) and edited in place above a countdown that derives
+// from the persisted endsAt. Final mode (the session's last set) drops
+// the countdown and docks FINISH instead of NEXT SET. Back IS the
+// rollback while the rest window is open; past it (0:00, or a cold-open
+// restore) back is a plain leave and the set stays logged.
 
 const PULSE_AT_SECONDS = 10;
 
@@ -67,9 +63,8 @@ useUpOverride(async () => {
   if (outcome === 'rolled-back') {
     armRollbackNotice();
   }
-  // The structural map owns the destination (rest's meta.upTo already
-  // carries the exerciseId); the literal mirrors that meta entry and
-  // covers only a current route that no longer resolves mid-transition.
+  // rest's meta.upTo owns the destination; this literal fallback only
+  // covers a current route that no longer resolves mid-transition.
   void router.replace(
     resolveUpTo(router.currentRoute.value) ?? {
       name: 'workout-set',
@@ -80,8 +75,8 @@ useUpOverride(async () => {
 
 const logSetControlRef = ref<InstanceType<typeof LogSetControl> | null>(null);
 
-// Null in final mode (no countdown at all) or before the first read
-// lands; useRestTimer parks remaining at 0 either way.
+// Null in final mode (no countdown) or before the first read lands;
+// useRestTimer parks remaining at 0 either way.
 const endsAt = computed(() => {
   const current = arrival.value;
   if (!current || current.mode !== 'countdown') {
@@ -91,16 +86,14 @@ const endsAt = computed(() => {
 });
 const { remaining } = useRestTimer(() => endsAt.value);
 
-// The OS becomes the alarm clock while the app is backgrounded mid-rest;
-// endsAt is the same countdown fact the digits derive from (null in
-// final mode, so FINISH screens schedule nothing).
+// The OS is the alarm clock while backgrounded mid-rest; endsAt is the
+// same countdown fact the digits use (null in final mode, so FINISH
+// screens schedule nothing).
 useRestAlarm(() => endsAt.value);
 
-// The rollback window covers BOTH modes (final mode has no countdown,
+// The rollback window covers BOTH modes: final mode has no countdown,
 // but its arrival still ages by the same loggedAt + restSeconds rule
-// useRestSession's suppression reads). While it is open the up row
-// says Roll Back Set; expired, back is a plain leave and the label
-// falls to the structural destination instead of lying.
+// useRestSession's suppression reads.
 const rollbackWindowEndsAt = computed(() => {
   const current = arrival.value;
   if (!current) {
@@ -134,9 +127,9 @@ async function handleAction(): Promise<void> {
   if (!current) {
     return;
   }
-  // Flush BEFORE the mode branch and stop on a dirty outcome (the note
-  // is already on the screen): a failed edit must block both NEXT SET
-  // and FINISH, never let FINISH stamp endedAt on top of it.
+  // Flush before the mode branch and stop on a dirty outcome: a failed
+  // edit must block both NEXT SET and FINISH, never let FINISH stamp
+  // endedAt on top of it.
   logSetControlRef.value?.flush();
   const clean = await flushPendingWrites();
   if (!clean) {
@@ -185,11 +178,9 @@ async function handleAction(): Promise<void> {
       </div>
     </div>
     <template #action>
-      <!-- loadFailed and a null arrival both gate the footer below, but
-           the up row must survive both (a failed load or a stale route
-           must never strand an iOS user): this slot is its own
-           template tree (the AppShell #action slot), so NavUpRow sits
-           outside that gate. -->
+      <!-- The footer is gated on loadFailed and arrival, but the up row
+           must survive both: a failed load or stale route must never
+           strand an iOS user with no way back. -->
       <NavUpRow :label="upLabel" />
       <div v-if="!loadFailed && arrival" class="rest__footer">
         <ScreenNote v-if="finishFailed">Couldn't finish // try again</ScreenNote>

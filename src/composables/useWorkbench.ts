@@ -28,18 +28,16 @@ import type {
 import { orderAfterDrop } from './useWorkbenchDrag';
 
 // The workbench's domain adapter: reactive circuit and library state over
-// domain/builder.ts. Edits apply live - every stepper tick lands in
-// the DB, there is no save button. Components stay render + emit; the
-// rules live here and below in domain/.
+// domain/builder.ts. Edits apply live; there is no save button. Components
+// stay render + emit, the rules live here and in domain/.
 
 export type WorkbenchStatus = 'loading' | 'ready' | 'missing' | 'unavailable' | 'error';
 
 export type PrescriptionField = keyof Prescription;
 
-// What became of an inline create, for the screen to route: reveal the
-// library row (create stays in the library, nothing auto-adds), flash the
-// slot (already here), open the owner's steal strip (create never
-// silently steals), or show the domain's notice on the name.
+// What became of an inline create, for the screen to route. A created or
+// matched workout stays in the library (nothing auto-adds), and create
+// never silently steals a held name.
 export type CreateWorkoutOutcome =
   | { kind: 'in-library'; exerciseId: string }
   | { kind: 'already-in-circuit'; exerciseId: string }
@@ -47,15 +45,14 @@ export type CreateWorkoutOutcome =
   | { kind: 'rejected'; message: string }
   | { kind: 'failed' };
 
-// What became of a library-tray rename: rejected carries the message the
-// tray shows (name taken / blank); failed means the chain resynced.
+// What became of a library-tray rename. rejected carries the tray's notice;
+// failed means the chain already resynced.
 export type RenameWorkoutOutcome =
   { kind: 'renamed' } | { kind: 'rejected'; message: string } | { kind: 'failed' };
 
-// What became of a snackbar undo: 'spent' means the undo expired
-// underneath the snackbar (double tap, or the freed name re-taken);
-// 'failed' means the restore itself blew up and the chain resynced.
-// The two need different copy, so they come back apart.
+// What became of a snackbar undo. 'spent' (the undo expired) and 'failed'
+// (the restore blew up, chain resynced) come back apart because they need
+// different copy.
 export type UndoTrashOutcome = 'restored' | 'spent' | 'failed';
 
 // The SQLite reason only travels on the wrapped error's cause chain;
@@ -94,24 +91,22 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   let circuitKind: CircuitKind | null = null;
 
   // EVERY mutation rides one chain, in emit order. Ordering matters for
-  // hold-to-ramp bursts (the last write decides the row), but the chain
-  // is also a driver invariant: sqlite-proxy transactions are raw
-  // BEGIN/COMMIT over the single shared connection, so two concurrent
-  // db.transaction calls cannot both succeed - the second BEGIN rejects.
+  // hold-to-ramp bursts (the last write decides the row), but it is also a
+  // driver invariant: sqlite-proxy transactions are raw BEGIN/COMMIT over the
+  // single shared connection, so two concurrent db.transaction calls cannot
+  // both succeed - the second BEGIN rejects.
   let writeChain: Promise<void> = Promise.resolve();
 
-  // Bumped by every resync. An op that was already queued when a resync
-  // repainted the screen must reload after it runs: the optimistic ops
-  // (adjustPrescription, an applied reorder) deliberately skip their
-  // post-write load, and without this check the resync's older paint
-  // would sit over the newer row those ops then write.
+  // Bumped by every resync. An op already queued when a resync repainted must
+  // reload after it runs: the optimistic ops (adjustPrescription, an applied
+  // reorder) skip their post-write load, so without this check the resync's
+  // older paint would sit over the newer row they then write.
   let chainGeneration = 0;
 
   function enqueue(operation: () => Promise<void>): Promise<void> {
     // The circuit this op was aimed at, captured at emit time: the view
-    // instance is reused across circuits, so an op still queued when
-    // props.id flips would otherwise write into the NEW circuit
-    // (add/steal would land silently in the wrong list).
+    // instance is reused across circuits, so an op still queued when props.id
+    // flips would otherwise write silently into the NEW circuit.
     const target = circuitId();
     const generation = chainGeneration;
     writeChain = writeChain
@@ -148,10 +143,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
       library.value = await getLibrary(db, circuit.id);
       status.value = 'ready';
     } catch (error) {
-      // A failed read must fail on the screen, not only in the log: the
-      // screen renders this status with a retry. Also keeps the write
-      // chain unbreakable - resync awaits load, so load must never
-      // reject.
+      // A failed read must surface on the screen (a retriable status), not
+      // only in the log. Catching here also keeps load from ever rejecting,
+      // which resync relies on to keep the write chain unbreakable.
       console.error('[odin] workbench load failed', error);
       status.value = 'error';
     }
@@ -165,11 +159,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     await load();
   }
 
-  // The mount / id-change entry point: flips the screen to loading NOW
-  // (the old circuit must not stay interactive - a stale tap there
-  // would enqueue a wrong-circuit write) and rides the chain, so the
-  // read cannot interleave with an in-flight write transaction on the
-  // single shared connection.
+  // The mount / id-change entry point: flips the screen to loading NOW so the
+  // old circuit stops taking taps, then rides the chain so the read cannot
+  // interleave with an in-flight write on the single shared connection.
   function reload(): Promise<void> {
     if (!db) {
       return Promise.resolve();
@@ -178,10 +170,8 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     return enqueue(load);
   }
 
-  // Optimistic: the displayed value moves on the same tick as the tap
-  // so hold-to-ramp reads instantly; the write follows on the chain.
-  // Keyed to the workout, so the same edit works from a circuit slot
-  // and a library card. Returns the queued write so callers can await it.
+  // Optimistic: the displayed value moves on the same tick as the tap so
+  // hold-to-ramp reads instantly; the write follows on the chain.
   function adjustPrescription(
     exerciseId: string,
     field: PrescriptionField,
@@ -226,9 +216,8 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     if (!db) {
       return Promise.resolve();
     }
-    // A card dropped back where it came from writes nothing; display
-    // order is array order, so the comparison is against the current
-    // array.
+    // A card dropped back where it came from writes nothing; display order is
+    // array order, so the comparison is against the current array.
     const unchanged =
       orderedItemIds.length === slots.value.length &&
       orderedItemIds.every((id, index) => slots.value[index]?.id === id);
@@ -247,17 +236,16 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     return enqueue(async () => {
       await reorderCircuitItems(db, circuitId(), orderedItemIds);
       if (!applied) {
-        // The optimistic map missed (the list changed under the gesture,
-        // e.g. a queued remove) but the write still landed: reload so
-        // the screen matches what was persisted.
+        // The optimistic map missed (the list changed under the gesture) but
+        // the write still landed: reload so the screen matches what persisted.
         await load();
       }
     });
   }
 
-  // A drag-in landed at a gap index: the new item appends (domain rule),
-  // then one reorder moves it to the previewed position. Runs on the
-  // chain, so the fresh id list read here cannot race another mutation.
+  // A drag-in landed at a gap index: the new item appends (domain rule), then
+  // one reorder moves it to the previewed position. Runs on the chain, so the
+  // id list read here cannot race another mutation.
   async function placeItemAt(handle: DbClient, itemId: string, insertAt: number): Promise<void> {
     const ids = (await listCircuitSlots(handle, circuitId())).map((slot) => slot.id);
     const ordered = orderAfterDrop(ids, itemId, insertAt);
@@ -267,9 +255,8 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }
   }
 
-  // Tap appends (no insertAt); a drag-in places at the previewed gap.
-  // Resolves to the new item id so the screen can flash it, or null when
-  // the write failed (the chain already resynced from the DB).
+  // Tap appends (no insertAt); a drag-in places at the previewed gap. Null
+  // resolves when the write failed and the chain already resynced.
   function addFromLibrary(exerciseId: string, insertAt?: number): Promise<string | null> {
     if (!db) {
       return Promise.resolve(null);
@@ -285,9 +272,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }).then(() => itemId);
   }
 
-  // The steal: domain moves the exercise's one pointer transactionally;
-  // both circuits' state is correct the moment it lands. Same placement
-  // and flash contract as addFromLibrary.
+  // The steal: domain moves the exercise's one pointer transactionally, so
+  // both circuits are correct the moment it lands. Same placement and flash
+  // contract as addFromLibrary.
   function stealFromLibrary(exerciseId: string, insertAt?: number): Promise<string | null> {
     if (!db) {
       return Promise.resolve(null);
@@ -303,11 +290,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }).then(() => itemId);
   }
 
-  // Inline create: find-or-create on the normalized name, then route
-  // by where that name already lives. The created (or matched free)
-  // workout lands in the AVAILABLE group and stays there - no auto-add.
-  // A name held elsewhere comes back as held-elsewhere so the screen
-  // can open that row's steal strip.
+  // Inline create: find-or-create on the normalized name, then route by where
+  // that name already lives. The created or matched workout lands in
+  // AVAILABLE and stays there; nothing auto-adds.
   function createWorkout(name: string): Promise<CreateWorkoutOutcome> {
     if (!db) {
       return Promise.resolve({ kind: 'failed' });
@@ -343,10 +328,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }).then(() => outcome);
   }
 
-  // The library tray's rename. A collision with another active name is the
-  // constraint's notice (reason on the cause chain); it comes back as a
-  // rejected outcome for the tray's notice instead of a resync, because
-  // nothing was written and the screen is not stale.
+  // The library tray's rename. A name collision comes back rejected, not a
+  // resync, because nothing was written and the screen is not stale (the
+  // constraint's reason rides the cause chain).
   function renameWorkout(exerciseId: string, name: string): Promise<RenameWorkoutOutcome> {
     if (!db) {
       return Promise.resolve({ kind: 'failed' });
@@ -376,9 +360,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }).then(() => outcome);
   }
 
-  // The workbench title pencil's rename: unlike renameWorkout there is
-  // no active-name index on circuits, so there is no rejected-by-
-  // collision branch - only blank and missing/archived.
+  // The workbench title pencil's rename: circuits have no active-name index,
+  // so there is no rejected-by-collision branch, only blank and
+  // missing/archived.
   function renameCircuit(name: string): Promise<RenameWorkoutOutcome> {
     if (!db) {
       return Promise.resolve({ kind: 'failed' });
@@ -388,8 +372,8 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
       try {
         const renamed = await renameCircuitDomain(db, circuitId(), name);
         if (!renamed) {
-          // Vanished or archived underneath the pencil: the DB is the
-          // truth, and the workbench's 'missing' status takes over.
+          // Vanished or archived underneath the pencil: the DB is the truth,
+          // and the 'missing' status takes over.
           await load();
           return;
         }
@@ -405,10 +389,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }).then(() => outcome);
   }
 
-  // The drag-to-trash delete: the workout disappears entirely, from
-  // whichever zone it was lifted out of (domain frees a held slot and
-  // archives in one transaction; history is kept). Resolves to the undo
-  // token the delete snackbar holds, or null when nothing was trashed.
+  // The drag-to-trash delete: the workout disappears entirely, from whichever
+  // zone it was lifted out of. Domain frees a held slot and archives in one
+  // transaction; history is kept.
   function trashWorkout(exerciseId: string): Promise<TrashedWorkout | null> {
     if (!db) {
       return Promise.resolve(null);
@@ -421,8 +404,8 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   }
 
   // The snackbar's UNDO: restore the identity and its held slot. Either
-  // non-restored outcome means the reload has already told the screen
-  // the truth; see UndoTrashOutcome for what tells them apart.
+  // non-restored outcome means the reload already told the screen the truth
+  // (UndoTrashOutcome tells them apart).
   function undoTrash(trashed: TrashedWorkout): Promise<UndoTrashOutcome> {
     if (!db) {
       return Promise.resolve('failed');

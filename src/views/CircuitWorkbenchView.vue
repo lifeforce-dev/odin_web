@@ -28,11 +28,10 @@ import type { PrescriptionField } from '@/composables/useWorkbench';
 import type { CircuitSlot, LibraryAvailableEntry } from '@/domain/builder';
 import { MOTION_TICK_MS } from '@/styles/motion';
 
-// The circuit workbench: the circuit's ordered cards on top, the
-// workout library below. The docked create row doubles as the delete target
-// while a card is lifted; its face and exit animations live in DeleteTarget
-// and useCardExitAnimation. This screen
-// owns the drag session, zone layout, and persistence wiring.
+// The circuit workbench: the circuit's ordered cards on top, the workout
+// library below. The docked create row doubles as the delete target while a
+// card is lifted. This screen owns the drag session, zone layout, and
+// persistence wiring.
 
 const props = defineProps<{
   id: string;
@@ -42,15 +41,13 @@ const db = useDb();
 const workbench = useWorkbench(db, () => props.id);
 const { status, circuitName, slots, library } = workbench;
 
-// One fold open at a time across both zones: a card's editor or an
-// elsewhere row's steal strip, keyed by exercise id.
+// One fold open at a time across both zones, keyed by exercise id.
 const openCardId = ref<string | null>(null);
 const flashExerciseId = ref<string | null>(null);
 const createNotice = ref<string | null>(null);
 const renameNotice = ref<{ exerciseId: string; message: string } | null>(null);
 
-// The title pencil's rename state: the header swaps for an inline
-// entry seeded with the current name until it commits or cancels.
+// The title pencil's rename state: the header swaps for an inline entry.
 const renamingCircuit = ref(false);
 const circuitRenameNotice = ref<string | null>(null);
 
@@ -67,8 +64,8 @@ const deleteTargetRef = ref<InstanceType<typeof DeleteTarget> | null>(null);
 const circuitScrolls = useOverflow(circuitZoneEl, circuitContentEl);
 const libraryScrolls = useOverflow(libraryListEl, libraryContentEl);
 
-// True when the release committed a change; the exit animation uses it to
-// tell a commit from a cancelled drag. Reset when a lift begins.
+// True when the release committed a change, so the exit animation can tell a
+// commit from a cancelled drag.
 let dropCommitted = false;
 
 const drag = useWorkbenchDrag({
@@ -138,10 +135,9 @@ function onDeleteDrop(exerciseId: string): void {
   cardExit.onTrashDrop(exerciseId);
 }
 
-// While a card is lifted every region (circuit zone, library list, delete
-// target) steps down one luminance grade except the one the drop would
-// land in. Relighting is the absence of the dim class, so there is
-// no lit style to drift out of sync.
+// While a card is lifted every region steps down one luminance grade except
+// the one the drop would land in. Relighting is the absence of the dim class,
+// so no lit style can drift out of sync.
 
 // The zone armed when the drag ended: the exit restore skips it, since
 // region-restore animates from the dimmed grade and would flash the
@@ -157,8 +153,8 @@ watch(drag.armedZone, (zone, previous) => {
   if (zone !== null) {
     lastArmedZone.value = zone;
   }
-  // Only a circuit/library crossing ticks; lift, release, and the delete
-  // target boundary are not crossings.
+  // Only a circuit/library crossing ticks, not lift, release, or the delete
+  // boundary.
   const crossed =
     (zone === 'library' && previous === 'circuit') ||
     (zone === 'circuit' && previous === 'library');
@@ -188,9 +184,9 @@ onMounted(() => {
 watch(
   () => props.id,
   () => {
-    // A different circuit is a fresh screen: reset everything keyed to
-    // the old circuit's ids, and reload() flips status to loading
-    // before the old content can take a stale tap.
+    // A different circuit is a fresh screen: reset everything keyed to the old
+    // circuit's ids; reload() flips status to loading so stale content can't
+    // take a tap.
     openCardId.value = null;
     flashExerciseId.value = null;
     createNotice.value = null;
@@ -204,8 +200,8 @@ watch(
   },
 );
 
-// Blank while loading: a placeholder would flash for a frame before
-// the real name lands. The fallback covers the missing/error states.
+// Blank while loading: a placeholder would flash for a frame before the real
+// name lands.
 const headerTitle = computed(() => {
   if (status.value === 'loading') {
     return '';
@@ -223,12 +219,10 @@ const eyebrowText = computed(() => {
   return slots.value.length === 1 ? '1 Workout' : `${slots.value.length} Workouts`;
 });
 
-// While a lifted circuit card is over the circuit it leaves the list
-// and a landing gap opens at the insertion point; a lifted library card
-// is not in the list, so the same gap previews its insertion. The gap
-// index counts non-dragged rows only, matching measureSlotMidpoints.
-// slotNumber is the row's committed 1-based position and the gap wears
-// the number it previews, so mid-drag a number can duplicate a neighbor's.
+// A landing gap opens at the insertion point: a lifted circuit card leaves
+// the list, a lifted library card was never in it. The gap index counts
+// non-dragged rows only, matching measureSlotMidpoints; the gap wears the
+// slotNumber it previews, so mid-drag a number can duplicate a neighbor's.
 type SlotListRow =
   { kind: 'slot'; slot: CircuitSlot; slotNumber: number } | { kind: 'gap'; slotNumber: number };
 
@@ -314,12 +308,10 @@ const draggedContent = computed<TransientCard | null>(() =>
   drag.state.draggingId !== null ? cardContent(drag.state.draggingId) : null,
 );
 
-// The library's landing preview: while the library is armed a gap opens
-// where releasing sends the card. A lifted library card's own row becomes
-// the gap; a circuit-origin card docks at the top of the list (a fixed spot
-// stays visible where the true sorted position could open below the scroll;
-// the list reloads sorted after the drop). An elsewhere-origin card returns
-// to its own group and opens no gap.
+// The library's landing preview: while the library is armed a gap opens where
+// releasing sends the card. A circuit-origin card docks at a fixed top spot,
+// since its true sorted position could open below the scroll (the list
+// reloads sorted after the drop).
 type LibraryRow = { kind: 'card'; entry: LibraryAvailableEntry } | { kind: 'gap' };
 
 const topGapOpen = computed(
@@ -377,8 +369,7 @@ async function confirmSteal(exerciseId: string): Promise<void> {
   }
 }
 
-// The notice renders on the card that asked; a success flows back
-// down as the new name prop.
+// The notice renders on the card that asked.
 async function handleRename(exerciseId: string, name: string): Promise<void> {
   const target = props.id;
   renameNotice.value = null;
@@ -404,9 +395,7 @@ function openCircuitRename(): void {
   renamingCircuit.value = true;
 }
 
-// A blank or unchanged commit means cancel - the parent decides, per
-// InlineNameEntry's contract. Either way the entry closes; a notice
-// only shows when a real rename attempt failed.
+// A blank or unchanged commit means cancel, per InlineNameEntry's contract.
 async function handleCircuitRenameCommit(name: string): Promise<void> {
   renamingCircuit.value = false;
   if (name.length === 0 || name === circuitName.value) {
@@ -485,13 +474,9 @@ async function handleCreate(name: string): Promise<void> {
       >
         <template #eyebrow>{{ eyebrowText }}</template>
       </ScreenHeader>
-      <!-- The current name is the PLACEHOLDER, not the seed: a created
-           circuit lands as "New Circuit", so opening rename on an empty
-           entry lets the user type straight over it instead of clearing
-           the default first. A blank commit means keep the current name
-           (handleCircuitRenameCommit). This is the create-then-name
-           flow's ergonomics; the workout card rename stays seeded (there
-           the name is real and usually tweaked, not replaced). -->
+      <!-- The current name is the PLACEHOLDER, not the seed: a created circuit
+           lands as "New Circuit", so rename opens empty and the user types
+           straight over it instead of clearing the default first. -->
       <InlineNameEntry
         v-else
         class="workbench__circuit-rename"
@@ -505,21 +490,18 @@ async function handleCreate(name: string): Promise<void> {
       <p v-if="circuitRenameNotice" class="workbench__circuit-notice">{{ circuitRenameNotice }}</p>
 
       <template v-if="status === 'ready'">
-        <!-- The zones own only the space below the header, so
-             --zone-circuit splits exactly what the eye sees. The drag
-             ghost and transients must never be a filtered region's
-             descendant: a filter becomes the containing block for
-             their position: fixed. -->
+        <!-- The drag ghost and transients must never be a filtered region's
+             descendant: a filter becomes the containing block for their
+             position: fixed. -->
         <div class="workbench__zones">
           <div
             ref="circuitZoneEl"
             class="workbench__circuit-zone scrolly"
             :class="regionClasses('circuit')"
           >
-            <!-- Exists to be measured: a scroll container's own box
-                 never resizes when content changes, so useOverflow
-                 watches the content for the change and the container
-                 for the answer. -->
+            <!-- Exists to be measured: a scroll container's own box never
+                 resizes when content changes, so useOverflow watches the
+                 content for the change and the container for the answer. -->
             <div ref="circuitContentEl">
               <p v-if="displayRows.length === 0" class="workbench__empty-hint">
                 Tap a workout below to open it // drag it up to place
@@ -583,18 +565,16 @@ async function handleCreate(name: string): Promise<void> {
             ></span>
             <div class="workbench__library-region" :class="regionClasses('library')">
               <p class="workbench__library-label">Workouts</p>
-              <!-- AVAILABLE docks outside the scroll: it names the
-                   default group and stays put while the cards scroll.
-                   IN OTHER CIRCUITS marks a boundary inside the
-                   scrolled content, so it scrolls with it. -->
+              <!-- AVAILABLE docks outside the scroll so it stays put while
+                   cards scroll; IN OTHER CIRCUITS marks a boundary inside the
+                   content, so it scrolls with it. -->
               <LibraryGroupHeader
                 class="workbench__library-available"
                 label="Available"
                 variant="available"
               />
               <div ref="libraryListEl" class="workbench__library-list scrolly">
-                <!-- Exists to be measured, like the circuit zone's
-                     wrapper. -->
+                <!-- Exists to be measured, like the circuit zone's wrapper. -->
                 <div ref="libraryContentEl">
                   <TransitionGroup
                     tag="div"
@@ -652,9 +632,8 @@ async function handleCreate(name: string): Promise<void> {
                 </div>
               </div>
             </div>
-            <!-- Docked outside the library's scroll: always in view and
-                 always laid out, so the drag can measure its
-                 boundary. -->
+            <!-- Docked outside the library's scroll so it is always laid out
+                 and the drag can measure its boundary. -->
             <DeleteTarget
               ref="deleteTargetRef"
               class="workbench__delete-dock"
@@ -715,8 +694,7 @@ async function handleCreate(name: string): Promise<void> {
 
     <!-- The deleted card collapses to a line that flies into the delete
          target. Position rides in the --delete-ghost-* props because the
-         keyframes own transform. Pure paint: the delete has already
-         landed. -->
+         keyframes own transform. -->
     <div
       v-if="deleteGhost"
       class="workbench__delete-ghost"
@@ -758,9 +736,8 @@ async function handleCreate(name: string): Promise<void> {
     </div>
 
     <template #action>
-      <!-- The slot content sits outside .workbench--lifted's descendant
-           selectors, so the mid-drag inert rule reaches it only through
-           this class. -->
+      <!-- The #action slot renders outside .workbench's tree, so the mid-drag
+           inert rule reaches it only through this class. -->
       <NavUpRow :class="{ 'workbench__up--inert': drag.state.draggingId !== null }" />
     </template>
   </AppShell>
@@ -778,11 +755,9 @@ async function handleCreate(name: string): Promise<void> {
   overflow: hidden;
 }
 
-/* Sits where ScreenHeader's title row would; the eyebrow disappears
-   for the duration of the rename. flex: none is load-bearing: the
-   entry's root is flex: 1 1 auto for its row call sites, and in this
-   column it would grow into the screen's free height and render as a
-   giant panel instead of editing in place. */
+/* flex: none is load-bearing: the entry's root is flex: 1 1 auto for its row
+   call sites, and in this column it would grow into the screen's free height
+   and render as a giant panel instead of editing in place. */
 .workbench__circuit-rename {
   flex: none;
   margin-bottom: var(--space-6);
@@ -803,10 +778,9 @@ async function handleCreate(name: string): Promise<void> {
 /* The zone pair only; the header is deliberately outside so
    --zone-circuit splits just the zone area. */
 .workbench__zones {
-  /* Designer knob: the circuit zone's share of the zone area, in parts
-     of 100. Expressed as grow ratios over a zero basis: a flex-basis
-     percentage measures against the screen including the header, so
-     the drawn split drifts from what the number says. */
+  /* Designer knob: the circuit zone's share of the zone area, in parts of
+     100. Grow ratios over a zero basis, not flex-basis percent: a percentage
+     measures against the screen including the header, drifting the split. */
   --zone-circuit: 55;
 
   display: flex;
@@ -815,11 +789,9 @@ async function handleCreate(name: string): Promise<void> {
   min-height: 0;
 }
 
-/* While a card is lifted every region steps one grade down in hard
-   steps except the armed one, which stays at full luminance. On the
-   exit the dimmed regions step back up, late on a delete so the
-   flash plays first; the region armed at release is already lit and
-   plays nothing. */
+/* While lifted, every region steps one grade down except the armed one. On
+   exit the dimmed regions step back up, late on a delete so the flash plays
+   first; the region armed at release is already lit and plays nothing. */
 .workbench__region--dimmed {
   animation: region-dim calc(var(--motion-morph) * 0.6) steps(2, end) forwards;
 }
@@ -1058,14 +1030,10 @@ async function handleCreate(name: string): Promise<void> {
   z-index: var(--z-float);
 }
 
-/* While a card is lifted the tap surfaces go inert: a second finger
-   focusing the create row would pop the keyboard, resize the viewport,
-   and invalidate the frozen zone boundaries. The up row joins through
-   its own class because the #action slot renders outside .workbench's
-   tree, out of reach of a descendant selector. Unlike the circuits
-   screen's mid-drag rule (which blankets its whole root), this one
-   enumerates each tap surface - two scoping strategies, kept
-   deliberately unmerged for now. */
+/* While a card is lifted the tap surfaces go inert: a second finger focusing
+   the create row would pop the keyboard, resize the viewport, and invalidate
+   the frozen zone boundaries. The up row joins through its own class because
+   the #action slot renders outside .workbench's tree. */
 .workbench--lifted .workbench__circuit-zone,
 .workbench--lifted .workbench__library-region,
 .workbench--lifted .workbench__delete-dock,
@@ -1075,9 +1043,8 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 /* The wrapper only positions the real card and adds the lifted glow.
-   will-change promotes it to its own layer at mount, so the first
-   frames do not repaint mid-gesture. --dim-drag-ghost also binds the
-   circuits screen's drag ghost. */
+   will-change promotes it to its own layer at mount, so the first frames do
+   not repaint mid-gesture. */
 .workbench__drag-ghost {
   position: fixed;
   top: 0;
