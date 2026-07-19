@@ -306,12 +306,12 @@ onMounted(() => {
           glow off the red channel. --glow-flash and --glow-rest-value render live in the
           workout-card section below.
         </p>
-        <div class="recede-sample">
-          <span class="recede-sample__page">page</span>
-          <span class="recede-sample__page recede-sample__page--receded">--lift-recede</span>
+        <div class="dim-sample">
+          <span class="dim-sample__page">page</span>
+          <span class="dim-sample__page dim-sample__page--dimmed">--lift-dim</span>
         </div>
         <p class="board-note">
-          --lift-recede: the luminance grade the page drops while a card is lifted (right box).
+          --lift-dim: the luminance grade the page drops while a card is lifted (right box).
         </p>
       </section>
 
@@ -345,7 +345,7 @@ onMounted(() => {
         </div>
         <p class="board-note">
           The set button. Press for the Lock On reticle; in-progress rides the accent channel
-          (fraction + left edge) because there are reps to go; done recedes under the green outline
+          (fraction + left edge) because there are reps to go; done dims under the green outline
           stamp and goes inert.
         </p>
       </section>
@@ -974,12 +974,12 @@ onMounted(() => {
   box-shadow: var(--glow-sweep-line);
 }
 
-.recede-sample {
+.dim-sample {
   display: flex;
   gap: var(--space-2);
 }
 
-.recede-sample__page {
+.dim-sample__page {
   display: flex;
   flex: 1;
   align-items: center;
@@ -991,8 +991,8 @@ onMounted(() => {
   border: var(--hairline) solid var(--border-strong);
 }
 
-.recede-sample__page--receded {
-  filter: var(--lift-recede);
+.dim-sample__page--dimmed {
+  filter: var(--lift-dim);
 }
 
 .ghost-sample {

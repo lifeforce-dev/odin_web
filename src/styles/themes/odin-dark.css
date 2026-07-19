@@ -87,7 +87,7 @@
   --glow-display-accent: 0 0 44px var(--accent-glow);
 
   /* The armed delete target, the one destructive destination. Armed zones
-     are stated by luminance (--lift-recede); red rides only the lifted
+     are stated by luminance (--lift-dim); red rides only the lifted
      card and the delete target. */
   --glow-delete-armed: inset 0 0 0 1px var(--accent), inset 0 0 24px var(--accent-glow);
   --glow-flash: inset 0 0 0 1px var(--accent), 0 0 18px var(--accent-glow);
@@ -98,6 +98,6 @@
 
   /* The page's stepped luminance drop while a card is lifted, and the
      white sweep-line event glow - the one glow off the red channel. */
-  --lift-recede: brightness(0.74);
+  --lift-dim: brightness(0.74);
   --glow-sweep-line: 0 0 10px var(--raw-white-glow);
 }

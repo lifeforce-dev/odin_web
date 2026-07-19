@@ -201,12 +201,12 @@ describe('CircuitWorkbenchView', () => {
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    // The landing gap, the boundary tick, and the receded-region filters exist
+    // The landing gap, the boundary tick, and the dimmed-region filters exist
     // only while a card is lifted - at idle the library is plain rows
     // and nothing is dimmed.
     expect(wrapper.find('.workbench__library-gap').exists()).toBe(false);
     expect(wrapper.find('.workbench__boundary-tick').exists()).toBe(false);
-    expect(wrapper.find('.workbench__region--receded').exists()).toBe(false);
+    expect(wrapper.find('.workbench__region--dimmed').exists()).toBe(false);
     // Bans the zone-ring classes by name (a blanket [class*="--armed"]
     // ban would fail any component legitimately carrying an --armed
     // modifier at idle): armed is stated by the lit region, and the

@@ -140,11 +140,11 @@ function onDeleteDrop(exerciseId: string): void {
 
 // While a card is lifted every region (circuit zone, library list, delete
 // target) steps down one luminance grade except the one the drop would
-// land in. Relighting is the absence of the recede class, so there is
+// land in. Relighting is the absence of the dim class, so there is
 // no lit style to drift out of sync.
 
 // The zone armed when the drag ended: the exit restore skips it, since
-// region-restore animates from the receded grade and would flash the
+// region-restore animates from the dimmed grade and would flash the
 // already-lit region dark.
 const lastArmedZone = ref<WorkbenchDragZone | null>(null);
 
@@ -176,7 +176,7 @@ function regionClasses(region: WorkbenchDragZone): Record<string, boolean> {
   const lifted = drag.state.draggingId !== null;
   const restoring = !lifted && exitFx.value !== 'idle' && lastArmedZone.value !== region;
   return {
-    'workbench__region--receded': lifted && drag.armedZone.value !== region,
+    'workbench__region--dimmed': lifted && drag.armedZone.value !== region,
     'workbench__region--restoring': restoring,
     'workbench__region--restoring-late': restoring && exitFx.value === 'delete',
   };
@@ -817,11 +817,11 @@ async function handleCreate(name: string): Promise<void> {
 
 /* While a card is lifted every region steps one grade down in hard
    steps except the armed one, which stays at full luminance. On the
-   exit the receded regions step back up, late on a delete so the
+   exit the dimmed regions step back up, late on a delete so the
    flash plays first; the region armed at release is already lit and
    plays nothing. */
-.workbench__region--receded {
-  animation: region-recede calc(var(--motion-morph) * 0.6) steps(2, end) forwards;
+.workbench__region--dimmed {
+  animation: region-dim calc(var(--motion-morph) * 0.6) steps(2, end) forwards;
 }
 
 .workbench__region--restoring {
@@ -833,15 +833,15 @@ async function handleCreate(name: string): Promise<void> {
   animation-delay: calc(var(--motion-delete) * 0.72);
 }
 
-@keyframes region-recede {
+@keyframes region-dim {
   to {
-    filter: var(--lift-recede);
+    filter: var(--lift-dim);
   }
 }
 
 @keyframes region-restore {
   from {
-    filter: var(--lift-recede);
+    filter: var(--lift-dim);
   }
 
   to {
@@ -1222,10 +1222,10 @@ async function handleCreate(name: string): Promise<void> {
   }
 }
 
-/* Reduced motion: transients appear and disappear, and the receded
+/* Reduced motion: transients appear and disappear, and the dimmed
    state applies statically. */
 @media (prefers-reduced-motion: reduce) {
-  .workbench__region--receded,
+  .workbench__region--dimmed,
   .workbench__region--restoring,
   .workbench__drag-ghost,
   .workbench__ghost-card,
@@ -1234,8 +1234,8 @@ async function handleCreate(name: string): Promise<void> {
     animation: none;
   }
 
-  .workbench__region--receded {
-    filter: var(--lift-recede);
+  .workbench__region--dimmed {
+    filter: var(--lift-dim);
   }
 
   .workbench__boundary-tick {

@@ -174,7 +174,7 @@ const ariaLabel = computed(() => {
   font-weight: 700;
 }
 
-/* Completed: Clean Outline stamp. The card recedes hard so the single
+/* Completed: Clean Outline stamp. The card dims hard so the single
    green outline is the only thing that reads; green pairs with the
    word + shape, so it survives grayscale. (Before the press rules
    only for specificity ordering - a done card is disabled and never

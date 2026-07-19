@@ -42,7 +42,7 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   // near-solid accent wash, paired with --accent-soft as the trough.
   '--accent-pulse',
   '--lock',
-  // The done card's recede border: lock-tinted iron, quiet on purpose
+  // The done card's dim border: lock-tinted iron, quiet on purpose
   // (the DONE stamp is the only element that reads).
   '--border-lock',
   '--warning',
@@ -85,7 +85,7 @@ export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   '--glow-display-accent',
   // The armed delete target: the one destructive destination and the only
   // region that earns a red armed glow. Armed zones are otherwise
-  // stated by luminance (see --lift-recede).
+  // stated by luminance (see --lift-dim).
   '--glow-delete-armed',
   '--glow-flash',
   // The circuit card's Lock On press: a faint interior wash, no outer
@@ -97,7 +97,7 @@ export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   '--shadow-well',
   // The page's stepped luminance drop while a card is lifted (a filter
   // recipe)...
-  '--lift-recede',
+  '--lift-dim',
   // ...and the white sweep-line event glow, deliberately off the red
   // channel: the bright event spends luminance, never the accent.
   '--glow-sweep-line',
