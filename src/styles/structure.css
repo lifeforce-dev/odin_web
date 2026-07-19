@@ -73,7 +73,7 @@
      design ref draws 94px; shipped rounds up to the 8px rhythm. */
   --circuit-card-min: 96px;
 
-  /* Verdict-notice leading: the one line-height uppercase micro notices
+  /* Notice leading: the one line-height uppercase micro notices
      (rejected names, steal consequences) share so "make notices more
      readable" is a one-line edit. Unitless, like all line-height. */
   --leading-notice: 1.7;

@@ -655,7 +655,7 @@ describe('builder', () => {
       expect(await restoreExercise(db, trashed)).toBe(false);
     });
 
-    it('restores an unheld workout to the library; a retaken name stays the constraint verdict', async () => {
+    it('restores an unheld workout to the library; a retaken name is still refused by the constraint', async () => {
       const db = testDb.db;
       const dips = await findOrCreateExercise(db, 'workout', 'Dips');
 

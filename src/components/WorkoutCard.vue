@@ -38,7 +38,7 @@ const props = withDefaults(
     // sets it when this card's list has nothing to scroll, so the
     // gesture is free to mean drag (see useOverflow).
     dragAnywhere?: boolean;
-    // The parent's verdict on a rejected rename (name taken).
+    // The parent's notice on a rejected rename (name taken).
     notice?: string | null;
   }>(),
   {
@@ -398,7 +398,7 @@ const metaText = computed(() =>
   border: var(--hairline) solid var(--border-strong);
 }
 
-/* The parent's verdict on a rejected rename (name taken). Same recipe
+/* The parent's notice on a rejected rename (name taken). Same recipe
    as LibraryCreateRow's .library-create__notice - these move together (only
    the padding differs, to sit inside the card body). */
 .workout-card__notice {

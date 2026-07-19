@@ -264,7 +264,7 @@ describe('WorkoutCard', () => {
     expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
   });
 
-  it('renders the parent verdict when a rename was rejected', () => {
+  it('renders the parent notice when a rename was rejected', () => {
     const wrapper = mountCard({ notice: "'Dips' is already taken" });
 
     expect(wrapper.get('.workout-card__notice').text()).toContain('already taken');

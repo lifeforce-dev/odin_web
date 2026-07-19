@@ -8,7 +8,7 @@ import InlineNameEntry from '@/components/InlineNameEntry.vue';
 // contenteditable machine); a blank commit, Escape, or tapping off the
 // row folds back to the idle row. The created workout lands in the
 // AVAILABLE group and stays there - no auto-add; the parent handles
-// name collisions (the `notice` prop renders its verdict).
+// name collisions (the `notice` prop renders its notice).
 
 defineProps<{
   notice?: string | null;
@@ -79,7 +79,7 @@ function onCommit(name: string): void {
   text-transform: uppercase;
 }
 
-/* The parent's verdict on a rejected name (e.g. it already exists as
+/* The parent's notice on a rejected name (e.g. it already exists as
    the other kind); cleared on the next commit. Same recipe as
    WorkoutCard's .workout-card__notice - these move together (only the
    padding differs). */

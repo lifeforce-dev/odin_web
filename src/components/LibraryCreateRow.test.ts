@@ -85,7 +85,7 @@ describe('LibraryCreateRow', () => {
     expect(wrapper.find('.name-entry__entry').exists()).toBe(true);
   });
 
-  it('renders the parent verdict when a name was rejected', () => {
+  it('renders the parent notice when a name was rejected', () => {
     const wrapper = mount(LibraryCreateRow, {
       props: { notice: "'Cat Cow' already exists as a stretch exercise" },
     });

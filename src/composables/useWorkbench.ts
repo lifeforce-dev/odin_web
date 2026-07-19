@@ -39,7 +39,7 @@ export type PrescriptionField = keyof Prescription;
 // What became of an inline create, for the screen to route: reveal the
 // library row (create stays in the library, nothing auto-adds), flash the
 // slot (already here), open the owner's steal strip (create never
-// silently steals), or show the domain's verdict on the name.
+// silently steals), or show the domain's notice on the name.
 export type CreateWorkoutOutcome =
   | { kind: 'in-library'; exerciseId: string }
   | { kind: 'already-in-circuit'; exerciseId: string }
@@ -344,7 +344,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   }
 
   // The library tray's rename. A collision with another active name is the
-  // constraint's verdict (reason on the cause chain); it comes back as a
+  // constraint's notice (reason on the cause chain); it comes back as a
   // rejected outcome for the tray's notice instead of a resync, because
   // nothing was written and the screen is not stale.
   function renameWorkout(exerciseId: string, name: string): Promise<RenameWorkoutOutcome> {
@@ -435,7 +435,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
         if (!isUniqueConstraintViolation(error)) {
           throw error;
         }
-        // The freed name was re-taken: the constraint's verdict, not an
+        // The freed name was re-taken: the constraint's notice, not an
         // I/O failure.
         outcome = 'spent';
       }

@@ -377,7 +377,7 @@ async function confirmSteal(exerciseId: string): Promise<void> {
   }
 }
 
-// The verdict renders on the card that asked; a success flows back
+// The notice renders on the card that asked; a success flows back
 // down as the new name prop.
 async function handleRename(exerciseId: string, name: string): Promise<void> {
   const target = props.id;
@@ -385,7 +385,7 @@ async function handleRename(exerciseId: string, name: string): Promise<void> {
   const outcome = await workbench.renameWorkout(exerciseId, name);
   if (target !== props.id) {
     // The screen moved to another circuit while the write was in
-    // flight; the verdict belongs to the old one.
+    // flight; the notice belongs to the old one.
     return;
   }
   if (outcome.kind === 'rejected') {
@@ -405,7 +405,7 @@ function openCircuitRename(): void {
 }
 
 // A blank or unchanged commit means cancel - the parent decides, per
-// InlineNameEntry's contract. Either way the entry closes; a verdict
+// InlineNameEntry's contract. Either way the entry closes; a notice
 // only shows when a real rename attempt failed.
 async function handleCircuitRenameCommit(name: string): Promise<void> {
   renamingCircuit.value = false;

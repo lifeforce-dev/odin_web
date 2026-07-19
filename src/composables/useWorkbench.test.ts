@@ -541,7 +541,7 @@ describe('useWorkbench / library', () => {
     }
     await findOrCreateExercise(db, 'workout', 'Goblet Squat');
 
-    // The active-name constraint is the verdict; the screen reloads and
+    // The active-name constraint produces the notice; the screen reloads and
     // the new same-named identity keeps the library row.
     expect(await workbench.undoTrash(trashed)).toBe('spent');
     expect(workbench.library.value.available.map((entry) => entry.name)).toEqual([
@@ -572,7 +572,7 @@ describe('useWorkbench / library', () => {
     expect(ownerSlots).toHaveLength(1);
   });
 
-  it('rejects a name that exists as the other kind, with the domain verdict', async () => {
+  it('rejects a name that exists as the other kind, with the domain notice', async () => {
     await findOrCreateExercise(db, 'stretch', 'Cat Cow');
     const workbench = useWorkbench(db, () => circuit.id);
     await workbench.load();

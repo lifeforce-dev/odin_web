@@ -7,7 +7,7 @@ import { onMounted, ref } from 'vue';
 // Enter or the check commits, Escape cancels, and focus leaving the
 // entry cancels too - but focus moving WITHIN it (the confirm button
 // on desktop) must not, and the confirm commits on pointerdown,
-// beating the blur. The parent owns open/closed state and the verdict
+// beating the blur. The parent owns open/closed state and the notice
 // on the committed text; dress differences stay at the call site.
 
 const props = withDefaults(
