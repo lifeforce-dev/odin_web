@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
-import type { TransientCard } from '@/composables/useForgeChoreography';
+import type { TransientCard } from '@/composables/useCardExitAnimation';
 
 // The one face every workbench transient wears: the real row component
 // for whichever kind the lifted workout is, so a ghost is exactly the

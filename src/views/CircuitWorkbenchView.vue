@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import AppShell from '@/components/AppShell.vue';
-import ForgeSlot from '@/components/ForgeSlot.vue';
+import DeleteTarget from '@/components/DeleteTarget.vue';
 import InlineNameEntry from '@/components/InlineNameEntry.vue';
 import NavUpRow from '@/components/NavUpRow.vue';
 import PoolCreateRow from '@/components/PoolCreateRow.vue';
@@ -17,8 +17,8 @@ import { measureRowMidpoints } from '@/composables/measure-midpoints';
 import { badgeNumber } from '@/composables/badge-number';
 import { settlePointer } from '@/composables/settle-pointer';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
-import { useForgeChoreography } from '@/composables/useForgeChoreography';
-import type { TransientCard } from '@/composables/useForgeChoreography';
+import { useCardExitAnimation } from '@/composables/useCardExitAnimation';
+import type { TransientCard } from '@/composables/useCardExitAnimation';
 import { useOneShot } from '@/composables/useOneShot';
 import { useOverflow } from '@/composables/useOverflow';
 import { orderAfterDrop, useWorkbenchDrag } from '@/composables/useWorkbenchDrag';
@@ -29,9 +29,9 @@ import type { CircuitSlot, PoolAvailableEntry } from '@/domain/builder';
 import { MOTION_TICK_MS } from '@/styles/motion';
 
 // The circuit workbench: the circuit's ordered cards on top, the
-// workout pool below. The docked create row doubles as the forge (the
-// delete target) while a card is lifted; its face and exit
-// choreography live in ForgeSlot and useForgeChoreography. This screen
+// workout pool below. The docked create row doubles as the delete target
+// while a card is lifted; its face and exit animations live in DeleteTarget
+// and useCardExitAnimation. This screen
 // owns the drag session, zone layout, and persistence wiring.
 
 const props = defineProps<{
@@ -60,24 +60,24 @@ const circuitContentEl = ref<HTMLElement | null>(null);
 const poolEl = ref<HTMLElement | null>(null);
 const poolListEl = ref<HTMLElement | null>(null);
 const poolContentEl = ref<HTMLElement | null>(null);
-const forgeSlotRef = ref<InstanceType<typeof ForgeSlot> | null>(null);
+const deleteTargetRef = ref<InstanceType<typeof DeleteTarget> | null>(null);
 
 // A zone that scrolls needs the swipe gesture, so its cards drag by
 // the grip alone; a zone whose content fits lets the whole card drag.
 const circuitScrolls = useOverflow(circuitZoneEl, circuitContentEl);
 const poolScrolls = useOverflow(poolListEl, poolContentEl);
 
-// True when the release committed a change; the exit choreography uses
-// it to tell a commit from a put-back. Reset when a lift begins.
+// True when the release committed a change; the exit animation uses it to
+// tell a commit from a cancelled drag. Reset when a lift begins.
 let dropCommitted = false;
 
 const drag = useWorkbenchDrag({
   measureSlotMidpoints,
   measurePoolTop: () => poolEl.value?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
-  // The forge is always laid out outside the pool's scroll, so its
-  // boundary is measurable when the drag begins.
-  measureForgeTop: () =>
-    forgeSlotRef.value?.rootEl?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
+  // The delete target is always laid out outside the pool's scroll, so its
+  // top edge is measurable when the drag begins.
+  measureDeleteTop: () =>
+    deleteTargetRef.value?.rootEl?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
   onReorder: (draggedExerciseId, insertAt) => {
     dropCommitted = true;
     applyReorder(draggedExerciseId, insertAt);
@@ -93,7 +93,7 @@ const drag = useWorkbenchDrag({
     dropCommitted = true;
     applyPoolDrop(exerciseId, insertAt);
   },
-  onTrash: onForgeDrop,
+  onTrash: onDeleteDrop,
 });
 
 function cardContent(exerciseId: string): TransientCard | null {
@@ -121,25 +121,25 @@ function cardContent(exerciseId: string): TransientCard | null {
   return held ? { kind: 'elsewhere', name: held.name, owner: held.ownerCircuitName } : null;
 }
 
-const forge = useForgeChoreography({
+const cardExit = useCardExitAnimation({
   dragState: drag.state,
   cardContent,
   findRowEl: (exerciseId) =>
     workbenchEl.value?.querySelector<HTMLElement>(`[data-card-id="${exerciseId}"]`) ?? null,
-  measureDartTarget: () => forgeSlotRef.value?.rootEl?.getBoundingClientRect().top ?? null,
+  measureDeleteTargetY: () => deleteTargetRef.value?.rootEl?.getBoundingClientRect().top ?? null,
   wasDropCommitted: () => dropCommitted,
   trashWorkout: workbench.trashWorkout,
   undoTrash: workbench.undoTrash,
 });
-const { forgeFx, consumeGhost, flyGhost, trashToast, undoTrashTapped } = forge;
+const { exitFx, deleteGhost, returnGhost, trashToast, undoTrashTapped } = cardExit;
 
-function onForgeDrop(exerciseId: string): void {
+function onDeleteDrop(exerciseId: string): void {
   dropCommitted = true;
-  forge.onTrashDrop(exerciseId);
+  cardExit.onTrashDrop(exerciseId);
 }
 
-// While a card is lifted every region (circuit zone, pool stock, forge
-// slot) steps down one luminance grade except the one the drop would
+// While a card is lifted every region (circuit zone, pool stock, delete
+// target) steps down one luminance grade except the one the drop would
 // land in. Relighting is the absence of the recede class, so there is
 // no lit style to drift out of sync.
 
@@ -157,8 +157,8 @@ watch(drag.armedZone, (zone, previous) => {
   if (zone !== null) {
     lastArmedZone.value = zone;
   }
-  // Only a circuit/pool crossing ticks; lift, release, and the forge
-  // boundary are not crossings.
+  // Only a circuit/pool crossing ticks; lift, release, and the delete
+  // target boundary are not crossings.
   const crossed =
     (zone === 'pool' && previous === 'circuit') || (zone === 'circuit' && previous === 'pool');
   if (!crossed) {
@@ -173,11 +173,11 @@ watch(drag.armedZone, (zone, previous) => {
 // The armed region gets no class and simply stays at full luminance.
 function regionClasses(region: WorkbenchDragZone): Record<string, boolean> {
   const lifted = drag.state.draggingId !== null;
-  const restoring = !lifted && forgeFx.value !== 'idle' && lastArmedZone.value !== region;
+  const restoring = !lifted && exitFx.value !== 'idle' && lastArmedZone.value !== region;
   return {
     'workbench__region--receded': lifted && drag.armedZone.value !== region,
     'workbench__region--restoring': restoring,
-    'workbench__region--restoring-late': restoring && forgeFx.value === 'consume',
+    'workbench__region--restoring-late': restoring && exitFx.value === 'delete',
   };
 }
 
@@ -196,7 +196,7 @@ watch(
     renameNotice.value = null;
     renamingCircuit.value = false;
     circuitRenameNotice.value = null;
-    forge.reset();
+    cardExit.reset();
     seamTickShot.cancel();
     seamTickCount.value = 0;
     void workbench.reload();
@@ -308,7 +308,7 @@ async function startCardDrag(
 }
 
 // One content lookup serves the drag ghost, the berth test, and the
-// exit choreography.
+// exit animation.
 const draggedContent = computed<TransientCard | null>(() =>
   drag.state.draggingId !== null ? cardContent(drag.state.draggingId) : null,
 );
@@ -652,21 +652,21 @@ async function handleCreate(name: string): Promise<void> {
             <!-- Docked outside the pool's scroll: always in view and
                  always laid out, so the drag can measure its
                  boundary. -->
-            <ForgeSlot
-              ref="forgeSlotRef"
-              class="workbench__forge-dock"
-              :class="regionClasses('forge')"
-              :fx="forgeFx"
+            <DeleteTarget
+              ref="deleteTargetRef"
+              class="workbench__delete-dock"
+              :class="regionClasses('delete')"
+              :fx="exitFx"
               :lifted="drag.state.draggingId !== null"
-              :armed="drag.state.forgeArmed"
+              :armed="drag.state.deleteArmed"
             >
               <PoolCreateRow :notice="createNotice" @create="(name) => void handleCreate(name)" />
-            </ForgeSlot>
+            </DeleteTarget>
             <TrashSnackbar
               v-if="trashToast"
               class="workbench__snack-dock"
-              :message="trashToast.verdict ?? `${trashToast.name} deleted`"
-              :undoable="trashToast.verdict === null"
+              :message="trashToast.notice ?? `${trashToast.name} deleted`"
+              :undoable="trashToast.notice === null"
               @undo="() => void undoTrashTapped()"
             />
           </div>
@@ -693,7 +693,7 @@ async function handleCreate(name: string): Promise<void> {
     <div
       v-if="draggedContent"
       class="workbench__drag-ghost"
-      :class="{ 'workbench__drag-ghost--yield': drag.state.forgeArmed }"
+      :class="{ 'workbench__drag-ghost--yield': drag.state.deleteArmed }"
       :style="{
         transform: `translate3d(${drag.state.ghostX}px, ${drag.state.ghostY}px, 0)`,
         width: `${drag.state.ghostWidth}px`,
@@ -707,48 +707,48 @@ async function handleCreate(name: string): Promise<void> {
       </div>
     </div>
 
-    <!-- The trashed card collapses to a line that darts into the
-         forge. Position rides in the --cg-* props because the
+    <!-- The deleted card collapses to a line that flies into the delete
+         target. Position rides in the --delete-ghost-* props because the
          keyframes own transform. Pure paint: the delete has already
          landed. -->
     <div
-      v-if="consumeGhost"
-      class="workbench__consume-ghost"
+      v-if="deleteGhost"
+      class="workbench__delete-ghost"
       :style="{
-        '--cg-x': `${consumeGhost.x}px`,
-        '--cg-y': `${consumeGhost.y}px`,
-        width: `${consumeGhost.width}px`,
+        '--delete-ghost-x': `${deleteGhost.x}px`,
+        '--delete-ghost-y': `${deleteGhost.y}px`,
+        width: `${deleteGhost.width}px`,
       }"
       aria-hidden="true"
     >
-      <TransientCardGhost :content="consumeGhost.content" />
+      <TransientCardGhost :content="deleteGhost.content" />
     </div>
     <span
-      v-if="consumeGhost"
-      class="workbench__tvline"
+      v-if="deleteGhost"
+      class="workbench__delete-line"
       :style="{
-        left: `${consumeGhost.x}px`,
-        width: `${consumeGhost.width}px`,
-        '--tv-from': `${consumeGhost.y + consumeGhost.height / 2}px`,
-        '--tv-to': `${consumeGhost.dartTo}px`,
+        left: `${deleteGhost.x}px`,
+        width: `${deleteGhost.width}px`,
+        '--line-from': `${deleteGhost.y + deleteGhost.height / 2}px`,
+        '--line-to': `${deleteGhost.targetY}px`,
       }"
       aria-hidden="true"
     ></span>
 
-    <!-- A put-back flies the card home to its row. -->
+    <!-- A cancelled drag returns the card to its row. -->
     <div
-      v-if="flyGhost"
-      class="workbench__fly-ghost"
+      v-if="returnGhost"
+      class="workbench__return-ghost"
       :style="{
-        '--fly-from-x': `${flyGhost.x}px`,
-        '--fly-from-y': `${flyGhost.y}px`,
-        '--fly-to-x': `${flyGhost.toX}px`,
-        '--fly-to-y': `${flyGhost.toY}px`,
-        width: `${flyGhost.width}px`,
+        '--return-from-x': `${returnGhost.x}px`,
+        '--return-from-y': `${returnGhost.y}px`,
+        '--return-to-x': `${returnGhost.toX}px`,
+        '--return-to-y': `${returnGhost.toY}px`,
+        width: `${returnGhost.width}px`,
       }"
       aria-hidden="true"
     >
-      <TransientCardGhost :content="flyGhost.content" />
+      <TransientCardGhost :content="returnGhost.content" />
     </div>
 
     <template #action>
@@ -811,8 +811,8 @@ async function handleCreate(name: string): Promise<void> {
 
 /* While a card is lifted every region steps one grade down in hard
    steps except the armed one, which stays at full luminance. On the
-   exit the receded regions step back up, late on a consume so the
-   impact plays first; the region armed at release is already lit and
+   exit the receded regions step back up, late on a delete so the
+   flash plays first; the region armed at release is already lit and
    plays nothing. */
 .workbench__region--receded {
   animation: region-recede calc(var(--motion-morph) * 0.6) steps(2, end) forwards;
@@ -823,8 +823,8 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 .workbench__region--restoring-late {
-  animation-duration: calc(var(--motion-consume) * 0.28);
-  animation-delay: calc(var(--motion-consume) * 0.72);
+  animation-duration: calc(var(--motion-delete) * 0.28);
+  animation-delay: calc(var(--motion-delete) * 0.72);
 }
 
 @keyframes region-recede {
@@ -946,8 +946,8 @@ async function handleCreate(name: string): Promise<void> {
   border-top: var(--rule) solid var(--border-strong);
 }
 
-/* The pool's filter region covers the stock only: the forge is its own
-   region, and the snackbar outside both never dims. */
+/* The pool's filter region covers the stock only: the delete target is its
+   own region, and the snackbar outside both never dims. */
 .workbench__pool-stock {
   display: flex;
   flex: 1 1 auto;
@@ -966,7 +966,7 @@ async function handleCreate(name: string): Promise<void> {
   height: var(--rule);
   pointer-events: none;
   background: var(--text);
-  box-shadow: var(--raster);
+  box-shadow: var(--glow-sweep-line);
   animation: seam-tick var(--motion-tick) steps(3, end) both;
 }
 
@@ -1037,8 +1037,8 @@ async function handleCreate(name: string): Promise<void> {
   opacity: 0;
 }
 
-/* Only the dock; the slot's face and keyframes are ForgeSlot's. */
-.workbench__forge-dock {
+/* Only the dock; the slot's face and keyframes are DeleteTarget's. */
+.workbench__delete-dock {
   flex: none;
   margin: var(--space-2) 0 var(--space-3);
 }
@@ -1062,7 +1062,7 @@ async function handleCreate(name: string): Promise<void> {
    deliberately unmerged for now. */
 .workbench--lifted .workbench__circuit-zone,
 .workbench--lifted .workbench__pool-stock,
-.workbench--lifted .workbench__forge-dock,
+.workbench--lifted .workbench__delete-dock,
 .workbench--lifted .workbench__snack-dock,
 .workbench__up--inert {
   pointer-events: none;
@@ -1087,7 +1087,7 @@ async function handleCreate(name: string): Promise<void> {
   animation: ghost-lift calc(var(--motion-morph) * 0.7) steps(3, end);
 }
 
-/* Over the armed forge the card yields: desaturated and slightly
+/* Over the armed delete target the card yields: desaturated and slightly
    small. The scale rides the inner wrapper because the outer
    transform is the pointer-follow. */
 .workbench__drag-ghost--yield {
@@ -1129,22 +1129,22 @@ async function handleCreate(name: string): Promise<void> {
   border-top: none;
 }
 
-/* The card collapses to a bright line like a switched-off tube. The
-   keyframes own transform, so position rides in the --cg-* props. */
-.workbench__consume-ghost {
+/* The card collapses to a bright line. The keyframes own transform, so
+   position rides in the --delete-ghost-* props. */
+.workbench__delete-ghost {
   position: fixed;
   top: 0;
   left: 0;
   z-index: var(--z-ghost);
   pointer-events: none;
   box-shadow: var(--glow-drag-ghost);
-  animation: tv-off calc(var(--motion-consume) / 3) steps(4, end) forwards;
+  animation: card-collapse calc(var(--motion-delete) / 3) steps(4, end) forwards;
   will-change: transform;
 }
 
-@keyframes tv-off {
+@keyframes card-collapse {
   0% {
-    transform: translate3d(var(--cg-x), var(--cg-y), 0);
+    transform: translate3d(var(--delete-ghost-x), var(--delete-ghost-y), 0);
     opacity: 0.9;
     filter: grayscale(0.65);
   }
@@ -1154,28 +1154,30 @@ async function handleCreate(name: string): Promise<void> {
   }
 
   100% {
-    transform: translate3d(var(--cg-x), var(--cg-y), 0) scaleX(1.01) scaleY(0.04);
+    transform: translate3d(var(--delete-ghost-x), var(--delete-ghost-y), 0) scaleX(1.01)
+      scaleY(0.04);
     opacity: 0;
     filter: grayscale(1) brightness(1.5);
   }
 }
 
-/* The collapsed line darting into the forge. */
-.workbench__tvline {
+/* The collapsed line flying into the delete target. */
+.workbench__delete-line {
   position: fixed;
-  top: var(--tv-from);
+  top: var(--line-from);
   z-index: var(--z-ghost);
   height: var(--rule);
   pointer-events: none;
   background: var(--text);
-  box-shadow: var(--raster);
+  box-shadow: var(--glow-sweep-line);
   opacity: 0;
-  animation: tv-dart calc(var(--motion-consume) * 0.22) linear calc(var(--motion-consume) / 3) both;
+  animation: line-into-target calc(var(--motion-delete) * 0.22) linear
+    calc(var(--motion-delete) / 3) both;
 }
 
-@keyframes tv-dart {
+@keyframes line-into-target {
   0% {
-    top: var(--tv-from);
+    top: var(--line-from);
     opacity: 1;
   }
 
@@ -1184,32 +1186,32 @@ async function handleCreate(name: string): Promise<void> {
   }
 
   100% {
-    top: var(--tv-to);
+    top: var(--line-to);
     opacity: 0;
   }
 }
 
-/* A put-back flies the card home; the fade keeps it from
+/* A cancelled drag returns the card to its row; the fade keeps it from
    double-exposing over the real row it lands on. */
-.workbench__fly-ghost {
+.workbench__return-ghost {
   position: fixed;
   top: 0;
   left: 0;
   z-index: var(--z-ghost);
   pointer-events: none;
   box-shadow: var(--glow-drag-ghost);
-  animation: fly-home var(--motion-slide) ease-out forwards;
+  animation: return-to-row var(--motion-slide) ease-out forwards;
   will-change: transform;
 }
 
-@keyframes fly-home {
+@keyframes return-to-row {
   from {
-    transform: translate3d(var(--fly-from-x), var(--fly-from-y), 0);
+    transform: translate3d(var(--return-from-x), var(--return-from-y), 0);
     opacity: var(--dim-drag-ghost);
   }
 
   to {
-    transform: translate3d(var(--fly-to-x), var(--fly-to-y), 0);
+    transform: translate3d(var(--return-to-x), var(--return-to-y), 0);
     opacity: 0;
   }
 }
@@ -1221,7 +1223,7 @@ async function handleCreate(name: string): Promise<void> {
   .workbench__region--restoring,
   .workbench__drag-ghost,
   .workbench__ghost-card,
-  .workbench__fly-ghost {
+  .workbench__return-ghost {
     transition: none;
     animation: none;
   }
@@ -1234,8 +1236,8 @@ async function handleCreate(name: string): Promise<void> {
     display: none;
   }
 
-  .workbench__consume-ghost,
-  .workbench__tvline {
+  .workbench__delete-ghost,
+  .workbench__delete-line {
     display: none;
   }
 }

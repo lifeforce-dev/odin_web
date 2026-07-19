@@ -79,7 +79,7 @@ export const UNBOARDED_TOKENS: Readonly<Record<string, string>> = {
   '--motion-slide': 'durations animate; they do not swatch statically',
   '--motion-flash': 'durations animate; they do not swatch statically',
   '--motion-morph': 'durations animate; they do not swatch statically',
-  '--motion-consume': 'durations animate; they do not swatch statically',
+  '--motion-delete': 'durations animate; they do not swatch statically',
   '--motion-tick': 'durations animate; they do not swatch statically',
   '--motion-settle': 'durations animate; they do not swatch statically',
   '--motion-pulse': 'durations animate; they do not swatch statically',

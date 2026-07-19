@@ -6,7 +6,7 @@ import CircuitCard from '@/components/CircuitCard.vue';
 import CircuitRow from '@/components/CircuitRow.vue';
 import ConfirmStrip from '@/components/ConfirmStrip.vue';
 import DockedAction from '@/components/DockedAction.vue';
-import ForgeSlot from '@/components/ForgeSlot.vue';
+import DeleteTarget from '@/components/DeleteTarget.vue';
 import GripHandle from '@/components/GripHandle.vue';
 import InlineNameEntry from '@/components/InlineNameEntry.vue';
 import LastCircuitData from '@/components/LastCircuitData.vue';
@@ -33,7 +33,7 @@ import { REST_PRIMER_COPY } from '@/composables/useRestAlarm';
 import { useTheme } from '@/composables/useTheme';
 import { clampPrescriptionValue } from '@/composables/useWorkbench';
 import type { PrescriptionField } from '@/composables/useWorkbench';
-import { MOTION_CONSUME_MS, MOTION_MORPH_MS, MOTION_SETTLE_MS } from '@/styles/motion';
+import { MOTION_DELETE_MS, MOTION_MORPH_MS, MOTION_SETTLE_MS } from '@/styles/motion';
 import { CONTRACT_COLOR_TOKENS, type ThemeName } from '@/styles/contract';
 import {
   BORDER_TOKENS,
@@ -130,41 +130,41 @@ function onDemoLogSetCommit(payload: { reps: number; weight: number }): void {
   demoLogSetCommit.value = `commit emitted: ${payload.reps} reps // ${payload.weight} lb`;
 }
 
-// Live forge sample: the real slot, each state and exit choreography
-// playable; the phase-drop timers use the same motion.ts mirrors the
-// workbench screen does, so this board exercises that parity too.
-const demoForge = reactive<{
+// Live delete-target sample: the real slot, each state and exit animation
+// playable; the phase timers use the same motion.ts mirrors the workbench
+// screen does, so this board exercises that parity too.
+const demoDeleteTarget = reactive<{
   lifted: boolean;
   armed: boolean;
-  fx: 'idle' | 'consume' | 'abort';
+  fx: 'idle' | 'delete' | 'cancel';
 }>({ lifted: false, armed: false, fx: 'idle' });
-const demoForgeShot = useOneShot();
+const demoDeleteTargetShot = useOneShot();
 
-function toggleDemoForgeLifted(): void {
-  demoForge.fx = 'idle';
-  demoForge.lifted = !demoForge.lifted;
-  if (!demoForge.lifted) {
-    demoForge.armed = false;
+function toggleDemoDeleteTargetLifted(): void {
+  demoDeleteTarget.fx = 'idle';
+  demoDeleteTarget.lifted = !demoDeleteTarget.lifted;
+  if (!demoDeleteTarget.lifted) {
+    demoDeleteTarget.armed = false;
   }
 }
 
-function toggleDemoForgeArmed(): void {
-  demoForge.armed = !demoForge.armed;
-  if (demoForge.armed) {
-    demoForge.lifted = true;
-    demoForge.fx = 'idle';
+function toggleDemoDeleteTargetArmed(): void {
+  demoDeleteTarget.armed = !demoDeleteTarget.armed;
+  if (demoDeleteTarget.armed) {
+    demoDeleteTarget.lifted = true;
+    demoDeleteTarget.fx = 'idle';
   }
 }
 
-function playDemoForge(fx: 'consume' | 'abort'): void {
-  demoForge.fx = fx;
-  demoForge.lifted = false;
-  demoForge.armed = false;
-  demoForgeShot.set(
+function playDemoDeleteTarget(fx: 'delete' | 'cancel'): void {
+  demoDeleteTarget.fx = fx;
+  demoDeleteTarget.lifted = false;
+  demoDeleteTarget.armed = false;
+  demoDeleteTargetShot.set(
     () => {
-      demoForge.fx = 'idle';
+      demoDeleteTarget.fx = 'idle';
     },
-    fx === 'consume' ? MOTION_CONSUME_MS + MOTION_SETTLE_MS : MOTION_MORPH_MS,
+    fx === 'delete' ? MOTION_DELETE_MS + MOTION_SETTLE_MS : MOTION_MORPH_MS,
   );
 }
 
@@ -297,14 +297,14 @@ onMounted(() => {
         <h2 class="board-eyebrow">Glow recipes</h2>
         <div class="glow-cta-sample">--glow-cta</div>
         <p class="glow-display-sample">--glow-display-accent</p>
-        <div class="forge-armed-sample">--glow-forge-armed</div>
+        <div class="delete-armed-sample">--glow-delete-armed</div>
         <div class="ghost-sample">--glow-drag-ghost</div>
         <div class="well-sample">--shadow-well</div>
-        <div class="raster-sample" aria-hidden="true"></div>
+        <div class="sweep-line-sample" aria-hidden="true"></div>
         <p class="board-note">
-          --raster above: the workbench forge's white raster-line event glow, the one glow off the
-          red channel. --glow-flash and --glow-rest-value render live in the workout-card section
-          below.
+          --glow-sweep-line above: the workbench delete target's white sweep-line event glow, one
+          glow off the red channel. --glow-flash and --glow-rest-value render live in the
+          workout-card section below.
         </p>
         <div class="recede-sample">
           <span class="recede-sample__page">page</span>
@@ -626,22 +626,26 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Forge slot (create row + delete face, live)</h2>
-        <ForgeSlot :fx="demoForge.fx" :lifted="demoForge.lifted" :armed="demoForge.armed">
+        <h2 class="board-eyebrow">Delete target (create row + delete face, live)</h2>
+        <DeleteTarget
+          :fx="demoDeleteTarget.fx"
+          :lifted="demoDeleteTarget.lifted"
+          :armed="demoDeleteTarget.armed"
+        >
           <PoolCreateRow @create="(name) => (demoCreatedName = name)" />
-        </ForgeSlot>
-        <MenuButton @click="toggleDemoForgeLifted">Toggle lifted (morph rewrite)</MenuButton>
-        <MenuButton @click="toggleDemoForgeArmed">Toggle armed (double rail)</MenuButton>
-        <MenuButton @click="playDemoForge('consume')">Play consume exit</MenuButton>
-        <MenuButton @click="playDemoForge('abort')">Play abort exit</MenuButton>
+        </DeleteTarget>
+        <MenuButton @click="toggleDemoDeleteTargetLifted">Toggle lifted (reveal)</MenuButton>
+        <MenuButton @click="toggleDemoDeleteTargetArmed">Toggle armed</MenuButton>
+        <MenuButton @click="playDemoDeleteTarget('delete')">Play delete exit</MenuButton>
+        <MenuButton @click="playDemoDeleteTarget('cancel')">Play cancel exit</MenuButton>
         <p class="board-note">
-          The delete target the create row doubles as. The morph/abort sweeps ride a quiet steel
-          edge; only the consume earns the white event beam.
+          The delete target the create row doubles as. The reveal and cancel sweeps ride a quiet
+          edge; only a delete earns the white event glow.
         </p>
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Trash snackbar (undoable / verdict)</h2>
+        <h2 class="board-eyebrow">Trash snackbar (undoable / failure notice)</h2>
         <TrashSnackbar
           message="Cable Row deleted"
           undoable
@@ -943,7 +947,7 @@ onMounted(() => {
   box-shadow: var(--shadow-well);
 }
 
-.forge-armed-sample {
+.delete-armed-sample {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -951,15 +955,15 @@ onMounted(() => {
   font-size: var(--type-body);
   color: var(--text-soft);
   border: var(--hairline) solid var(--border);
-  box-shadow: var(--glow-forge-armed);
+  box-shadow: var(--glow-delete-armed);
 }
 
-/* The forge's raster line at rest: 2px of --text wearing --raster. */
-.raster-sample {
+/* The delete target's sweep line at rest: --text wearing --glow-sweep-line. */
+.sweep-line-sample {
   height: var(--rule);
   margin: var(--space-2) 0;
   background: var(--text);
-  box-shadow: var(--raster);
+  box-shadow: var(--glow-sweep-line);
 }
 
 .recede-sample {

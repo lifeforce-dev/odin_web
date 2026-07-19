@@ -5,7 +5,7 @@ import { computed, onScopeDispose, reactive } from 'vue';
 // both origins; only the drop outcome depends on where the card came
 // from: over the circuit the gap previews the position (reorder or
 // add), over the pool a circuit card is removed and a pool card put
-// back, over the forge the workout is deleted entirely. The row's grip
+// back, over the delete target the workout is deleted entirely. The row's grip
 // detects the lift (useDragHandle) and hands the live pointer here;
 // this composable owns the document-level tracking from that moment to
 // the drop. Screen geometry comes in through the measure callbacks so
@@ -13,27 +13,26 @@ import { computed, onScopeDispose, reactive } from 'vue';
 
 export type WorkbenchDragOrigin = 'circuit' | 'pool';
 
-// The forge is the delete target; the action a forge drop performs is
-// still "trash the workout", which is why the callback and the domain
-// verb keep that word.
-export type WorkbenchDragZone = 'circuit' | 'pool' | 'forge';
+// The action a delete-target drop performs is still "trash the workout",
+// which is why the callback and the domain verb keep that word.
+export type WorkbenchDragZone = 'circuit' | 'pool' | 'delete';
 
 export interface WorkbenchDragOptions {
   // Vertical midpoints of every non-dragged circuit card, top to bottom.
   // (A pool card's id matches no circuit card, so every card measures.)
   measureSlotMidpoints(draggedId: string): number[];
-  // The pool zone's top edge and the forge target's top edge. Measured
+  // The pool zone's top edge and the delete target's top edge. Measured
   // ONCE per drag, at begin(): the zone swap restructures the list, so
   // re-measuring per move would let our own state change move a boundary
   // and feed back into the zone test (a bistable oscillator at the
   // seam). Frozen geometry cannot loop.
   measurePoolTop(): number;
-  measureForgeTop(): number;
+  measureDeleteTop(): number;
   onReorder(draggedId: string, insertAt: number): void;
   onRemove(draggedId: string): void;
   // A pool card dropped over the circuit: add (or steal) at the gap.
   onAdd(exerciseId: string, insertAt: number): void;
-  // Any card dropped on the forge: delete the workout entirely.
+  // Any card dropped on the delete target: delete the workout entirely.
   onTrash(exerciseId: string): void;
 }
 
@@ -53,7 +52,7 @@ export interface WorkbenchDragState {
   gapIndex: number | null;
   circuitArmed: boolean;
   poolArmed: boolean;
-  forgeArmed: boolean;
+  deleteArmed: boolean;
 }
 
 // Pure so the drop-position rule is unit-testable: insert before the
@@ -88,7 +87,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     gapIndex: null,
     circuitArmed: false,
     poolArmed: false,
-    forgeArmed: false,
+    deleteArmed: false,
   });
 
   // The one-armed-zone invariant as a single observable: which zone
@@ -97,8 +96,8 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     if (state.draggingId === null) {
       return null;
     }
-    if (state.forgeArmed) {
-      return 'forge';
+    if (state.deleteArmed) {
+      return 'delete';
     }
     return state.poolArmed ? 'pool' : 'circuit';
   });
@@ -116,7 +115,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
 
   // The zone boundaries, frozen at grab time (see the measure options).
   let poolTopAtGrab = Number.POSITIVE_INFINITY;
-  let forgeTopAtGrab = Number.POSITIVE_INFINITY;
+  let deleteTopAtGrab = Number.POSITIVE_INFINITY;
 
   // Hysteresis (Schmitt trigger) on each zone seam: arm AT the boundary,
   // disarm only after retreating this far back above it. A thumb resting
@@ -145,7 +144,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     grabOffsetY = Math.min(Math.max(event.clientY - sourceRect.top, 0), sourceRect.height);
     sessionPointerId = event.pointerId;
     poolTopAtGrab = options.measurePoolTop();
-    forgeTopAtGrab = options.measureForgeTop();
+    deleteTopAtGrab = options.measureDeleteTop();
     document.addEventListener('pointermove', track);
     document.addEventListener('pointerup', drop);
     document.addEventListener('pointercancel', cancel);
@@ -163,14 +162,16 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     state.ghostX = event.clientX - grabOffsetX;
     state.ghostY = event.clientY - grabOffsetY;
     // Exactly one zone is armed at a time, tested bottom-up: the
-    // forge, then the pool, else the circuit.
+    // delete target, then the pool, else the circuit.
     const y = event.clientY;
-    const overForge = state.forgeArmed ? y >= forgeTopAtGrab - SEAM_SLACK_PX : y >= forgeTopAtGrab;
+    const overDelete = state.deleteArmed
+      ? y >= deleteTopAtGrab - SEAM_SLACK_PX
+      : y >= deleteTopAtGrab;
     const overPool =
-      !overForge && (state.poolArmed ? y >= poolTopAtGrab - SEAM_SLACK_PX : y >= poolTopAtGrab);
-    state.forgeArmed = overForge;
+      !overDelete && (state.poolArmed ? y >= poolTopAtGrab - SEAM_SLACK_PX : y >= poolTopAtGrab);
+    state.deleteArmed = overDelete;
     state.poolArmed = overPool;
-    state.circuitArmed = !overForge && !overPool;
+    state.circuitArmed = !overDelete && !overPool;
     state.gapIndex = state.circuitArmed
       ? insertionIndex(options.measureSlotMidpoints(state.draggingId), y)
       : null;
@@ -189,7 +190,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
       return;
     }
     const origin = state.origin;
-    const trashing = state.forgeArmed;
+    const trashing = state.deleteArmed;
     const pooling = state.poolArmed;
     const insertAt = state.gapIndex;
     reset();
@@ -230,7 +231,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     state.gapIndex = null;
     state.circuitArmed = false;
     state.poolArmed = false;
-    state.forgeArmed = false;
+    state.deleteArmed = false;
     sessionPointerId = null;
   }
 

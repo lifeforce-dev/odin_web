@@ -1,10 +1,10 @@
 <script setup lang="ts">
-// The consume snackbar: the one recovery path for a gesture that
-// deliberately has no confirm. Snaps in after the forge's reverse
-// rewrite lands (the --motion-settle beat keeps the entrance in step
-// with the JS phase drop); the parent owns docking and dismissal.
-// `undoable` drops the button when the undo cannot deliver (the
-// message then carries the verdict instead).
+// The delete snackbar: the one recovery path for a gesture that
+// deliberately has no confirm. Snaps in after the delete target's face
+// finishes hiding (the --motion-settle beat keeps the entrance in step with
+// the JS phase reset); the parent owns docking and dismissal. `undoable`
+// drops the button when the undo cannot deliver (the message then carries
+// the failure notice instead).
 
 defineProps<{
   message: string;
@@ -33,8 +33,8 @@ const emit = defineEmits<{
   padding: 0 var(--space-2) 0 var(--space-3);
   background: var(--surface-raise);
   border: var(--hairline) solid var(--border-strong);
-  animation: snack-in calc(var(--motion-consume) * 0.28) steps(2, end)
-    calc(var(--motion-consume) + var(--motion-settle)) both;
+  animation: snack-in calc(var(--motion-delete) * 0.28) steps(2, end)
+    calc(var(--motion-delete) + var(--motion-settle)) both;
 }
 
 .trash-snackbar__msg {

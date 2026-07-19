@@ -83,10 +83,10 @@ export const CONTRACT_TEXTURE_TOKENS: readonly string[] = [
 export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   '--glow-cta',
   '--glow-display-accent',
-  // The armed forge: the one destructive destination and the only
+  // The armed delete target: the one destructive destination and the only
   // region that earns a red armed glow. Armed zones are otherwise
   // stated by luminance (see --lift-recede).
-  '--glow-forge-armed',
+  '--glow-delete-armed',
   '--glow-flash',
   // The circuit card's Lock On press: a faint interior wash, no outer
   // light - the reticle ticks carry the accent, the glow only warms
@@ -98,9 +98,9 @@ export const CONTRACT_GLOW_TOKENS: readonly string[] = [
   // The page's stepped luminance drop while a card is lifted (a filter
   // recipe)...
   '--lift-recede',
-  // ...and the white raster-line event glow, deliberately off the red
+  // ...and the white sweep-line event glow, deliberately off the red
   // channel: the bright event spends luminance, never the accent.
-  '--raster',
+  '--glow-sweep-line',
 ];
 
 // Derived from the groups above, so a token added to a group is part of

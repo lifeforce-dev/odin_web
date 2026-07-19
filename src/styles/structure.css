@@ -101,22 +101,23 @@
   --motion-slide: 0.15s;
   --motion-flash: 0.9s;
 
-  /* Forge choreography envelopes: morph = the create->delete raster
-     rewrite when a drag begins; consume = the tv-off + impact +
-     reverse rewrite after a trash drop. Segment timings are calc()
-     fractions of these two, so retuning either is a one-line edit. */
+  /* Delete-target animation envelopes: morph = the create-row-to-DELETE
+     face reveal when a drag begins (also reused for other quick stepped
+     transitions); delete = the card collapse + flash + hide sweep after a
+     drop on the target. Segment timings are calc() fractions of these two,
+     so retuning either is a one-line edit. */
   --motion-morph: 0.2s;
-  --motion-consume: 0.36s;
+  --motion-delete: 0.36s;
 
-  /* The seam-crossing tick: the one-shot white raster flash on the
-     circuit/pool seam when the armed zone changes mid-drag. Same value
-     as --motion-slide today, but its own recipe. */
+  /* The seam-crossing tick: the one-shot white flash on the circuit/pool
+     seam when the armed zone changes mid-drag. Same value as --motion-slide
+     today, but its own recipe. */
   --motion-tick: 0.15s;
 
-  /* The forge exit slop: the beat between the consume envelope ending
-     and everything keyed to "the exit landed" - the JS phase drop and
-     the snackbar entrance both wait it out. Consumed via calc() beside
-     --motion-consume, never alone. */
+  /* The delete exit gap: the beat between the delete envelope ending and
+     everything keyed to the exit landing - the JS phase reset and the
+     snackbar entrance both wait it out. Used via calc() beside
+     --motion-delete, never alone. */
   --motion-settle: 0.06s;
 
   /* Ambient state pulse: the set-progress current box's background

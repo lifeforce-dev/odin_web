@@ -86,10 +86,10 @@
   --glow-cta: inset 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow);
   --glow-display-accent: 0 0 44px var(--accent-glow);
 
-  /* The armed forge, the one destructive destination. Armed zones are
-     stated by luminance (--lift-recede); red rides only the lifted
-     card and the forge. */
-  --glow-forge-armed: inset 0 0 0 1px var(--accent), inset 0 0 24px var(--accent-glow);
+  /* The armed delete target, the one destructive destination. Armed zones
+     are stated by luminance (--lift-recede); red rides only the lifted
+     card and the delete target. */
+  --glow-delete-armed: inset 0 0 0 1px var(--accent), inset 0 0 24px var(--accent-glow);
   --glow-flash: inset 0 0 0 1px var(--accent), 0 0 18px var(--accent-glow);
   --glow-lock-on: inset 0 0 16px var(--accent-glow);
   --glow-drag-ghost: 0 0 18px var(--accent-glow);
@@ -97,7 +97,7 @@
   --shadow-well: inset 0 2px 6px var(--raw-well-ink);
 
   /* The page's stepped luminance drop while a card is lifted, and the
-     white raster-line event glow - the one glow off the red channel. */
+     white sweep-line event glow - the one glow off the red channel. */
   --lift-recede: brightness(0.74);
-  --raster: 0 0 10px var(--raw-white-glow);
+  --glow-sweep-line: 0 0 10px var(--raw-white-glow);
 }

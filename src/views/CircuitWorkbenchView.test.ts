@@ -210,10 +210,10 @@ describe('CircuitWorkbenchView', () => {
     // Bans the zone-ring classes by name (a blanket [class*="--armed"]
     // ban would fail any component legitimately carrying an --armed
     // modifier at idle): armed is stated by the lit region, and the
-    // only --armed dress is the forge face's, mid-drag.
+    // only --armed dress is the delete target face's, mid-drag.
     expect(wrapper.find('.workbench__circuit-zone--armed').exists()).toBe(false);
     expect(wrapper.find('.workbench__pool--armed').exists()).toBe(false);
-    expect(wrapper.find('.forge-slot__face--armed').exists()).toBe(false);
+    expect(wrapper.find('.delete-target__face--armed').exists()).toBe(false);
   });
 
   it('dresses pool cards as stock and circuit cards as committed', async () => {
@@ -383,20 +383,20 @@ describe('CircuitWorkbenchView', () => {
     );
   });
 
-  it('keeps the delete face laid out in the forge slot, hidden until a drag begins', async () => {
+  it('keeps the delete face laid out in the delete target, hidden until a drag begins', async () => {
     const circuitId = await seedCircuit();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    // The slot doubles as the delete target (the forge rule): the face
+    // The slot doubles as the delete target: the face
     // must exist in the idle DOM so the drag can measure its boundary,
     // and it only swaps in via the state-driven lifted class.
-    const slot = wrapper.get('.forge-slot');
+    const slot = wrapper.get('.delete-target');
     // The copy is exactly `x DELETE`, bare ASCII in both dormant and
     // armed - the visuals alone escalate.
-    expect(slot.get('.forge-slot__face').text()).toBe('x DELETE');
+    expect(slot.get('.delete-target__face').text()).toBe('x DELETE');
     expect(slot.text()).toContain('+ New workout');
-    expect(slot.classes()).not.toContain('forge-slot--lifted');
+    expect(slot.classes()).not.toContain('delete-target--lifted');
   });
 
   it('flips to loading the moment the circuit id changes', async () => {
@@ -521,7 +521,7 @@ describe('CircuitWorkbenchView / rename pencil', () => {
 // The drag seam: session ids are exercise ids, persistence wants item
 // ids, and the drop callbacks translate between them. jsdom rects are
 // all zero, so every frozen boundary sits at y=0: negative clientY is
-// the circuit band, positive is the forge (or, with the forge seam
+// the circuit band, positive is the delete target (or, with the delete-target seam
 // stubbed lower, the pool). Pointer events are plain Events with
 // coordinate expandos - the established jsdom workaround.
 
@@ -599,7 +599,7 @@ describe('CircuitWorkbenchView / drag seams', () => {
     wrapper.unmount();
   });
 
-  it('a forge drop deletes the workout and the snackbar undo restores it', async () => {
+  it('a delete-target drop deletes the workout and the snackbar undo restores it', async () => {
     const circuitId = await seedCircuit();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
@@ -613,9 +613,9 @@ describe('CircuitWorkbenchView / drag seams', () => {
     dragPointer('pointermove', { clientX: 10, clientY: 40 });
     await flushPromises();
 
-    // Over the forge the face arms - the presence half of the armed
+    // Over the delete target the face arms - the presence half of the armed
     // dress the idle test bans.
-    expect(wrapper.get('.forge-slot__face').classes()).toContain('forge-slot__face--armed');
+    expect(wrapper.get('.delete-target__face').classes()).toContain('delete-target__face--armed');
 
     dragPointer('pointerup', { clientX: 10, clientY: 40 });
     await flushPromises();
@@ -671,10 +671,10 @@ describe('CircuitWorkbenchView / drag seams', () => {
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    // Push the forge seam down to y=100 so 0 <= y < 100 reads as the
+    // Push the delete-target seam down to y=100 so 0 <= y < 100 reads as the
     // pool band (all other rects stay zero).
-    const forgeEl = wrapper.get('.forge-slot').element as HTMLElement;
-    forgeEl.getBoundingClientRect = () =>
+    const deleteEl = wrapper.get('.delete-target').element as HTMLElement;
+    deleteEl.getBoundingClientRect = () =>
       ({ top: 100, left: 0, bottom: 148, right: 400, width: 400, height: 48 }) as DOMRect;
 
     cardByName(wrapper, 'Cable Row').vm.$emit(
