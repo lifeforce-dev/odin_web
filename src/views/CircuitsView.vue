@@ -9,7 +9,7 @@ import NavUpRow from '@/components/NavUpRow.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import { measureRowMidpoints } from '@/composables/measure-midpoints';
-import { rackBadge } from '@/composables/rack-badge';
+import { badgeNumber } from '@/composables/badge-number';
 import { settlePointer } from '@/composables/settle-pointer';
 import { useCircuitManager } from '@/composables/useCircuitManager';
 import { useCoalescedWrite } from '@/composables/useCoalescedWrite';
@@ -200,7 +200,7 @@ async function startRowDrag(circuitId: string, event: PointerEvent): Promise<voi
 // gapIndex counts non-dragged rows only, matching measureQueueMidpoints;
 // queuePosition is the row's committed (or previewed) 1-based badge, so
 // mid-drag a number can duplicate a neighbor's - same rule as the
-// workbench rack.
+// workbench slot numbers.
 type QueueListRow =
   | { kind: 'row'; row: RotationQueueRow; queuePosition: number }
   | { kind: 'gap'; queuePosition: number };
@@ -219,7 +219,7 @@ const displayRows = computed<QueueListRow[]>(() => {
 });
 
 function gapBadge(n: number): string {
-  return rackBadge(n);
+  return badgeNumber(n);
 }
 
 const draggedQueueRow = computed(() => {
@@ -494,12 +494,12 @@ const showEmptyHint = computed(() => status.value === 'ready' && queue.value.len
   align-items: stretch;
 }
 
-/* Badge-cell recipe (shared with .workbench__rack-index and
+/* Badge-cell recipe (shared with .workbench__slot-number and
    .circuit-row__order): shares the gap's dashed vacant grammar instead
    of either badge's solid dress. */
 .circuits__gap-index {
   display: flex;
-  flex: 0 0 var(--rack-index);
+  flex: 0 0 var(--badge-cell-width);
   align-items: center;
   justify-content: center;
   color: var(--text-dim);

@@ -567,7 +567,7 @@ describe('useWorkbench / pool', () => {
     const outcome = await workbench.createWorkout('Pushups');
 
     expect(outcome).toEqual({ kind: 'held-elsewhere', exerciseId: pushups.id });
-    // Still on the owner's rack; nothing moved.
+    // Still held by the owner circuit; nothing moved.
     const ownerSlots = await listCircuitSlots(db, otherCircuit.id);
     expect(ownerSlots).toHaveLength(1);
   });

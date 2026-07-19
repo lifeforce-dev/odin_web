@@ -169,30 +169,30 @@ describe('CircuitWorkbenchView', () => {
     vi.restoreAllMocks();
   });
 
-  it('numbers the rack and keeps no standing empty socket', async () => {
+  it('numbers the slots and keeps no standing empty socket', async () => {
     const circuitId = await seedCircuit();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
     // Every committed row is a numbered socket; the open socket exists
     // only as a drag's landing gap, never at idle.
-    const badges = wrapper.findAll('.workbench__circuit-zone .workbench__rack-index');
+    const badges = wrapper.findAll('.workbench__circuit-zone .workbench__slot-number');
     expect(badges.map((badge) => badge.text())).toEqual(['01', '02']);
-    expect(wrapper.find('.workbench__rack-slot--gap').exists()).toBe(false);
+    expect(wrapper.find('.workbench__slot--gap').exists()).toBe(false);
 
     // The reorder midpoints are measured on the wrappers via
-    // data-rack-id, never on the cards inside them: the wrappers carry
+    // data-slot-id, never on the cards inside them: the wrappers carry
     // the FLIP slide transform, and a transformed ancestor hijacks its
     // descendants' offsetParent, so a card measured mid-slide reads ~0
     // and the landing gap flaps between slots. This pins the attribute
     // the measurement depends on; stripping it would silently empty
     // every midpoint list.
-    const rackIds = wrapper
-      .findAll('.workbench__circuit-zone .workbench__rack-slot')
-      .map((row) => row.attributes('data-rack-id'));
+    const slotIds = wrapper
+      .findAll('.workbench__circuit-zone .workbench__slot')
+      .map((row) => row.attributes('data-slot-id'));
     const cardIds = circuitCards(wrapper).map((card) => card.attributes('data-card-id'));
-    expect(rackIds).toEqual(cardIds);
-    expect(rackIds.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
+    expect(slotIds).toEqual(cardIds);
+    expect(slotIds.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
   });
 
   it('keeps the drop feedback transients out of the idle screen', async () => {
@@ -565,9 +565,9 @@ describe('CircuitWorkbenchView / drag seams', () => {
     await flushPromises();
 
     // The presence half of the transient contract: mid-drag the real
-    // ghost renders and the rack opens the landing gap.
+    // ghost renders and the slot list opens the landing gap.
     expect(wrapper.find('.workbench__drag-ghost').exists()).toBe(true);
-    expect(wrapper.find('.workbench__rack-slot--gap').exists()).toBe(true);
+    expect(wrapper.find('.workbench__slot--gap').exists()).toBe(true);
 
     dragPointer('pointerup', { clientX: 10, clientY: -50 });
     await flushPromises();
@@ -621,7 +621,7 @@ describe('CircuitWorkbenchView / drag seams', () => {
     await flushPromises();
 
     // The one destructive gesture: archived in the DB, gone from the
-    // rack, and the single recovery surface is up with the right name.
+    // circuit, and the single recovery surface is up with the right name.
     expect(circuitCards(wrapper)).toHaveLength(1);
     expect(wrapper.get('.trash-snackbar__msg').text()).toBe('Lat Pulldown deleted');
     expect(await listCircuitSlots(testDb.db, circuitId)).toHaveLength(1);

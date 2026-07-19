@@ -50,8 +50,8 @@
      above the stepper values, same static-integer reasoning. */
   --type-display-readout: 30px;
 
-  /* Display-face index badge (the workbench rack's numbered socket
-     cells); same static-integer reasoning. */
+  /* Display-face index badge (the workbench's numbered slot cells); same
+     static-integer reasoning. */
   --type-display-badge: 22px;
 
   /* Display-face completion stamp (the circuit card's DONE outline);
@@ -64,9 +64,9 @@
      one must never drag the other. */
   --type-display-stat: 40px;
 
-  /* The rack index cell's width: what a two-digit display badge needs;
+  /* The badge cell's width: what a two-digit display badge needs;
      deliberately the one width the name column pays. */
-  --rack-index: 34px;
+  --badge-cell-width: 34px;
 
   /* The exercise-select tile's floor: keeps a one-line card reading as
      a chunky set button instead of collapsing to its text height. The

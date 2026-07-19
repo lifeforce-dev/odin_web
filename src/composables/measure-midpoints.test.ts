@@ -46,18 +46,18 @@ describe('measureRowMidpoints', () => {
   });
 
   it("derives the selector from the dataset key, matching both call sites' attributes", () => {
-    // The workbench passes 'rackId' over data-rack-id wrappers, the
+    // The workbench passes 'slotId' over data-slot-id wrappers, the
     // circuits screen 'queueId' over data-queue-id; a derivation drift
     // would silently empty a midpoint list.
-    const rackZone = buildZone('data-rack-id', ['a', 'b']);
-    expect(measureRowMidpoints(rackZone, 'rackId', 'none')).toHaveLength(2);
-    expect(measureRowMidpoints(rackZone, 'rackId', 'a')).toEqual([125]);
+    const slotZone = buildZone('data-slot-id', ['a', 'b']);
+    expect(measureRowMidpoints(slotZone, 'slotId', 'none')).toHaveLength(2);
+    expect(measureRowMidpoints(slotZone, 'slotId', 'a')).toEqual([125]);
 
     const queueZone = buildZone('data-queue-id', ['a', 'b']);
     expect(measureRowMidpoints(queueZone, 'queueId', 'none')).toHaveLength(2);
 
     // The wrong key finds nothing: the selector really is derived, not
     // a permissive match-anything.
-    expect(measureRowMidpoints(queueZone, 'rackId', 'none')).toEqual([]);
+    expect(measureRowMidpoints(queueZone, 'slotId', 'none')).toEqual([]);
   });
 });

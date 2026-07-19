@@ -14,7 +14,7 @@ import TransientCardGhost from '@/components/TransientCardGhost.vue';
 import TrashSnackbar from '@/components/TrashSnackbar.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
 import { measureRowMidpoints } from '@/composables/measure-midpoints';
-import { rackBadge } from '@/composables/rack-badge';
+import { badgeNumber } from '@/composables/badge-number';
 import { settlePointer } from '@/composables/settle-pointer';
 import { DEVICE_ONLY_NOTE, useDb } from '@/composables/useDb';
 import { useForgeChoreography } from '@/composables/useForgeChoreography';
@@ -226,20 +226,20 @@ const eyebrowText = computed(() => {
 // and a landing gap opens at the insertion point; a lifted pool card
 // is not in the list, so the same gap previews its insertion. The gap
 // index counts non-dragged rows only, matching measureSlotMidpoints.
-// rackIndex is the row's committed position and the gap wears the
-// index it previews, so mid-drag a number can duplicate a neighbor's.
+// slotNumber is the row's committed 1-based position and the gap wears
+// the number it previews, so mid-drag a number can duplicate a neighbor's.
 type SlotListRow =
-  { kind: 'slot'; slot: CircuitSlot; rackIndex: number } | { kind: 'gap'; rackIndex: number };
+  { kind: 'slot'; slot: CircuitSlot; slotNumber: number } | { kind: 'gap'; slotNumber: number };
 
 const displayRows = computed<SlotListRow[]>(() => {
   const draggedId = drag.state.draggingId;
   const gapAt = drag.state.gapIndex;
   const reordering = draggedId !== null && gapAt !== null;
   const rows: SlotListRow[] = slots.value
-    .map((slot, index) => ({ kind: 'slot' as const, slot, rackIndex: index + 1 }))
+    .map((slot, index) => ({ kind: 'slot' as const, slot, slotNumber: index + 1 }))
     .filter((row) => !(reordering && row.slot.exerciseId === draggedId));
   if (reordering) {
-    rows.splice(Math.min(gapAt, rows.length), 0, { kind: 'gap', rackIndex: gapAt + 1 });
+    rows.splice(Math.min(gapAt, rows.length), 0, { kind: 'gap', slotNumber: gapAt + 1 });
   }
   return rows;
 });
@@ -248,7 +248,7 @@ const displayRows = computed<SlotListRow[]>(() => {
 // measureRowMidpoints; the zone's position: relative satisfies it.
 function measureSlotMidpoints(draggedId: string): number[] {
   const zone = circuitZoneEl.value;
-  return zone ? measureRowMidpoints(zone, 'rackId', draggedId) : [];
+  return zone ? measureRowMidpoints(zone, 'slotId', draggedId) : [];
 }
 
 // The drag session tracks exercise ids; persistence wants item ids.
@@ -538,14 +538,14 @@ async function handleCreate(name: string): Promise<void> {
                 >
                   <div
                     v-if="row.kind === 'gap'"
-                    class="workbench__rack-slot workbench__rack-slot--gap"
+                    class="workbench__slot workbench__slot--gap"
                     :style="{ height: `${drag.state.ghostHeight}px` }"
                   >
-                    <span class="workbench__rack-index">{{ rackBadge(row.rackIndex) }}</span>
-                    <div class="workbench__rack-vacant"></div>
+                    <span class="workbench__slot-number">{{ badgeNumber(row.slotNumber) }}</span>
+                    <div class="workbench__slot-vacant"></div>
                   </div>
-                  <div v-else class="workbench__rack-slot" :data-rack-id="row.slot.exerciseId">
-                    <span class="workbench__rack-index">{{ rackBadge(row.rackIndex) }}</span>
+                  <div v-else class="workbench__slot" :data-slot-id="row.slot.exerciseId">
+                    <span class="workbench__slot-number">{{ badgeNumber(row.slotNumber) }}</span>
                     <WorkoutCard
                       :data-card-id="row.slot.exerciseId"
                       :name="row.slot.exerciseName"
@@ -869,18 +869,18 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 /* Every committed row is a numbered socket. */
-.workbench__rack-slot {
+.workbench__slot {
   display: flex;
   align-items: stretch;
 }
 
 /* Badge-cell recipe (shared with .circuit-row__order and
    .circuits__gap-index): this one owns its own --bg plate and a full
-   border because it sits beside card surfaces in a rack slot, not a
+   border because it sits beside card surfaces in a slot, not a
    row's own surface. */
-.workbench__rack-index {
+.workbench__slot-number {
   display: flex;
-  flex: 0 0 var(--rack-index);
+  flex: 0 0 var(--badge-cell-width);
   align-items: center;
   justify-content: center;
   color: var(--text-soft);
@@ -893,7 +893,7 @@ async function handleCreate(name: string): Promise<void> {
   border-right: none;
 }
 
-.workbench__rack-slot .workout-card {
+.workbench__slot .workout-card {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -901,12 +901,12 @@ async function handleCreate(name: string): Promise<void> {
 /* The landing gap: an open socket wearing the index it previews, sized
    to the lifted card. Neutral on purpose: the lifted card alone
    carries the accent. */
-.workbench__rack-slot--gap .workbench__rack-index {
+.workbench__slot--gap .workbench__slot-number {
   color: var(--text-dim);
   border-style: dashed;
 }
 
-.workbench__rack-vacant {
+.workbench__slot-vacant {
   flex: 1 1 auto;
   border: var(--hairline) dashed var(--border-strong);
   border-left: none;
@@ -1026,7 +1026,7 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 /* Stock rows slide to make room for the berth; same leave-active trick
-   as the rack above. */
+   as the slot list above. */
 .pool-shift-move {
   transition: transform var(--motion-slide) ease;
 }

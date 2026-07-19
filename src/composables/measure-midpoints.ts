@@ -1,8 +1,8 @@
 // Vertical midpoints of every non-dragged row in a scroll zone, top to
 // bottom, in viewport coordinates - the drag sessions' insertion-test
-// input. dataAttr is the dataset key carrying the row id ('rackId' for
-// the workbench rack, 'queueId' for the circuits queue); the selector
-// derives from it.
+// input. dataAttr is the dataset key carrying the row id ('slotId' for
+// the workbench, 'queueId' for the circuits queue); the selector derives
+// from it.
 //
 // Measured from offsetTop, never getBoundingClientRect: rects include
 // the in-flight FLIP transforms, so measuring mid-animation feeds

@@ -417,7 +417,7 @@ onMounted(() => {
           @cancel="demoCircuitStripOpen = false"
         />
         <p class="board-note">
-          The rotation queue's row: a numbered rack socket (the workbench slot's badge idiom)
+          The rotation queue's row: a numbered order badge (the workbench slot number's badge idiom)
           holding the name, its workout count, a dim delete affordance, and the grip. tag renders
           one dress, two words (NEXT / ACTIVE); dimmed is swap mode's non-target dress. The last
           row's x wires the real ConfirmStrip above, the circuits screen's exact delete flow.

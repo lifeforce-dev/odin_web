@@ -5,8 +5,8 @@ import GripHandle from '@/components/GripHandle.vue';
 import { useBodyHandle } from '@/composables/useBodyHandle';
 
 // A workout held by another circuit. One workout lives in one circuit
-// at a time, so these rows are recessed + dashed (on someone else's
-// rack) with a filled owner pill naming that circuit. Clicking the
+// at a time, so these rows are recessed + dashed (held by another
+// circuit) with a filled owner pill naming that circuit. Clicking the
 // body folds open the steal strip - it states the consequence and the
 // named-copy tip every time (no one-time modal), with LEAVE IT / MOVE
 // HERE. The grip is the drag surface, joined by the body when
@@ -79,7 +79,7 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   align-items: stretch;
   min-height: var(--tap-min);
 
-  /* Recessed: on someone else's rack, one step below the surface. */
+  /* Recessed: held by another circuit, one step below the surface. */
   background: var(--bg);
   border: var(--hairline) dashed var(--border-strong);
 }

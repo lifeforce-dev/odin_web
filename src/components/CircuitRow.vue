@@ -2,11 +2,11 @@
 import { computed } from 'vue';
 
 import GripHandle from '@/components/GripHandle.vue';
-import { rackBadge } from '@/composables/rack-badge';
+import { badgeNumber } from '@/composables/badge-number';
 import { useBodyHandle } from '@/composables/useBodyHandle';
 
-// One circuit in the rotation queue: a numbered rack socket (the same
-// badge idiom as the workbench's slot rack) holding the name, its
+// One circuit in the rotation queue: a numbered order badge (the same
+// badge idiom as the workbench's slot numbers) holding the name, its
 // workout count, a dim delete affordance, and the grip. Render + emit
 // only: ordering, session state, and persistence live in
 // useCircuitManager / domain/workout.ts. dragAnywhere joins the body to
@@ -38,7 +38,7 @@ const bodyHandle = useBodyHandle({
   onTap: () => emit('open'),
 });
 
-const orderBadge = computed(() => rackBadge(props.order));
+const orderBadge = computed(() => badgeNumber(props.order));
 
 // The schema has no duration data, so meta is workout count only.
 const meta = computed(() => {
@@ -93,12 +93,12 @@ const tagLabel = computed(() => (props.tag === 'active' ? 'Active' : 'Next'));
   border: var(--hairline) solid var(--border);
 }
 
-/* Badge-cell recipe (shared with .workbench__rack-index and
+/* Badge-cell recipe (shared with .workbench__slot-number and
    .circuits__gap-index): this one inherits the row's own surface, so
    it draws only the right divider, no plate. */
 .circuit-row__order {
   display: flex;
-  flex: 0 0 var(--rack-index);
+  flex: 0 0 var(--badge-cell-width);
   align-items: center;
   justify-content: center;
   color: var(--text-soft);
