@@ -148,10 +148,10 @@ function onDeleteDrop(exerciseId: string): void {
 // already-lit region dark.
 const lastArmedZone = ref<WorkbenchDragZone | null>(null);
 
-// The seam tick renders while > 0; the count keys the element so a
+// The boundary tick renders while > 0; the count keys the element so a
 // recross mid-flash remounts and restarts the flash.
-const seamTickCount = ref(0);
-const seamTickShot = useOneShot();
+const boundaryTickCount = ref(0);
+const boundaryTickShot = useOneShot();
 
 watch(drag.armedZone, (zone, previous) => {
   if (zone !== null) {
@@ -165,9 +165,9 @@ watch(drag.armedZone, (zone, previous) => {
   if (!crossed) {
     return;
   }
-  seamTickCount.value += 1;
-  seamTickShot.set(() => {
-    seamTickCount.value = 0;
+  boundaryTickCount.value += 1;
+  boundaryTickShot.set(() => {
+    boundaryTickCount.value = 0;
   }, MOTION_TICK_MS);
 });
 
@@ -198,8 +198,8 @@ watch(
     renamingCircuit.value = false;
     circuitRenameNotice.value = null;
     cardExit.reset();
-    seamTickShot.cancel();
-    seamTickCount.value = 0;
+    boundaryTickShot.cancel();
+    boundaryTickCount.value = 0;
     void workbench.reload();
   },
 );
@@ -574,11 +574,11 @@ async function handleCreate(name: string): Promise<void> {
           </div>
 
           <div ref="libraryEl" class="workbench__library">
-            <!-- Flashes the seam the finger just crossed. -->
+            <!-- Flashes the boundary the finger just crossed. -->
             <span
-              v-if="seamTickCount > 0"
-              :key="seamTickCount"
-              class="workbench__seam-tick"
+              v-if="boundaryTickCount > 0"
+              :key="boundaryTickCount"
+              class="workbench__boundary-tick"
               aria-hidden="true"
             ></span>
             <div class="workbench__library-region" :class="regionClasses('library')">
@@ -961,9 +961,9 @@ async function handleCreate(name: string): Promise<void> {
   min-height: 0;
 }
 
-/* One flash on the library's top border, the seam the finger just
+/* One flash on the library's top border, the boundary the finger just
    crossed. */
-.workbench__seam-tick {
+.workbench__boundary-tick {
   position: absolute;
   top: calc(-1 * var(--rule));
   right: 0;
@@ -973,10 +973,10 @@ async function handleCreate(name: string): Promise<void> {
   pointer-events: none;
   background: var(--text);
   box-shadow: var(--glow-sweep-line);
-  animation: seam-tick var(--motion-tick) steps(3, end) both;
+  animation: boundary-tick var(--motion-tick) steps(3, end) both;
 }
 
-@keyframes seam-tick {
+@keyframes boundary-tick {
   from {
     opacity: 1;
   }
@@ -1238,7 +1238,7 @@ async function handleCreate(name: string): Promise<void> {
     filter: var(--lift-recede);
   }
 
-  .workbench__seam-tick {
+  .workbench__boundary-tick {
     display: none;
   }
 

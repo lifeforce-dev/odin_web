@@ -263,7 +263,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     expect(drag.state.gapIndex).toBeNull();
   });
 
-  it('disarms each seam through hysteresis, not at the line that armed it', () => {
+  it('disarms each boundary through hysteresis, not at the line that armed it', () => {
     const { drag } = makeDrag();
     drag.begin(
       'circuit',
@@ -272,7 +272,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
       cardRect(20, 140, 380),
     );
 
-    // Library seam: tremor above the line stays armed, a real retreat flips.
+    // Library boundary: tremor above the line stays armed, a real retreat flips.
     firePointer('pointermove', { clientX: 40, clientY: 500 });
     expect(drag.state.libraryArmed).toBe(true);
     firePointer('pointermove', { clientX: 40, clientY: 495 });
@@ -281,7 +281,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     expect(drag.state.libraryArmed).toBe(false);
     expect(drag.state.circuitArmed).toBe(true);
 
-    // The delete-target seam behaves the same: tremor stays delete-armed, retreat
+    // The delete-target boundary behaves the same: tremor stays delete-armed, retreat
     // falls back to the library.
     firePointer('pointermove', { clientX: 40, clientY: 700 });
     expect(drag.state.deleteArmed).toBe(true);
@@ -304,7 +304,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
       cardRect(20, 140, 380),
     );
     // The list restructure after arming would report shifted boundaries;
-    // a live re-measure here would oscillate at the seams.
+    // a live re-measure here would oscillate at the boundaries.
     measureLibraryTop.mockReturnValue(560);
     measureDeleteTop.mockReturnValue(760);
     firePointer('pointermove', { clientX: 40, clientY: 520 });

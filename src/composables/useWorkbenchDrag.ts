@@ -25,7 +25,7 @@ export interface WorkbenchDragOptions {
   // ONCE per drag, at begin(): the zone swap restructures the list, so
   // re-measuring per move would let our own state change move a boundary
   // and feed back into the zone test (a bistable oscillator at the
-  // seam). Frozen geometry cannot loop.
+  // boundary). Frozen geometry cannot loop.
   measureLibraryTop(): number;
   measureDeleteTop(): number;
   onReorder(draggedId: string, insertAt: number): void;
@@ -64,7 +64,7 @@ export function insertionIndex(midpoints: number[], pointerY: number): number {
 
 // Pure for the same reason: converts the drop preview (gap index counted
 // among the NON-dragged rows) into the full ordered id list persistence
-// expects. This is the off-by-one seam of the whole pipeline - splicing
+// expects. This is the off-by-one hazard of the whole pipeline - splicing
 // into the unfiltered list would shift every downward drop by one.
 export function orderAfterDrop(
   orderedIds: string[],
@@ -117,11 +117,11 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
   let libraryTopAtGrab = Number.POSITIVE_INFINITY;
   let deleteTopAtGrab = Number.POSITIVE_INFINITY;
 
-  // Hysteresis (Schmitt trigger) on each zone seam: arm AT the boundary,
+  // Hysteresis (Schmitt trigger) at each zone boundary: arm AT the line,
   // disarm only after retreating this far back above it. A thumb resting
   // on a hard line has natural tremor; without the band every wobble
   // toggles the zones and replays the list restructure.
-  const SEAM_SLACK_PX = 16;
+  const BOUNDARY_SLACK_PX = 16;
 
   function begin(
     origin: WorkbenchDragOrigin,
@@ -165,11 +165,11 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     // delete target, then the library, else the circuit.
     const y = event.clientY;
     const overDelete = state.deleteArmed
-      ? y >= deleteTopAtGrab - SEAM_SLACK_PX
+      ? y >= deleteTopAtGrab - BOUNDARY_SLACK_PX
       : y >= deleteTopAtGrab;
     const overLibrary =
       !overDelete &&
-      (state.libraryArmed ? y >= libraryTopAtGrab - SEAM_SLACK_PX : y >= libraryTopAtGrab);
+      (state.libraryArmed ? y >= libraryTopAtGrab - BOUNDARY_SLACK_PX : y >= libraryTopAtGrab);
     state.deleteArmed = overDelete;
     state.libraryArmed = overLibrary;
     state.circuitArmed = !overDelete && !overLibrary;
@@ -183,7 +183,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
   // lifting finger rolls its contact point a few px as it leaves the
   // glass, so the release event routinely lands off the held position -
   // re-tracking here shifted the insertion by a slot (a visible reshuffle
-  // after letting go) and, near a seam, could even flip a reorder into
+  // after letting go) and, near a boundary, could even flip a reorder into
   // a remove.
   function drop(event: PointerEvent): void {
     const draggedId = state.draggingId;

@@ -201,11 +201,11 @@ describe('CircuitWorkbenchView', () => {
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    // The landing gap, the seam tick, and the receded-region filters exist
+    // The landing gap, the boundary tick, and the receded-region filters exist
     // only while a card is lifted - at idle the library is plain rows
     // and nothing is dimmed.
     expect(wrapper.find('.workbench__library-gap').exists()).toBe(false);
-    expect(wrapper.find('.workbench__seam-tick').exists()).toBe(false);
+    expect(wrapper.find('.workbench__boundary-tick').exists()).toBe(false);
     expect(wrapper.find('.workbench__region--receded').exists()).toBe(false);
     // Bans the zone-ring classes by name (a blanket [class*="--armed"]
     // ban would fail any component legitimately carrying an --armed
@@ -518,10 +518,10 @@ describe('CircuitWorkbenchView / rename pencil', () => {
   });
 });
 
-// The drag seam: session ids are exercise ids, persistence wants item
+// The drag/persistence boundary: session ids are exercise ids, persistence wants item
 // ids, and the drop callbacks translate between them. jsdom rects are
 // all zero, so every frozen boundary sits at y=0: negative clientY is
-// the circuit band, positive is the delete target (or, with the delete-target seam
+// the circuit band, positive is the delete target (or, with the delete-target boundary
 // stubbed lower, the library). Pointer events are plain Events with
 // coordinate expandos - the established jsdom workaround.
 
@@ -549,7 +549,7 @@ function cardByName(wrapper: ReturnType<typeof mount>, name: string) {
   return card;
 }
 
-describe('CircuitWorkbenchView / drag seams', () => {
+describe('CircuitWorkbenchView / drag boundaries', () => {
   it('persists a drag reorder through the exercise-to-item id translation', async () => {
     const circuitId = await seedCircuit();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
@@ -671,7 +671,7 @@ describe('CircuitWorkbenchView / drag seams', () => {
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    // Push the delete-target seam down to y=100 so 0 <= y < 100 reads as the
+    // Push the delete-target boundary down to y=100 so 0 <= y < 100 reads as the
     // library band (all other rects stay zero).
     const deleteEl = wrapper.get('.delete-target').element as HTMLElement;
     deleteEl.getBoundingClientRect = () =>

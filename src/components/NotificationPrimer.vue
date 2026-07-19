@@ -42,7 +42,7 @@ onUnmounted(() => {
 
 // Wrap Tab within the card's focusable elements. With focus parked on the
 // card itself, forward Tab reaches the buttons natively; this only closes
-// the two wrap-around seams so focus never escapes to the inert screen.
+// the two wrap-around points so focus never escapes to the inert screen.
 function trapTab(event: KeyboardEvent): void {
   if (event.key !== 'Tab' || !cardEl.value) {
     return;
