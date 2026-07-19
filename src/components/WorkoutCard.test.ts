@@ -74,16 +74,16 @@ describe('WorkoutCard', () => {
     expect(wrapper.emitted('toggle')).toBeUndefined();
   });
 
-  it('dresses the placements apart: circuit committed, pool stock', () => {
-    // One identity, two dress states: the pool line wears the cold
-    // stock dress with compressed meta, while behavior stays identical
+  it('dresses the placements apart: circuit committed, library available', () => {
+    // One identity, two dress states: the library line wears the cold
+    // available dress with compressed meta, while behavior stays identical
     // in both zones.
-    const pooled = mountCard({ variant: 'pool', addable: true });
+    const libraryCard = mountCard({ variant: 'library', addable: true });
     const held = mountCard({ removable: true });
 
-    expect(pooled.classes()).toContain('workout-card--pool');
-    expect(held.classes()).not.toContain('workout-card--pool');
-    expect(pooled.get('.workout-card__meta').text()).toBe('3x // 60s');
+    expect(libraryCard.classes()).toContain('workout-card--library');
+    expect(held.classes()).not.toContain('workout-card--library');
+    expect(libraryCard.get('.workout-card__meta').text()).toBe('3x // 60s');
     expect(held.get('.workout-card__meta').text()).toBe('3 sets // rest 60s');
   });
 
@@ -91,11 +91,11 @@ describe('WorkoutCard', () => {
     const plain = mountCard({ open: true });
     expect(plain.find('.workout-card__add').exists()).toBe(false);
 
-    const pooled = mountCard({ open: true, addable: true });
-    expect(pooled.find('.workout-card__remove').exists()).toBe(false);
-    await pooled.get('.workout-card__add').trigger('click');
+    const libraryCard = mountCard({ open: true, addable: true });
+    expect(libraryCard.find('.workout-card__remove').exists()).toBe(false);
+    await libraryCard.get('.workout-card__add').trigger('click');
 
-    expect(pooled.emitted('add')).toHaveLength(1);
+    expect(libraryCard.emitted('add')).toHaveLength(1);
   });
 
   it('carries REMOVE FROM CIRCUIT in the fold when removable, and it emits remove', async () => {

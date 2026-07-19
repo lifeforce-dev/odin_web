@@ -85,11 +85,11 @@ async function requireActiveExercise(db: DbHandle, id: string): Promise<Exercise
 
 // Cross-table rule the schema reserves for domain/: a circuit only holds
 // exercises of its own kind.
-function requireMatchingKind(target: CircuitRow, pooled: ExerciseRow): void {
-  if (target.kind !== pooled.kind) {
+function requireMatchingKind(target: CircuitRow, exerciseRow: ExerciseRow): void {
+  if (target.kind !== exerciseRow.kind) {
     throw new BuilderError(
       'kind-mismatch',
-      `circuit '${target.name}' is ${target.kind} but exercise '${pooled.name}' is ${pooled.kind}`,
+      `circuit '${target.name}' is ${target.kind} but exercise '${exerciseRow.name}' is ${exerciseRow.kind}`,
     );
   }
 }
@@ -185,7 +185,7 @@ export async function renameCircuit(db: DbHandle, id: string, name: string): Pro
 
 // Soft delete (sessions reference circuits for provenance) that also
 // hard-deletes the circuit's items in the same transaction: membership is
-// exclusive, so an item left behind would keep its exercise out of the pool
+// exclusive, so an item left behind would keep its exercise out of the library
 // and block adding it anywhere else.
 export async function archiveCircuit(
   db: DbHandle,
@@ -241,7 +241,7 @@ export async function reorderCircuits(
   });
 }
 
-// --- Workout pool -----------------------------------------------------------
+// --- Workout library -----------------------------------------------------------
 
 // Find-or-create on the normalized name. Matching folds both sides
 // with SQLite's own lower() so the comparison is exactly the
@@ -314,8 +314,8 @@ export async function trashExercise(
   archivedAt = nowIso(),
 ): Promise<TrashedWorkout | null> {
   return db.transaction(async (tx) => {
-    const pooled = await tx.select().from(exercise).where(eq(exercise.id, exerciseId)).get();
-    if (!pooled || pooled.archivedAt !== null) {
+    const exerciseRow = await tx.select().from(exercise).where(eq(exercise.id, exerciseId)).get();
+    if (!exerciseRow || exerciseRow.archivedAt !== null) {
       return null;
     }
     const held = await tx
@@ -333,7 +333,7 @@ export async function trashExercise(
 // held it, a slot at the old position. The position may collide with a
 // row added since - ordering only needs monotonic values, and the next
 // reorder rewrites them densely. If the owner circuit was archived in
-// the meantime the identity restores into the pool. A name retaken
+// the meantime the identity restores into the library. A name retaken
 // while the undo sat violates the active-name index and surfaces as
 // the constraint's DrizzleQueryError with nothing written. Returns
 // false when the exercise is missing or already active.
@@ -363,33 +363,33 @@ export async function restoreExercise(db: DbHandle, trashed: TrashedWorkout): Pr
   });
 }
 
-// Available entries carry their prescription: the pool card is the
+// Available entries carry their prescription: the library card is the
 // same editable control as the circuit's.
-export interface PoolAvailableEntry {
+export interface LibraryAvailableEntry {
   exerciseId: string;
   name: string;
   sets: number;
   restSeconds: number;
 }
 
-export interface PoolElsewhereEntry {
+export interface LibraryElsewhereEntry {
   exerciseId: string;
   name: string;
   ownerCircuitId: string;
   ownerCircuitName: string;
 }
 
-export interface PoolGroups {
-  available: PoolAvailableEntry[];
-  heldElsewhere: PoolElsewhereEntry[];
+export interface LibraryGroups {
+  available: LibraryAvailableEntry[];
+  heldElsewhere: LibraryElsewhereEntry[];
 }
 
-// Pool group state is derived, never stored: AVAILABLE is an active
+// Library group state is derived, never stored: AVAILABLE is an active
 // exercise of the circuit's kind with no circuit_item row anywhere;
 // IN OTHER CIRCUITS means its one item belongs to another circuit.
-// Exercises held by THIS circuit are its slots, not pool rows, so they
+// Exercises held by THIS circuit are its slots, not library rows, so they
 // appear in neither group.
-export async function getPool(db: DbHandle, circuitId: string): Promise<PoolGroups> {
+export async function getLibrary(db: DbHandle, circuitId: string): Promise<LibraryGroups> {
   const viewing = await requireActiveCircuit(db, circuitId);
   const available = await db
     .select({
@@ -482,8 +482,8 @@ export async function addExerciseToCircuit(
 ): Promise<CircuitItemRow> {
   return db.transaction(async (tx) => {
     const target = await requireActiveCircuit(tx, circuitId);
-    const pooled = await requireActiveExercise(tx, exerciseId);
-    requireMatchingKind(target, pooled);
+    const exerciseRow = await requireActiveExercise(tx, exerciseId);
+    requireMatchingKind(target, exerciseRow);
     const row: CircuitItemRow = {
       id: newId(),
       circuitId,
@@ -515,7 +515,7 @@ export async function removeCircuitItem(db: DbHandle, itemId: string): Promise<b
 }
 
 // The live-apply prescription edit, keyed to the workout so the same
-// edit works from the circuit slot and the pool card. Partial on
+// edit works from the circuit slot and the library card. Partial on
 // purpose: the steppers change one number at a time. Validates the
 // merged result so a partial edit can never leave an invalid pair
 // behind. Returns false when missing or archived.
@@ -591,8 +591,8 @@ export async function stealExercise(
 ): Promise<CircuitItemRow> {
   return db.transaction(async (tx) => {
     const target = await requireActiveCircuit(tx, toCircuitId);
-    const pooled = await requireActiveExercise(tx, exerciseId);
-    requireMatchingKind(target, pooled);
+    const exerciseRow = await requireActiveExercise(tx, exerciseId);
+    requireMatchingKind(target, exerciseRow);
     const held = await tx
       .select()
       .from(circuitItem)
@@ -601,13 +601,13 @@ export async function stealExercise(
     if (!held) {
       throw new BuilderError(
         'not-in-a-circuit',
-        `exercise '${pooled.name}' is not held by any circuit; add it instead of stealing`,
+        `exercise '${exerciseRow.name}' is not held by any circuit; add it instead of stealing`,
       );
     }
     if (held.circuitId === toCircuitId) {
       throw new BuilderError(
         'already-in-circuit',
-        `exercise '${pooled.name}' is already in circuit '${target.name}'`,
+        `exercise '${exerciseRow.name}' is already in circuit '${target.name}'`,
       );
     }
     await tx.delete(circuitItem).where(eq(circuitItem.id, held.id));

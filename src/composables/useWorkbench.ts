@@ -6,7 +6,7 @@ import {
   addExerciseToCircuit,
   findOrCreateExercise,
   getCircuitById,
-  getPool,
+  getLibrary,
   listCircuitSlots,
   removeCircuitItem,
   renameCircuit as renameCircuitDomain,
@@ -20,14 +20,14 @@ import {
 import type {
   CircuitKind,
   CircuitSlot,
-  PoolGroups,
+  LibraryGroups,
   Prescription,
   TrashedWorkout,
 } from '@/domain/builder';
 
 import { orderAfterDrop } from './useWorkbenchDrag';
 
-// The workbench's domain adapter: reactive circuit and pool state over
+// The workbench's domain adapter: reactive circuit and library state over
 // domain/builder.ts. Edits apply live - every stepper tick lands in
 // the DB, there is no save button. Components stay render + emit; the
 // rules live here and below in domain/.
@@ -37,17 +37,17 @@ export type WorkbenchStatus = 'loading' | 'ready' | 'missing' | 'unavailable' | 
 export type PrescriptionField = keyof Prescription;
 
 // What became of an inline create, for the screen to route: reveal the
-// pool row (create stays in the pool, nothing auto-adds), flash the
+// library row (create stays in the library, nothing auto-adds), flash the
 // slot (already here), open the owner's steal strip (create never
 // silently steals), or show the domain's verdict on the name.
 export type CreateWorkoutOutcome =
-  | { kind: 'in-pool'; exerciseId: string }
+  | { kind: 'in-library'; exerciseId: string }
   | { kind: 'already-in-circuit'; exerciseId: string }
   | { kind: 'held-elsewhere'; exerciseId: string }
   | { kind: 'rejected'; message: string }
   | { kind: 'failed' };
 
-// What became of a pool-tray rename: rejected carries the message the
+// What became of a library-tray rename: rejected carries the message the
 // tray shows (name taken / blank); failed means the chain resynced.
 export type RenameWorkoutOutcome =
   { kind: 'renamed' } | { kind: 'rejected'; message: string } | { kind: 'failed' };
@@ -87,9 +87,9 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   const status = ref<WorkbenchStatus>(db ? 'loading' : 'unavailable');
   const circuitName = ref('');
   const slots = ref<CircuitSlot[]>([]);
-  const pool = ref<PoolGroups>({ available: [], heldElsewhere: [] });
+  const library = ref<LibraryGroups>({ available: [], heldElsewhere: [] });
 
-  // The circuit's kind, held for find-or-create (the pool only ever
+  // The circuit's kind, held for find-or-create (the library only ever
   // shows this kind, so a created workout inherits it).
   let circuitKind: CircuitKind | null = null;
 
@@ -139,13 +139,13 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
         circuitName.value = '';
         circuitKind = null;
         slots.value = [];
-        pool.value = { available: [], heldElsewhere: [] };
+        library.value = { available: [], heldElsewhere: [] };
         return;
       }
       circuitName.value = circuit.name;
       circuitKind = circuit.kind;
       slots.value = await listCircuitSlots(db, circuit.id);
-      pool.value = await getPool(db, circuit.id);
+      library.value = await getLibrary(db, circuit.id);
       status.value = 'ready';
     } catch (error) {
       // A failed read must fail on the glass, not only in the log: the
@@ -181,7 +181,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   // Optimistic: the displayed value moves on the same tick as the tap
   // so hold-to-ramp reads instantly; the write follows on the chain.
   // Keyed to the workout, so the same edit works from a circuit slot
-  // and a pool card. Returns the queued write so callers can await it.
+  // and a library card. Returns the queued write so callers can await it.
   function adjustPrescription(
     exerciseId: string,
     field: PrescriptionField,
@@ -192,7 +192,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     }
     const card =
       slots.value.find((entry) => entry.exerciseId === exerciseId) ??
-      pool.value.available.find((entry) => entry.exerciseId === exerciseId);
+      library.value.available.find((entry) => entry.exerciseId === exerciseId);
     if (!card) {
       return Promise.resolve();
     }
@@ -270,7 +270,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   // Tap appends (no insertAt); a drag-in places at the previewed gap.
   // Resolves to the new item id so the screen can flash it, or null when
   // the write failed (the chain already resynced from the DB).
-  function addFromPool(exerciseId: string, insertAt?: number): Promise<string | null> {
+  function addFromLibrary(exerciseId: string, insertAt?: number): Promise<string | null> {
     if (!db) {
       return Promise.resolve(null);
     }
@@ -287,8 +287,8 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
 
   // The steal: domain moves the exercise's one pointer transactionally;
   // both circuits' state is correct the moment it lands. Same placement
-  // and flash contract as addFromPool.
-  function stealFromPool(exerciseId: string, insertAt?: number): Promise<string | null> {
+  // and flash contract as addFromLibrary.
+  function stealFromLibrary(exerciseId: string, insertAt?: number): Promise<string | null> {
     if (!db) {
       return Promise.resolve(null);
     }
@@ -334,16 +334,16 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
         outcome = { kind: 'already-in-circuit', exerciseId };
         return;
       }
-      if (pool.value.heldElsewhere.some((entry) => entry.exerciseId === exerciseId)) {
+      if (library.value.heldElsewhere.some((entry) => entry.exerciseId === exerciseId)) {
         outcome = { kind: 'held-elsewhere', exerciseId };
         return;
       }
       await load();
-      outcome = { kind: 'in-pool', exerciseId };
+      outcome = { kind: 'in-library', exerciseId };
     }).then(() => outcome);
   }
 
-  // The pool tray's rename. A collision with another active name is the
+  // The library tray's rename. A collision with another active name is the
   // constraint's verdict (reason on the cause chain); it comes back as a
   // rejected outcome for the tray's notice instead of a resync, because
   // nothing was written and the screen is not stale.
@@ -408,7 +408,7 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
   // The drag-to-trash delete: the workout disappears entirely, from
   // whichever zone it was lifted out of (domain frees a held slot and
   // archives in one transaction; history is kept). Resolves to the undo
-  // token the consume snackbar holds, or null when nothing was trashed.
+  // token the delete snackbar holds, or null when nothing was trashed.
   function trashWorkout(exerciseId: string): Promise<TrashedWorkout | null> {
     if (!db) {
       return Promise.resolve(null);
@@ -447,14 +447,14 @@ export function useWorkbench(db: DbClient | null, circuitId: () => string) {
     status,
     circuitName,
     slots,
-    pool,
+    library,
     load,
     reload,
     adjustPrescription,
     removeSlot,
     reorderSlots,
-    addFromPool,
-    stealFromPool,
+    addFromLibrary,
+    stealFromLibrary,
     createWorkout,
     renameWorkout,
     renameCircuit,

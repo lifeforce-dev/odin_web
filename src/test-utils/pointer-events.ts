@@ -1,7 +1,7 @@
 // Shared pointer-event dispatch for component tests: jsdom has no
 // PointerEvent constructor, so every gesture test builds a plain Event
 // with pointer-shaped expandos instead. One helper, so the four call
-// sites (WorkoutCard, PoolElsewhereRow, LogSetControl, RestView) can't
+// sites (WorkoutCard, LibraryElsewhereRow, LogSetControl, RestView) can't
 // drift into slightly different defaults. Not a *.test.ts file on
 // purpose: vitest would otherwise try to collect it as its own suite.
 

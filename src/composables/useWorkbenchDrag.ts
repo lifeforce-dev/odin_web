@@ -4,33 +4,33 @@ import { computed, onScopeDispose, reactive } from 'vue';
 // inside the circuit zone, and the armed drop zones. One behavior for
 // both origins; only the drop outcome depends on where the card came
 // from: over the circuit the gap previews the position (reorder or
-// add), over the pool a circuit card is removed and a pool card put
+// add), over the library a circuit card is removed and a library card put
 // back, over the delete target the workout is deleted entirely. The row's grip
 // detects the lift (useDragHandle) and hands the live pointer here;
 // this composable owns the document-level tracking from that moment to
 // the drop. Screen geometry comes in through the measure callbacks so
 // the decision logic stays testable without layout.
 
-export type WorkbenchDragOrigin = 'circuit' | 'pool';
+export type WorkbenchDragOrigin = 'circuit' | 'library';
 
 // The action a delete-target drop performs is still "trash the workout",
 // which is why the callback and the domain verb keep that word.
-export type WorkbenchDragZone = 'circuit' | 'pool' | 'delete';
+export type WorkbenchDragZone = 'circuit' | 'library' | 'delete';
 
 export interface WorkbenchDragOptions {
   // Vertical midpoints of every non-dragged circuit card, top to bottom.
-  // (A pool card's id matches no circuit card, so every card measures.)
+  // (A library card's id matches no circuit card, so every card measures.)
   measureSlotMidpoints(draggedId: string): number[];
-  // The pool zone's top edge and the delete target's top edge. Measured
+  // The library zone's top edge and the delete target's top edge. Measured
   // ONCE per drag, at begin(): the zone swap restructures the list, so
   // re-measuring per move would let our own state change move a boundary
   // and feed back into the zone test (a bistable oscillator at the
   // seam). Frozen geometry cannot loop.
-  measurePoolTop(): number;
+  measureLibraryTop(): number;
   measureDeleteTop(): number;
   onReorder(draggedId: string, insertAt: number): void;
   onRemove(draggedId: string): void;
-  // A pool card dropped over the circuit: add (or steal) at the gap.
+  // A library card dropped over the circuit: add (or steal) at the gap.
   onAdd(exerciseId: string, insertAt: number): void;
   // Any card dropped on the delete target: delete the workout entirely.
   onTrash(exerciseId: string): void;
@@ -51,7 +51,7 @@ export interface WorkbenchDragState {
   // opens (the drop preview); null unless the circuit is the armed zone.
   gapIndex: number | null;
   circuitArmed: boolean;
-  poolArmed: boolean;
+  libraryArmed: boolean;
   deleteArmed: boolean;
 }
 
@@ -86,7 +86,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     ghostHeight: 0,
     gapIndex: null,
     circuitArmed: false,
-    poolArmed: false,
+    libraryArmed: false,
     deleteArmed: false,
   });
 
@@ -99,7 +99,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     if (state.deleteArmed) {
       return 'delete';
     }
-    return state.poolArmed ? 'pool' : 'circuit';
+    return state.libraryArmed ? 'library' : 'circuit';
   });
 
   // Where inside the source card the thumb grabbed it; keeps that point
@@ -114,7 +114,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
   let sessionPointerId: number | null = null;
 
   // The zone boundaries, frozen at grab time (see the measure options).
-  let poolTopAtGrab = Number.POSITIVE_INFINITY;
+  let libraryTopAtGrab = Number.POSITIVE_INFINITY;
   let deleteTopAtGrab = Number.POSITIVE_INFINITY;
 
   // Hysteresis (Schmitt trigger) on each zone seam: arm AT the boundary,
@@ -143,7 +143,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     grabOffsetX = Math.min(Math.max(event.clientX - sourceRect.left, 0), sourceRect.width);
     grabOffsetY = Math.min(Math.max(event.clientY - sourceRect.top, 0), sourceRect.height);
     sessionPointerId = event.pointerId;
-    poolTopAtGrab = options.measurePoolTop();
+    libraryTopAtGrab = options.measureLibraryTop();
     deleteTopAtGrab = options.measureDeleteTop();
     document.addEventListener('pointermove', track);
     document.addEventListener('pointerup', drop);
@@ -162,16 +162,17 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     state.ghostX = event.clientX - grabOffsetX;
     state.ghostY = event.clientY - grabOffsetY;
     // Exactly one zone is armed at a time, tested bottom-up: the
-    // delete target, then the pool, else the circuit.
+    // delete target, then the library, else the circuit.
     const y = event.clientY;
     const overDelete = state.deleteArmed
       ? y >= deleteTopAtGrab - SEAM_SLACK_PX
       : y >= deleteTopAtGrab;
-    const overPool =
-      !overDelete && (state.poolArmed ? y >= poolTopAtGrab - SEAM_SLACK_PX : y >= poolTopAtGrab);
+    const overLibrary =
+      !overDelete &&
+      (state.libraryArmed ? y >= libraryTopAtGrab - SEAM_SLACK_PX : y >= libraryTopAtGrab);
     state.deleteArmed = overDelete;
-    state.poolArmed = overPool;
-    state.circuitArmed = !overDelete && !overPool;
+    state.libraryArmed = overLibrary;
+    state.circuitArmed = !overDelete && !overLibrary;
     state.gapIndex = state.circuitArmed
       ? insertionIndex(options.measureSlotMidpoints(state.draggingId), y)
       : null;
@@ -191,15 +192,15 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     }
     const origin = state.origin;
     const trashing = state.deleteArmed;
-    const pooling = state.poolArmed;
+    const droppingInLibrary = state.libraryArmed;
     const insertAt = state.gapIndex;
     reset();
     if (trashing) {
       options.onTrash(draggedId);
       return;
     }
-    if (pooling) {
-      // A circuit card released over the pool leaves the circuit; a pool
+    if (droppingInLibrary) {
+      // A circuit card released over the library leaves the circuit; a library
       // card is simply put back where it never stopped being.
       if (origin === 'circuit') {
         options.onRemove(draggedId);
@@ -230,7 +231,7 @@ export function useWorkbenchDrag(options: WorkbenchDragOptions) {
     state.draggingId = null;
     state.gapIndex = null;
     state.circuitArmed = false;
-    state.poolArmed = false;
+    state.libraryArmed = false;
     state.deleteArmed = false;
     sessionPointerId = null;
   }

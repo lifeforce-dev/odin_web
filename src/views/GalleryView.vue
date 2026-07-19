@@ -15,9 +15,9 @@ import MenuButton from '@/components/MenuButton.vue';
 import NavUpRow from '@/components/NavUpRow.vue';
 import NotificationPrimer from '@/components/NotificationPrimer.vue';
 import OdinMark from '@/components/OdinMark.vue';
-import PoolCreateRow from '@/components/PoolCreateRow.vue';
-import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
-import PoolGroupHeader from '@/components/PoolGroupHeader.vue';
+import LibraryCreateRow from '@/components/LibraryCreateRow.vue';
+import LibraryElsewhereRow from '@/components/LibraryElsewhereRow.vue';
+import LibraryGroupHeader from '@/components/LibraryGroupHeader.vue';
 import RestDigits from '@/components/RestDigits.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
@@ -73,7 +73,7 @@ const borderTokens = BORDER_TOKENS;
 // Live workout-card sample: the real shipped component with working
 // steppers, sharing the composable's clamp so the board exercises
 // exactly what ships - never a hand-copy. One control for both zones;
-// the pool placement adds the + chip.
+// the library placement adds the + chip.
 const demoCard = reactive({
   name: 'Cable Row',
   sets: 3,
@@ -92,10 +92,10 @@ async function replayFlash(): Promise<void> {
   demoCard.flash = true;
 }
 
-// Live pool samples: steal-strip toggle and inline create; emits echo
+// Live library samples: steal-strip toggle and inline create; emits echo
 // below the rows so every path is visibly exercised.
 const demoStealOpen = ref(false);
-const demoPoolEvent = ref<string | null>(null);
+const demoLibraryEvent = ref<string | null>(null);
 const demoCreatedName = ref<string | null>(null);
 
 // A live start for the total-time board row, minted at setup so the
@@ -439,10 +439,10 @@ onMounted(() => {
         />
         <p v-if="demoConfirmEvent" class="board-note">{{ demoConfirmEvent }}</p>
         <p class="board-note">
-          Generalizes PoolElsewhereRow's steal-strip grammar (accent-soft plate, a consequence line,
-          two actions) to any state-changing confirm, shown every time - never a modal. detailValue
-          is composed here (`detail // VALUE`), never string-interpolated by the caller. cancelLabel
-          overrides the default "Keep it" here, proving the prop works.
+          Generalizes LibraryElsewhereRow's steal-strip grammar (accent-soft plate, a consequence
+          line, two actions) to any state-changing confirm, shown every time - never a modal.
+          detailValue is composed here (`detail // VALUE`), never string-interpolated by the caller.
+          cancelLabel overrides the default "Keep it" here, proving the prop works.
         </p>
       </section>
 
@@ -484,9 +484,16 @@ onMounted(() => {
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Workout card (pool stock / circuit committed, live)</h2>
-        <WorkoutCard name="Lat Pulldown" :sets="4" :rest-seconds="90" variant="pool" addable />
-        <WorkoutCard name="Lat Pulldown" :sets="4" :rest-seconds="90" variant="pool" addable open />
+        <h2 class="board-eyebrow">Workout card (library available / circuit committed, live)</h2>
+        <WorkoutCard name="Lat Pulldown" :sets="4" :rest-seconds="90" variant="library" addable />
+        <WorkoutCard
+          name="Lat Pulldown"
+          :sets="4"
+          :rest-seconds="90"
+          variant="library"
+          addable
+          open
+        />
         <WorkoutCard
           :name="demoCard.name"
           :sets="demoCard.sets"
@@ -500,30 +507,31 @@ onMounted(() => {
           @flash-end="demoCard.flash = false"
         />
         <p class="board-note">
-          One identity, two dress states: pool stock is a cold steel-edged line (closed, then open
-          above), the circuit card is the committed vermilion-spine plate (live below). Same fold,
-          same editor either way - the fold carries the one action the placement earns, ADD TO
-          CIRCUIT in the pool, REMOVE FROM CIRCUIT in a circuit. Press-and-hold the name to rename.
+          One identity, two dress states: an available library workout is a cold steel-edged line
+          (closed, then open above), the circuit card is the committed vermilion-spine plate (live
+          below). Same fold, same editor either way - the fold carries the one action the placement
+          earns, ADD TO CIRCUIT in the library, REMOVE FROM CIRCUIT in a circuit. Press-and-hold the
+          name to rename.
         </p>
         <MenuButton @click="() => void replayFlash()">Replay flash-on-add</MenuButton>
       </section>
 
       <section class="board-section">
-        <h2 class="board-eyebrow">Pool chrome (headers / steal strip / inline create, live)</h2>
-        <PoolGroupHeader label="Available" variant="available" />
-        <PoolCreateRow @create="(name) => (demoCreatedName = name)" />
+        <h2 class="board-eyebrow">Library chrome (headers / steal strip / inline create, live)</h2>
+        <LibraryGroupHeader label="Available" variant="available" />
+        <LibraryCreateRow @create="(name) => (demoCreatedName = name)" />
         <p v-if="demoCreatedName" class="board-note">create emitted: {{ demoCreatedName }}</p>
-        <PoolGroupHeader label="In Other Circuits" variant="elsewhere" />
-        <PoolElsewhereRow
+        <LibraryGroupHeader label="In Other Circuits" variant="elsewhere" />
+        <LibraryElsewhereRow
           name="Pushups"
           owner="Upper Body"
           :open="demoStealOpen"
           @toggle="demoStealOpen = !demoStealOpen"
           @close="demoStealOpen = false"
           @steal="demoStealOpen = false"
-          @drag-start="demoPoolEvent = 'drag-start emitted'"
+          @drag-start="demoLibraryEvent = 'drag-start emitted'"
         />
-        <p v-if="demoPoolEvent" class="board-note">{{ demoPoolEvent }}</p>
+        <p v-if="demoLibraryEvent" class="board-note">{{ demoLibraryEvent }}</p>
       </section>
 
       <section class="board-section">
@@ -580,7 +588,7 @@ onMounted(() => {
           The parts every draggable/editable row composes: GripHandle is the one drag surface (drag
           by the dots), InlineNameEntry is the create/rename contenteditable machine, and
           StepperField is the tap-once / hold-to-ramp control. All three also render live inside the
-          card and pool samples above.
+          card and library samples above.
         </p>
       </section>
 
@@ -632,7 +640,7 @@ onMounted(() => {
           :lifted="demoDeleteTarget.lifted"
           :armed="demoDeleteTarget.armed"
         >
-          <PoolCreateRow @create="(name) => (demoCreatedName = name)" />
+          <LibraryCreateRow @create="(name) => (demoCreatedName = name)" />
         </DeleteTarget>
         <MenuButton @click="toggleDemoDeleteTargetLifted">Toggle lifted (reveal)</MenuButton>
         <MenuButton @click="toggleDemoDeleteTargetArmed">Toggle armed</MenuButton>
@@ -649,7 +657,7 @@ onMounted(() => {
         <TrashSnackbar
           message="Cable Row deleted"
           undoable
-          @undo="demoPoolEvent = 'undo emitted'"
+          @undo="demoLibraryEvent = 'undo emitted'"
         />
         <TrashSnackbar message="Couldn't restore // name back in use" :undoable="false" />
       </section>

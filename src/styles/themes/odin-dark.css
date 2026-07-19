@@ -64,7 +64,7 @@
   --warning-glow: var(--raw-amber-glow);
   --surface-alarm: var(--raw-red-iron);
 
-  /* The inventory/supply channel: steel marks stock on the shelf, the
+  /* The inventory/supply channel: steel marks the library's available rows, the
      accent marks a committed member. Supply never emits light. */
   --supply: var(--raw-steel-mid);
   --supply-soft: var(--raw-steel-soft);

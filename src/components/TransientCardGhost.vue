@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
+import LibraryElsewhereRow from '@/components/LibraryElsewhereRow.vue';
 import WorkoutCard from '@/components/WorkoutCard.vue';
 import type { TransientCard } from '@/composables/useCardExitAnimation';
 
@@ -14,7 +14,7 @@ defineProps<{
 </script>
 
 <template>
-  <PoolElsewhereRow
+  <LibraryElsewhereRow
     v-if="content.kind === 'elsewhere'"
     :name="content.name"
     :owner="content.owner"

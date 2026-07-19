@@ -40,7 +40,7 @@ async function seed(): Promise<void> {
     itemIds.push(item.id);
     exerciseIds.push(exercise.id);
   }
-  // The pool around it: one workout held by another circuit, two free.
+  // The library around it: one workout held by another circuit, two free.
   otherCircuit = await createCircuit(db, { kind: 'workout', name: 'Upper Body' });
   pushups = await findOrCreateExercise(db, 'workout', 'Pushups');
   await addExerciseToCircuit(db, otherCircuit.id, pushups.id);
@@ -120,8 +120,8 @@ describe('useWorkbench', () => {
     await workbench.adjustPrescription('anything', 'sets', 1);
     await workbench.removeSlot('anything');
     await workbench.reorderSlots([]);
-    expect(await workbench.addFromPool('anything')).toBeNull();
-    expect(await workbench.stealFromPool('anything')).toBeNull();
+    expect(await workbench.addFromLibrary('anything')).toBeNull();
+    expect(await workbench.stealFromLibrary('anything')).toBeNull();
     expect(await workbench.createWorkout('anything')).toEqual({ kind: 'failed' });
     expect(await workbench.renameWorkout('anything', 'New Name')).toEqual({ kind: 'failed' });
     expect(await workbench.trashWorkout('anything')).toBeNull();
@@ -276,19 +276,19 @@ describe('useWorkbench', () => {
   });
 });
 
-describe('useWorkbench / pool', () => {
-  it('loads both pool groups; the circuit holds its own workouts in neither', async () => {
+describe('useWorkbench / library', () => {
+  it('loads both library groups; the circuit holds its own workouts in neither', async () => {
     const workbench = useWorkbench(db, () => circuit.id);
 
     await workbench.load();
 
     // Available cards carry their own prescription (the same editable
     // control as the circuit's).
-    expect(workbench.pool.value.available).toEqual([
+    expect(workbench.library.value.available).toEqual([
       { exerciseId: gobletSquat.id, name: 'Goblet Squat', sets: 3, restSeconds: 60 },
       { exerciseId: expect.any(String), name: 'Kb Swing', sets: 3, restSeconds: 60 },
     ]);
-    expect(workbench.pool.value.heldElsewhere).toEqual([
+    expect(workbench.library.value.heldElsewhere).toEqual([
       {
         exerciseId: pushups.id,
         name: 'Pushups',
@@ -298,17 +298,17 @@ describe('useWorkbench / pool', () => {
     ]);
   });
 
-  it('edits a pool workout in place, and the values ride the add into the circuit', async () => {
+  it('edits a library workout in place, and the values ride the add into the circuit', async () => {
     const workbench = useWorkbench(db, () => circuit.id);
     await workbench.load();
 
     await workbench.adjustPrescription(gobletSquat.id, 'sets', 2);
     await workbench.adjustPrescription(gobletSquat.id, 'restSeconds', 30);
-    expect(workbench.pool.value.available[0]).toMatchObject({ sets: 5, restSeconds: 90 });
+    expect(workbench.library.value.available[0]).toMatchObject({ sets: 5, restSeconds: 90 });
 
-    await workbench.addFromPool(gobletSquat.id);
+    await workbench.addFromLibrary(gobletSquat.id);
 
-    // The workout arrives as configured in the pool - never a re-default.
+    // The workout arrives as configured in the library - never a re-default.
     const added = workbench.slots.value.find((slot) => slot.exerciseId === gobletSquat.id);
     expect(added).toMatchObject({ sets: 5, restSeconds: 90 });
   });
@@ -317,7 +317,7 @@ describe('useWorkbench / pool', () => {
     const workbench = useWorkbench(db, () => circuit.id);
     await workbench.load();
 
-    const itemId = await workbench.addFromPool(gobletSquat.id);
+    const itemId = await workbench.addFromLibrary(gobletSquat.id);
 
     expect(itemId).not.toBeNull();
     expect(workbench.slots.value.map((slot) => slot.exerciseName)).toEqual([
@@ -326,7 +326,7 @@ describe('useWorkbench / pool', () => {
       'Cable Face Pull',
       'Goblet Squat',
     ]);
-    expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual(['Kb Swing']);
+    expect(workbench.library.value.available.map((entry) => entry.name)).toEqual(['Kb Swing']);
     // And it persisted: a fresh reader sees the same list.
     const persisted = await listCircuitSlots(db, circuit.id);
     expect(persisted.map((slot) => slot.exerciseName)).toContain('Goblet Squat');
@@ -336,7 +336,7 @@ describe('useWorkbench / pool', () => {
     const workbench = useWorkbench(db, () => circuit.id);
     await workbench.load();
 
-    const itemId = await workbench.addFromPool(gobletSquat.id, 1);
+    const itemId = await workbench.addFromLibrary(gobletSquat.id, 1);
 
     expect(workbench.slots.value.map((slot) => slot.exerciseName)).toEqual([
       'Lat Pulldown',
@@ -352,11 +352,11 @@ describe('useWorkbench / pool', () => {
     const workbench = useWorkbench(db, () => circuit.id);
     await workbench.load();
 
-    const itemId = await workbench.stealFromPool(pushups.id, 0);
+    const itemId = await workbench.stealFromLibrary(pushups.id, 0);
 
     expect(itemId).not.toBeNull();
     expect(workbench.slots.value[0].exerciseName).toBe('Pushups');
-    expect(workbench.pool.value.heldElsewhere).toEqual([]);
+    expect(workbench.library.value.heldElsewhere).toEqual([]);
     // Both circuits' persisted state moved in the one transaction.
     const ownerSlots = await listCircuitSlots(db, otherCircuit.id);
     expect(ownerSlots).toEqual([]);
@@ -369,7 +369,7 @@ describe('useWorkbench / pool', () => {
 
     // A stale screen tap-adds a workout some circuit already holds: the
     // DB constraint is the rule; the screen reloads rather than guesses.
-    const itemId = await workbench.addFromPool(pushups.id);
+    const itemId = await workbench.addFromLibrary(pushups.id);
 
     expect(itemId).toBeNull();
     expect(errorSpy).toHaveBeenCalled();
@@ -392,7 +392,7 @@ describe('useWorkbench / pool', () => {
     // already queued behind it with its optimistic paint. Its success
     // path skips the post-write load, so without the chain-generation
     // check the resync's older repaint would bury the value it wrote.
-    void workbench.addFromPool(pushups.id);
+    void workbench.addFromLibrary(pushups.id);
     await workbench.adjustPrescription(exerciseIds[0], 'sets', 1);
 
     expect(errorSpy).toHaveBeenCalled();
@@ -409,7 +409,7 @@ describe('useWorkbench / pool', () => {
     // The op captures its target at emit time; the screen moves on
     // before the chain runs it. It must no-op, not write into the new
     // circuit.
-    const queued = workbench.addFromPool(gobletSquat.id);
+    const queued = workbench.addFromLibrary(gobletSquat.id);
     currentId = otherCircuit.id;
 
     expect(await queued).toBeNull();
@@ -439,9 +439,9 @@ describe('useWorkbench / pool', () => {
 
     const outcome = await workbench.createWorkout('Dead Bug');
 
-    expect(outcome.kind).toBe('in-pool');
-    // No auto-add: the workout waits in the pool.
-    expect(workbench.pool.value.available.map((entry) => entry.name)).toContain('Dead Bug');
+    expect(outcome.kind).toBe('in-library');
+    // No auto-add: the workout waits in the library.
+    expect(workbench.library.value.available.map((entry) => entry.name)).toContain('Dead Bug');
     expect(workbench.slots.value.map((slot) => slot.exerciseName)).not.toContain('Dead Bug');
     expect(await listCircuitSlots(db, circuit.id)).toHaveLength(3);
   });
@@ -454,21 +454,21 @@ describe('useWorkbench / pool', () => {
 
     // One identity, one history: the existing exercise is pointed at,
     // never a lowercase twin created beside it.
-    expect(outcome).toEqual({ kind: 'in-pool', exerciseId: gobletSquat.id });
-    expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual([
+    expect(outcome).toEqual({ kind: 'in-library', exerciseId: gobletSquat.id });
+    expect(workbench.library.value.available.map((entry) => entry.name)).toEqual([
       'Goblet Squat',
       'Kb Swing',
     ]);
   });
 
-  it('renames a pool workout in place', async () => {
+  it('renames a library workout in place', async () => {
     const workbench = useWorkbench(db, () => circuit.id);
     await workbench.load();
 
     const outcome = await workbench.renameWorkout(gobletSquat.id, 'Goblet Squat Heavy');
 
     expect(outcome).toEqual({ kind: 'renamed' });
-    expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual([
+    expect(workbench.library.value.available.map((entry) => entry.name)).toEqual([
       'Goblet Squat Heavy',
       'Kb Swing',
     ]);
@@ -481,20 +481,20 @@ describe('useWorkbench / pool', () => {
     const outcome = await workbench.renameWorkout(gobletSquat.id, 'kb swing');
 
     expect(outcome).toEqual({ kind: 'rejected', message: "'kb swing' is already taken" });
-    expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual([
+    expect(workbench.library.value.available.map((entry) => entry.name)).toEqual([
       'Goblet Squat',
       'Kb Swing',
     ]);
   });
 
-  it('trashes a pool workout (archive; history kept, name freed)', async () => {
+  it('trashes a library workout (archive; history kept, name freed)', async () => {
     const workbench = useWorkbench(db, () => circuit.id);
     await workbench.load();
 
     const trashed = await workbench.trashWorkout(gobletSquat.id);
 
     expect(trashed).toEqual({ exerciseId: gobletSquat.id, held: null });
-    expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual(['Kb Swing']);
+    expect(workbench.library.value.available.map((entry) => entry.name)).toEqual(['Kb Swing']);
     // The archived identity keeps its history but frees the name:
     // find-or-create matches ACTIVE rows only, so a re-create is a new
     // identity, not a revival.
@@ -542,9 +542,9 @@ describe('useWorkbench / pool', () => {
     await findOrCreateExercise(db, 'workout', 'Goblet Squat');
 
     // The active-name constraint is the verdict; the screen reloads and
-    // the new same-named identity keeps the pool row.
+    // the new same-named identity keeps the library row.
     expect(await workbench.undoTrash(trashed)).toBe('spent');
-    expect(workbench.pool.value.available.map((entry) => entry.name)).toEqual([
+    expect(workbench.library.value.available.map((entry) => entry.name)).toEqual([
       'Goblet Squat',
       'Kb Swing',
     ]);

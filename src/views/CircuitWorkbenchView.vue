@@ -5,9 +5,9 @@ import AppShell from '@/components/AppShell.vue';
 import DeleteTarget from '@/components/DeleteTarget.vue';
 import InlineNameEntry from '@/components/InlineNameEntry.vue';
 import NavUpRow from '@/components/NavUpRow.vue';
-import PoolCreateRow from '@/components/PoolCreateRow.vue';
-import PoolElsewhereRow from '@/components/PoolElsewhereRow.vue';
-import PoolGroupHeader from '@/components/PoolGroupHeader.vue';
+import LibraryCreateRow from '@/components/LibraryCreateRow.vue';
+import LibraryElsewhereRow from '@/components/LibraryElsewhereRow.vue';
+import LibraryGroupHeader from '@/components/LibraryGroupHeader.vue';
 import ScreenHeader from '@/components/ScreenHeader.vue';
 import ScreenNote from '@/components/ScreenNote.vue';
 import TransientCardGhost from '@/components/TransientCardGhost.vue';
@@ -25,11 +25,11 @@ import { orderAfterDrop, useWorkbenchDrag } from '@/composables/useWorkbenchDrag
 import type { WorkbenchDragZone } from '@/composables/useWorkbenchDrag';
 import { useWorkbench } from '@/composables/useWorkbench';
 import type { PrescriptionField } from '@/composables/useWorkbench';
-import type { CircuitSlot, PoolAvailableEntry } from '@/domain/builder';
+import type { CircuitSlot, LibraryAvailableEntry } from '@/domain/builder';
 import { MOTION_TICK_MS } from '@/styles/motion';
 
 // The circuit workbench: the circuit's ordered cards on top, the
-// workout pool below. The docked create row doubles as the delete target
+// workout library below. The docked create row doubles as the delete target
 // while a card is lifted; its face and exit animations live in DeleteTarget
 // and useCardExitAnimation. This screen
 // owns the drag session, zone layout, and persistence wiring.
@@ -40,7 +40,7 @@ const props = defineProps<{
 
 const db = useDb();
 const workbench = useWorkbench(db, () => props.id);
-const { status, circuitName, slots, pool } = workbench;
+const { status, circuitName, slots, library } = workbench;
 
 // One fold open at a time across both zones: a card's editor or an
 // elsewhere row's steal strip, keyed by exercise id.
@@ -57,15 +57,15 @@ const circuitRenameNotice = ref<string | null>(null);
 const workbenchEl = ref<HTMLElement | null>(null);
 const circuitZoneEl = ref<HTMLElement | null>(null);
 const circuitContentEl = ref<HTMLElement | null>(null);
-const poolEl = ref<HTMLElement | null>(null);
-const poolListEl = ref<HTMLElement | null>(null);
-const poolContentEl = ref<HTMLElement | null>(null);
+const libraryEl = ref<HTMLElement | null>(null);
+const libraryListEl = ref<HTMLElement | null>(null);
+const libraryContentEl = ref<HTMLElement | null>(null);
 const deleteTargetRef = ref<InstanceType<typeof DeleteTarget> | null>(null);
 
 // A zone that scrolls needs the swipe gesture, so its cards drag by
 // the grip alone; a zone whose content fits lets the whole card drag.
 const circuitScrolls = useOverflow(circuitZoneEl, circuitContentEl);
-const poolScrolls = useOverflow(poolListEl, poolContentEl);
+const libraryScrolls = useOverflow(libraryListEl, libraryContentEl);
 
 // True when the release committed a change; the exit animation uses it to
 // tell a commit from a cancelled drag. Reset when a lift begins.
@@ -73,8 +73,8 @@ let dropCommitted = false;
 
 const drag = useWorkbenchDrag({
   measureSlotMidpoints,
-  measurePoolTop: () => poolEl.value?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
-  // The delete target is always laid out outside the pool's scroll, so its
+  measureLibraryTop: () => libraryEl.value?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
+  // The delete target is always laid out outside the library's scroll, so its
   // top edge is measurable when the drag begins.
   measureDeleteTop: () =>
     deleteTargetRef.value?.rootEl?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
@@ -91,7 +91,7 @@ const drag = useWorkbenchDrag({
   },
   onAdd: (exerciseId, insertAt) => {
     dropCommitted = true;
-    applyPoolDrop(exerciseId, insertAt);
+    applyLibraryDrop(exerciseId, insertAt);
   },
   onTrash: onDeleteDrop,
 });
@@ -107,17 +107,17 @@ function cardContent(exerciseId: string): TransientCard | null {
       variant: 'circuit',
     };
   }
-  const free = pool.value.available.find((entry) => entry.exerciseId === exerciseId);
+  const free = library.value.available.find((entry) => entry.exerciseId === exerciseId);
   if (free) {
     return {
       kind: 'card',
       name: free.name,
       sets: free.sets,
       restSeconds: free.restSeconds,
-      variant: 'pool',
+      variant: 'library',
     };
   }
-  const held = pool.value.heldElsewhere.find((entry) => entry.exerciseId === exerciseId);
+  const held = library.value.heldElsewhere.find((entry) => entry.exerciseId === exerciseId);
   return held ? { kind: 'elsewhere', name: held.name, owner: held.ownerCircuitName } : null;
 }
 
@@ -138,7 +138,7 @@ function onDeleteDrop(exerciseId: string): void {
   cardExit.onTrashDrop(exerciseId);
 }
 
-// While a card is lifted every region (circuit zone, pool stock, delete
+// While a card is lifted every region (circuit zone, library list, delete
 // target) steps down one luminance grade except the one the drop would
 // land in. Relighting is the absence of the recede class, so there is
 // no lit style to drift out of sync.
@@ -157,10 +157,11 @@ watch(drag.armedZone, (zone, previous) => {
   if (zone !== null) {
     lastArmedZone.value = zone;
   }
-  // Only a circuit/pool crossing ticks; lift, release, and the delete
+  // Only a circuit/library crossing ticks; lift, release, and the delete
   // target boundary are not crossings.
   const crossed =
-    (zone === 'pool' && previous === 'circuit') || (zone === 'circuit' && previous === 'pool');
+    (zone === 'library' && previous === 'circuit') ||
+    (zone === 'circuit' && previous === 'library');
   if (!crossed) {
     return;
   }
@@ -223,7 +224,7 @@ const eyebrowText = computed(() => {
 });
 
 // While a lifted circuit card is over the circuit it leaves the list
-// and a landing gap opens at the insertion point; a lifted pool card
+// and a landing gap opens at the insertion point; a lifted library card
 // is not in the list, so the same gap previews its insertion. The gap
 // index counts non-dragged rows only, matching measureSlotMidpoints.
 // slotNumber is the row's committed 1-based position and the gap wears
@@ -291,7 +292,7 @@ function removeSlot(slot: CircuitSlot): void {
 }
 
 async function startCardDrag(
-  origin: 'circuit' | 'pool',
+  origin: 'circuit' | 'library',
   exerciseId: string,
   event: PointerEvent,
 ): Promise<void> {
@@ -307,49 +308,49 @@ async function startCardDrag(
   drag.begin(origin, exerciseId, liveEvent, card.getBoundingClientRect());
 }
 
-// One content lookup serves the drag ghost, the berth test, and the
+// One content lookup serves the drag ghost, the landing-gap test, and the
 // exit animation.
 const draggedContent = computed<TransientCard | null>(() =>
   drag.state.draggingId !== null ? cardContent(drag.state.draggingId) : null,
 );
 
-// The pool's landing preview: while the pool is armed a berth opens
-// where releasing sends the card. A lifted pool card's own row becomes
-// the berth; a circuit-origin card docks at the top of the stock (a
-// fixed spot stays visible where the true sorted position could open
-// below the scroll; the stock reloads sorted after the drop). An
-// elsewhere-origin card returns to its own group and opens no berth.
-type PoolRow = { kind: 'card'; entry: PoolAvailableEntry } | { kind: 'berth' };
+// The library's landing preview: while the library is armed a gap opens
+// where releasing sends the card. A lifted library card's own row becomes
+// the gap; a circuit-origin card docks at the top of the list (a fixed spot
+// stays visible where the true sorted position could open below the scroll;
+// the list reloads sorted after the drop). An elsewhere-origin card returns
+// to its own group and opens no gap.
+type LibraryRow = { kind: 'card'; entry: LibraryAvailableEntry } | { kind: 'gap' };
 
-const topBerthOpen = computed(
+const topGapOpen = computed(
   () =>
-    drag.state.poolArmed &&
+    drag.state.libraryArmed &&
     draggedContent.value?.kind === 'card' &&
-    !pool.value.available.some((entry) => entry.exerciseId === drag.state.draggingId),
+    !library.value.available.some((entry) => entry.exerciseId === drag.state.draggingId),
 );
 
-const poolRows = computed<PoolRow[]>(() => {
-  const rows: PoolRow[] = pool.value.available.map((entry) => ({ kind: 'card', entry }));
+const libraryRows = computed<LibraryRow[]>(() => {
+  const rows: LibraryRow[] = library.value.available.map((entry) => ({ kind: 'card', entry }));
   const draggedId = drag.state.draggingId;
-  if (!drag.state.poolArmed || draggedId === null) {
+  if (!drag.state.libraryArmed || draggedId === null) {
     return rows;
   }
-  const ownIndex = pool.value.available.findIndex((entry) => entry.exerciseId === draggedId);
+  const ownIndex = library.value.available.findIndex((entry) => entry.exerciseId === draggedId);
   if (ownIndex !== -1) {
-    rows.splice(ownIndex, 1, { kind: 'berth' });
+    rows.splice(ownIndex, 1, { kind: 'gap' });
     return rows;
   }
-  if (topBerthOpen.value) {
-    rows.unshift({ kind: 'berth' });
+  if (topGapOpen.value) {
+    rows.unshift({ kind: 'gap' });
   }
   return rows;
 });
 
-// A pool scrolled down would open the top berth out of view, so snap
+// A library scrolled down would open the top gap out of view, so snap
 // the list to the top.
-watch(topBerthOpen, (open) => {
-  if (open && poolListEl.value) {
-    poolListEl.value.scrollTop = 0;
+watch(topGapOpen, (open) => {
+  if (open && libraryListEl.value) {
+    libraryListEl.value.scrollTop = 0;
   }
 });
 
@@ -364,14 +365,14 @@ async function flashCard(exerciseId: string): Promise<void> {
 }
 
 async function addTapped(exerciseId: string): Promise<void> {
-  if (await workbench.addFromPool(exerciseId)) {
+  if (await workbench.addFromLibrary(exerciseId)) {
     await flashCard(exerciseId);
   }
 }
 
 async function confirmSteal(exerciseId: string): Promise<void> {
   openCardId.value = null;
-  if (await workbench.stealFromPool(exerciseId)) {
+  if (await workbench.stealFromLibrary(exerciseId)) {
     await flashCard(exerciseId);
   }
 }
@@ -424,11 +425,11 @@ async function handleCircuitRenameCommit(name: string): Promise<void> {
 }
 
 // Add or steal follows from where the exercise lives right now.
-function applyPoolDrop(exerciseId: string, insertAt: number): void {
-  const stolen = pool.value.heldElsewhere.some((entry) => entry.exerciseId === exerciseId);
+function applyLibraryDrop(exerciseId: string, insertAt: number): void {
+  const stolen = library.value.heldElsewhere.some((entry) => entry.exerciseId === exerciseId);
   const landing = stolen
-    ? workbench.stealFromPool(exerciseId, insertAt)
-    : workbench.addFromPool(exerciseId, insertAt);
+    ? workbench.stealFromLibrary(exerciseId, insertAt)
+    : workbench.addFromLibrary(exerciseId, insertAt);
   void landing.then((itemId) => {
     if (itemId) {
       void flashCard(exerciseId);
@@ -436,7 +437,7 @@ function applyPoolDrop(exerciseId: string, insertAt: number): void {
   });
 }
 
-// Create stays in the pool (no auto-add) and never silently steals. A
+// Create stays in the library (no auto-add) and never silently steals. A
 // failed write must say so: the entry already folded and took the
 // typed name with it.
 async function handleCreate(name: string): Promise<void> {
@@ -446,7 +447,7 @@ async function handleCreate(name: string): Promise<void> {
   if (target !== props.id) {
     return;
   }
-  if (outcome.kind === 'in-pool') {
+  if (outcome.kind === 'in-library') {
     await nextTick();
     revealCard(outcome.exerciseId);
     return;
@@ -572,7 +573,7 @@ async function handleCreate(name: string): Promise<void> {
             </div>
           </div>
 
-          <div ref="poolEl" class="workbench__pool">
+          <div ref="libraryEl" class="workbench__library">
             <!-- Flashes the seam the finger just crossed. -->
             <span
               v-if="seamTickCount > 0"
@@ -580,40 +581,40 @@ async function handleCreate(name: string): Promise<void> {
               class="workbench__seam-tick"
               aria-hidden="true"
             ></span>
-            <div class="workbench__pool-stock" :class="regionClasses('pool')">
-              <p class="workbench__pool-label">Workouts</p>
+            <div class="workbench__library-region" :class="regionClasses('library')">
+              <p class="workbench__library-label">Workouts</p>
               <!-- AVAILABLE docks outside the scroll: it names the
                    default group and stays put while the cards scroll.
                    IN OTHER CIRCUITS marks a boundary inside the
                    scrolled content, so it scrolls with it. -->
-              <PoolGroupHeader
-                class="workbench__pool-available"
+              <LibraryGroupHeader
+                class="workbench__library-available"
                 label="Available"
                 variant="available"
               />
-              <div ref="poolListEl" class="workbench__pool-list scrolly">
+              <div ref="libraryListEl" class="workbench__library-list scrolly">
                 <!-- Exists to be measured, like the circuit zone's
                      wrapper. -->
-                <div ref="poolContentEl">
+                <div ref="libraryContentEl">
                   <TransitionGroup
                     tag="div"
-                    :name="drag.state.draggingId ? 'pool-shift' : 'pool-settle'"
-                    class="workbench__pool-items"
+                    :name="drag.state.draggingId ? 'library-shift' : 'library-settle'"
+                    class="workbench__library-items"
                   >
                     <template
-                      v-for="row in poolRows"
-                      :key="row.kind === 'card' ? row.entry.exerciseId : 'pool-berth'"
+                      v-for="row in libraryRows"
+                      :key="row.kind === 'card' ? row.entry.exerciseId : 'library-gap'"
                     >
-                      <div v-if="row.kind === 'berth'" class="workbench__berth"></div>
+                      <div v-if="row.kind === 'gap'" class="workbench__library-gap"></div>
                       <WorkoutCard
                         v-else
                         :data-card-id="row.entry.exerciseId"
                         :name="row.entry.name"
                         :sets="row.entry.sets"
                         :rest-seconds="row.entry.restSeconds"
-                        variant="pool"
+                        variant="library"
                         addable
-                        :drag-anywhere="!poolScrolls"
+                        :drag-anywhere="!libraryScrolls"
                         :open="openCardId === row.entry.exerciseId"
                         :dragging="drag.state.draggingId === row.entry.exerciseId"
                         :notice="noticeFor(row.entry.exerciseId)"
@@ -622,34 +623,36 @@ async function handleCreate(name: string): Promise<void> {
                         @add="() => void addTapped(row.entry.exerciseId)"
                         @rename="(name) => void handleRename(row.entry.exerciseId, name)"
                         @drag-start="
-                          (event) => void startCardDrag('pool', row.entry.exerciseId, event)
+                          (event) => void startCardDrag('library', row.entry.exerciseId, event)
                         "
                       />
                     </template>
-                    <PoolGroupHeader
-                      v-if="pool.heldElsewhere.length > 0"
+                    <LibraryGroupHeader
+                      v-if="library.heldElsewhere.length > 0"
                       key="elsewhere-header"
                       label="In Other Circuits"
                       variant="elsewhere"
                     />
-                    <PoolElsewhereRow
-                      v-for="entry in pool.heldElsewhere"
+                    <LibraryElsewhereRow
+                      v-for="entry in library.heldElsewhere"
                       :key="entry.exerciseId"
                       :data-card-id="entry.exerciseId"
                       :name="entry.name"
                       :owner="entry.ownerCircuitName"
-                      :drag-anywhere="!poolScrolls"
+                      :drag-anywhere="!libraryScrolls"
                       :open="openCardId === entry.exerciseId"
                       @toggle="toggleCard(entry.exerciseId)"
                       @close="openCardId = null"
                       @steal="() => void confirmSteal(entry.exerciseId)"
-                      @drag-start="(event) => void startCardDrag('pool', entry.exerciseId, event)"
+                      @drag-start="
+                        (event) => void startCardDrag('library', entry.exerciseId, event)
+                      "
                     />
                   </TransitionGroup>
                 </div>
               </div>
             </div>
-            <!-- Docked outside the pool's scroll: always in view and
+            <!-- Docked outside the library's scroll: always in view and
                  always laid out, so the drag can measure its
                  boundary. -->
             <DeleteTarget
@@ -660,7 +663,10 @@ async function handleCreate(name: string): Promise<void> {
               :lifted="drag.state.draggingId !== null"
               :armed="drag.state.deleteArmed"
             >
-              <PoolCreateRow :notice="createNotice" @create="(name) => void handleCreate(name)" />
+              <LibraryCreateRow
+                :notice="createNotice"
+                @create="(name) => void handleCreate(name)"
+              />
             </DeleteTarget>
             <TrashSnackbar
               v-if="trashToast"
@@ -783,7 +789,7 @@ async function handleCreate(name: string): Promise<void> {
   border: var(--hairline) solid var(--border-strong);
 }
 
-/* Same recipe as workout-card__notice / pool-create__notice - these
+/* Same recipe as workout-card__notice / library-create__notice - these
    move together. */
 .workbench__circuit-notice {
   margin: 0 0 var(--space-4);
@@ -931,12 +937,12 @@ async function handleCreate(name: string): Promise<void> {
 
 @media (prefers-reduced-motion: reduce) {
   .slot-shift-move,
-  .pool-shift-move {
+  .library-shift-move {
     transition: none;
   }
 }
 
-.workbench__pool {
+.workbench__library {
   position: relative;
   display: flex;
   flex: calc(100 - var(--zone-circuit)) 1 0;
@@ -946,16 +952,16 @@ async function handleCreate(name: string): Promise<void> {
   border-top: var(--rule) solid var(--border-strong);
 }
 
-/* The pool's filter region covers the stock only: the delete target is its
+/* The library's filter region covers the list only: the delete target is its
    own region, and the snackbar outside both never dims. */
-.workbench__pool-stock {
+.workbench__library-region {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
 }
 
-/* One flash on the pool's top border, the seam the finger just
+/* One flash on the library's top border, the seam the finger just
    crossed. */
 .workbench__seam-tick {
   position: absolute;
@@ -980,7 +986,7 @@ async function handleCreate(name: string): Promise<void> {
   }
 }
 
-.workbench__pool-label {
+.workbench__library-label {
   margin: 0;
   padding: var(--space-2) 0 var(--space-1);
   color: var(--text-soft);
@@ -991,18 +997,18 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 /* Matches the list's gap so the header keeps the in-list rhythm. */
-.workbench__pool-available {
+.workbench__library-available {
   flex: none;
   margin-bottom: var(--space-2);
 }
 
-.workbench__pool-list {
+.workbench__library-list {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
 }
 
-.workbench__pool-items {
+.workbench__library-items {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -1010,29 +1016,29 @@ async function handleCreate(name: string): Promise<void> {
 }
 
 /* Headers get extra air above so the groups read as sections. */
-.workbench__pool-items .pool-group {
+.workbench__library-items .library-group {
   margin-top: var(--space-1);
 }
 
-.workbench__pool-items .pool-group:first-child {
+.workbench__library-items .library-group:first-child {
   margin-top: 0;
 }
 
-/* The pool's landing preview: an open slot at stock-row height,
-   unnumbered because loose stock is unordered. */
-.workbench__berth {
+/* The library's landing preview: an open slot at library-row height,
+   unnumbered because the library is unordered. */
+.workbench__library-gap {
   min-height: var(--tap-min);
   border: var(--hairline) dashed var(--supply);
 }
 
-/* Stock rows slide to make room for the berth; same leave-active trick
+/* Library rows slide to make room for the gap; same leave-active trick
    as the slot list above. */
-.pool-shift-move {
+.library-shift-move {
   transition: transform var(--motion-slide) ease;
 }
 
-.pool-shift-leave-active,
-.pool-settle-leave-active {
+.library-shift-leave-active,
+.library-settle-leave-active {
   position: absolute;
   opacity: 0;
 }
@@ -1061,7 +1067,7 @@ async function handleCreate(name: string): Promise<void> {
    enumerates each tap surface - two scoping strategies, kept
    deliberately unmerged for now. */
 .workbench--lifted .workbench__circuit-zone,
-.workbench--lifted .workbench__pool-stock,
+.workbench--lifted .workbench__library-region,
 .workbench--lifted .workbench__delete-dock,
 .workbench--lifted .workbench__snack-dock,
 .workbench__up--inert {

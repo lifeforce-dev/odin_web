@@ -39,7 +39,7 @@ withDefaults(
 <style scoped>
 .last-circuit {
   /* Registration-mark size and the divider's height: local knobs, same
-     idiom as the pool group header's 7px chip. The divider is sized
+     idiom as the library group header's 7px chip. The divider is sized
      against the --type-display-stat numerals (40px + breathing room);
      retune them together. */
   --reg-mark: 7px;

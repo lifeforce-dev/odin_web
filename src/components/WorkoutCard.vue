@@ -13,13 +13,13 @@ import { useBodyHandle } from '@/composables/useBodyHandle';
 // press-and-hold turns the name editable) and the grip, the drag
 // surface. Render + emit only: bounds, persistence, and ordering live
 // in useWorkbench / domain. The parent says where the card is via
-// `addable` (pool) and `removable` (circuit); both are one button in
+// `addable` (library) and `removable` (circuit); both are one button in
 // the same slot of the same fold.
 //
 // One identity, two dress states: the circuit variant is the committed
-// card - surface plate, accent spine, two-line head; the pool variant
-// is cold stock - bg plate, steel hairline, one compressed line at
-// tap-min. Behavior is identical in both. Opening a pool card
+// card - surface plate, accent spine, two-line head; the library variant
+// reads cold - bg plate, steel hairline, one compressed line at
+// tap-min. Behavior is identical in both. Opening a library card
 // necessarily grows it (the fold needs the room).
 
 const props = withDefaults(
@@ -27,8 +27,8 @@ const props = withDefaults(
     name: string;
     sets: number;
     restSeconds: number;
-    // The dress state (see above): circuit = committed, pool = stock.
-    variant?: 'circuit' | 'pool';
+    // The dress state (see above): circuit = committed, library = available.
+    variant?: 'circuit' | 'library';
     open?: boolean;
     dragging?: boolean;
     flash?: boolean;
@@ -176,10 +176,10 @@ function formatRest(totalSeconds: number): string {
   return `${minutes}:${seconds}`;
 }
 
-// The stock line has no second line to spend, so its meta compresses
+// The library line has no second line to spend, so its meta compresses
 // (3X // 60S); the committed card states it in full.
 const metaText = computed(() =>
-  props.variant === 'pool'
+  props.variant === 'library'
     ? `${props.sets}x // ${props.restSeconds}s`
     : `${props.sets} sets // rest ${props.restSeconds}s`,
 );
@@ -189,7 +189,7 @@ const metaText = computed(() =>
   <div
     class="workout-card"
     :class="{
-      'workout-card--pool': variant === 'pool',
+      'workout-card--library': variant === 'library',
       'workout-card--open': open,
       'workout-card--dragging': dragging,
       'workout-card--flash': flash,
@@ -246,7 +246,7 @@ const metaText = computed(() =>
         />
       </div>
       <!-- The card's one placement action, same slot either way: the
-           pool card puts it in, the circuit card takes it out. -->
+           library card puts it in, the circuit card takes it out. -->
       <button
         v-if="addable"
         type="button"
@@ -357,27 +357,27 @@ const metaText = computed(() =>
   text-transform: uppercase;
 }
 
-/* The pool dress: stock on the shelf goes cold - bg plate, steel
+/* The library dress: an available workout reads cold - bg plate, steel
    hairline edge instead of the accent spine, name and meta compressed
-   onto one tap-min line. Color says committed-vs-stock, height says
+   onto one tap-min line. Color says committed-vs-available, height says
    installed-vs-loose; the accent arrives with membership via the
    landing flash, never in flight. */
-.workout-card--pool {
+.workout-card--library {
   background: var(--bg);
   border-left: var(--hairline) solid var(--supply);
 }
 
-.workout-card--pool .workout-card__head {
+.workout-card--library .workout-card__head {
   min-height: var(--tap-min);
 }
 
-.workout-card--pool .workout-card__body {
+.workout-card--library .workout-card__body {
   flex-direction: row;
   gap: var(--space-3);
   align-items: center;
 }
 
-.workout-card--pool .workout-card__name {
+.workout-card--library .workout-card__name {
   flex: 1 1 auto;
   overflow: hidden;
   color: var(--text-soft);
@@ -386,7 +386,7 @@ const metaText = computed(() =>
   text-overflow: ellipsis;
 }
 
-.workout-card--pool .workout-card__meta {
+.workout-card--library .workout-card__meta {
   flex: none;
   font-size: var(--type-micro);
 }
@@ -399,7 +399,7 @@ const metaText = computed(() =>
 }
 
 /* The parent's verdict on a rejected rename (name taken). Same recipe
-   as PoolCreateRow's .pool-create__notice - these move together (only
+   as LibraryCreateRow's .library-create__notice - these move together (only
    the padding differs, to sit inside the card body). */
 .workout-card__notice {
   margin: 0;

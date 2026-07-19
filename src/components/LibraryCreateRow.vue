@@ -3,7 +3,7 @@ import { ref } from 'vue';
 
 import InlineNameEntry from '@/components/InlineNameEntry.vue';
 
-// The pool's inline create affordance: a red-outline ghost row.
+// The library's inline create affordance: a red-outline ghost row.
 // Tapping it swaps in the shared InlineNameEntry (which owns the
 // contenteditable machine); a blank commit, Escape, or tapping off the
 // row folds back to the idle row. The created workout lands in the
@@ -31,11 +31,11 @@ function onCommit(name: string): void {
 </script>
 
 <template>
-  <div class="pool-create">
-    <button v-if="!entering" type="button" class="pool-create__row" @click="entering = true">
-      <span class="pool-create__label">+ New workout</span>
+  <div class="library-create">
+    <button v-if="!entering" type="button" class="library-create__row" @click="entering = true">
+      <span class="library-create__label">+ New workout</span>
     </button>
-    <div v-else class="pool-create__row pool-create__row--entering">
+    <div v-else class="library-create__row library-create__row--entering">
       <InlineNameEntry
         placeholder="Name"
         entry-label="New workout name"
@@ -44,12 +44,12 @@ function onCommit(name: string): void {
         @cancel="entering = false"
       />
     </div>
-    <p v-if="notice" class="pool-create__notice">{{ notice }}</p>
+    <p v-if="notice" class="library-create__notice">{{ notice }}</p>
   </div>
 </template>
 
 <style scoped>
-.pool-create__row {
+.library-create__row {
   display: flex;
   gap: var(--space-3);
   align-items: center;
@@ -65,12 +65,12 @@ function onCommit(name: string): void {
 
 /* The entry carries its own interior padding (space-1 here + the
    entry's space-3 lands the caret at the idle label's inset). */
-.pool-create__row--entering {
+.library-create__row--entering {
   padding: 0 0 0 var(--space-1);
   cursor: text;
 }
 
-.pool-create__label {
+.library-create__label {
   flex: 1;
   color: var(--accent);
   font-size: var(--type-body);
@@ -83,7 +83,7 @@ function onCommit(name: string): void {
    the other kind); cleared on the next commit. Same recipe as
    WorkoutCard's .workout-card__notice - these move together (only the
    padding differs). */
-.pool-create__notice {
+.library-create__notice {
   margin: var(--space-1) 0 0;
   color: var(--accent);
   font-size: var(--type-micro);

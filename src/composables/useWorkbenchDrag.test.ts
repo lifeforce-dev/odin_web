@@ -6,7 +6,7 @@ import type { WorkbenchDragOptions } from './useWorkbenchDrag';
 
 // Geometry is injected (measure callbacks), so the whole session runs on
 // synthetic numbers: three circuit cards with midpoints at 100/200/300,
-// the pool starting at y=500, and the delete target at y=700. Every synthetic
+// the library starting at y=500, and the delete target at y=700. Every synthetic
 // event carries a pointerId (the session must ignore other fingers);
 // the drag finger is pointer 1 unless a test says otherwise.
 
@@ -36,7 +36,7 @@ const scopes: Array<ReturnType<typeof effectScope>> = [];
 function makeDrag(overrides: Partial<WorkbenchDragOptions> = {}) {
   const options: WorkbenchDragOptions = {
     measureSlotMidpoints: vi.fn(() => [100, 200, 300]),
-    measurePoolTop: vi.fn(() => 500),
+    measureLibraryTop: vi.fn(() => 500),
     measureDeleteTop: vi.fn(() => 700),
     onReorder: vi.fn(),
     onRemove: vi.fn(),
@@ -111,7 +111,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     expect(drag.armedZone.value).toBe('circuit');
 
     firePointer('pointermove', { clientX: 40, clientY: 560 });
-    expect(drag.armedZone.value).toBe('pool');
+    expect(drag.armedZone.value).toBe('library');
 
     firePointer('pointermove', { clientX: 40, clientY: 720 });
     expect(drag.armedZone.value).toBe('delete');
@@ -133,7 +133,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     expect(drag.state.origin).toBe('circuit');
     expect(drag.state.draggingId).toBe('item-1');
     expect(drag.state.circuitArmed).toBe(true);
-    expect(drag.state.poolArmed).toBe(false);
+    expect(drag.state.libraryArmed).toBe(false);
     expect(drag.state.deleteArmed).toBe(false);
     expect(drag.state.gapIndex).toBe(1);
   });
@@ -187,7 +187,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
       cardRect(20, 140, 380),
     );
     drag.begin(
-      'pool',
+      'library',
       'item-2',
       pointerEvent({ clientX: 40, clientY: 250 }, 2),
       cardRect(20, 240, 380),
@@ -229,7 +229,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     expect(options.onReorder).toHaveBeenCalledWith('item-1', 1);
   });
 
-  it('arms the pool at its top edge, exactly one zone at a time', () => {
+  it('arms the library at its top edge, exactly one zone at a time', () => {
     const { drag } = makeDrag();
 
     drag.begin(
@@ -240,13 +240,13 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     );
     firePointer('pointermove', { clientX: 40, clientY: 500 });
 
-    expect(drag.state.poolArmed).toBe(true);
+    expect(drag.state.libraryArmed).toBe(true);
     expect(drag.state.circuitArmed).toBe(false);
     expect(drag.state.deleteArmed).toBe(false);
     expect(drag.state.gapIndex).toBeNull();
   });
 
-  it('arms the delete target under the pool, exactly one zone at a time', () => {
+  it('arms the delete target under the library, exactly one zone at a time', () => {
     const { drag } = makeDrag();
 
     drag.begin(
@@ -258,7 +258,7 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     firePointer('pointermove', { clientX: 40, clientY: 720 });
 
     expect(drag.state.deleteArmed).toBe(true);
-    expect(drag.state.poolArmed).toBe(false);
+    expect(drag.state.libraryArmed).toBe(false);
     expect(drag.state.circuitArmed).toBe(false);
     expect(drag.state.gapIndex).toBeNull();
   });
@@ -272,30 +272,30 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
       cardRect(20, 140, 380),
     );
 
-    // Pool seam: tremor above the line stays armed, a real retreat flips.
+    // Library seam: tremor above the line stays armed, a real retreat flips.
     firePointer('pointermove', { clientX: 40, clientY: 500 });
-    expect(drag.state.poolArmed).toBe(true);
+    expect(drag.state.libraryArmed).toBe(true);
     firePointer('pointermove', { clientX: 40, clientY: 495 });
-    expect(drag.state.poolArmed).toBe(true);
+    expect(drag.state.libraryArmed).toBe(true);
     firePointer('pointermove', { clientX: 40, clientY: 480 });
-    expect(drag.state.poolArmed).toBe(false);
+    expect(drag.state.libraryArmed).toBe(false);
     expect(drag.state.circuitArmed).toBe(true);
 
     // The delete-target seam behaves the same: tremor stays delete-armed, retreat
-    // falls back to the pool.
+    // falls back to the library.
     firePointer('pointermove', { clientX: 40, clientY: 700 });
     expect(drag.state.deleteArmed).toBe(true);
     firePointer('pointermove', { clientX: 40, clientY: 695 });
     expect(drag.state.deleteArmed).toBe(true);
     firePointer('pointermove', { clientX: 40, clientY: 680 });
     expect(drag.state.deleteArmed).toBe(false);
-    expect(drag.state.poolArmed).toBe(true);
+    expect(drag.state.libraryArmed).toBe(true);
   });
 
   it('freezes both zone boundaries at grab time so state swaps cannot move them', () => {
-    const measurePoolTop = vi.fn(() => 500);
+    const measureLibraryTop = vi.fn(() => 500);
     const measureDeleteTop = vi.fn(() => 700);
-    const { drag } = makeDrag({ measurePoolTop, measureDeleteTop });
+    const { drag } = makeDrag({ measureLibraryTop, measureDeleteTop });
 
     drag.begin(
       'circuit',
@@ -305,13 +305,13 @@ describe('useWorkbenchDrag / shared session mechanics', () => {
     );
     // The list restructure after arming would report shifted boundaries;
     // a live re-measure here would oscillate at the seams.
-    measurePoolTop.mockReturnValue(560);
+    measureLibraryTop.mockReturnValue(560);
     measureDeleteTop.mockReturnValue(760);
     firePointer('pointermove', { clientX: 40, clientY: 520 });
 
-    expect(measurePoolTop).toHaveBeenCalledTimes(1);
+    expect(measureLibraryTop).toHaveBeenCalledTimes(1);
     expect(measureDeleteTop).toHaveBeenCalledTimes(1);
-    expect(drag.state.poolArmed).toBe(true);
+    expect(drag.state.libraryArmed).toBe(true);
   });
 
   it('does nothing on pointercancel', () => {
@@ -354,7 +354,7 @@ describe('useWorkbenchDrag / drop outcomes by origin', () => {
     expect(drag.state.draggingId).toBeNull();
   });
 
-  it('a circuit card released over the pool is removed from the circuit', () => {
+  it('a circuit card released over the library is removed from the circuit', () => {
     const { drag, options } = makeDrag();
 
     drag.begin(
@@ -371,11 +371,11 @@ describe('useWorkbenchDrag / drop outcomes by origin', () => {
     expect(options.onTrash).not.toHaveBeenCalled();
   });
 
-  it('a pool card adds at the gap over the circuit', () => {
+  it('a library card adds at the gap over the circuit', () => {
     const { drag, options } = makeDrag();
 
     drag.begin(
-      'pool',
+      'library',
       'exercise-9',
       pointerEvent({ clientX: 40, clientY: 600 }),
       cardRect(20, 590, 380),
@@ -390,18 +390,18 @@ describe('useWorkbenchDrag / drop outcomes by origin', () => {
     expect(options.onReorder).not.toHaveBeenCalled();
   });
 
-  it('a pool card released over the pool is simply put back: no callback at all', () => {
+  it('a library card released over the library is simply put back: no callback at all', () => {
     const { drag, options } = makeDrag();
 
     drag.begin(
-      'pool',
+      'library',
       'exercise-9',
       pointerEvent({ clientX: 40, clientY: 600 }),
       cardRect(20, 590, 380),
     );
-    // The pool arms exactly like it does for a circuit card (one zone
-    // model, both origins) - it just means "stays in the pool" here.
-    expect(drag.state.poolArmed).toBe(true);
+    // The library arms exactly like it does for a circuit card (one zone
+    // model, both origins) - it just means "stays in the library" here.
+    expect(drag.state.libraryArmed).toBe(true);
     firePointer('pointerup', { clientX: 40, clientY: 600 });
 
     expect(options.onAdd).not.toHaveBeenCalled();
@@ -425,7 +425,7 @@ describe('useWorkbenchDrag / drop outcomes by origin', () => {
 
     const second = makeDrag();
     second.drag.begin(
-      'pool',
+      'library',
       'exercise-9',
       pointerEvent({ clientX: 40, clientY: 600 }),
       cardRect(20, 590, 380),

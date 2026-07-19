@@ -109,7 +109,7 @@
   --motion-morph: 0.2s;
   --motion-delete: 0.36s;
 
-  /* The seam-crossing tick: the one-shot white flash on the circuit/pool
+  /* The seam-crossing tick: the one-shot white flash on the circuit/library
      seam when the armed zone changes mid-drag. Same value as --motion-slide
      today, but its own recipe. */
   --motion-tick: 0.15s;

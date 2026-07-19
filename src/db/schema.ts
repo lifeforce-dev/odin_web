@@ -18,7 +18,7 @@ import {
 // below and the value domain/builder re-exports as DEFAULT_PRESCRIPTION.
 export const DEFAULT_PRESCRIPTION = { sets: 3, restSeconds: 60 } as const;
 
-// The exercise pool: one exercise = one durable identity = ONE history
+// The exercise library: one exercise = one durable identity = ONE history
 // stream, no matter which circuit points at it.
 export const exercise = sqliteTable(
   'exercise',
@@ -98,7 +98,7 @@ export const circuitItem = sqliteTable(
     // Exclusive membership: one circuit per exercise, enforced by the
     // DB so a "steal" that forgets to delete the old pointer fails
     // loudly instead of silently duplicating. Its implicit index also
-    // serves both pool-group queries (AVAILABLE anti-join, owner
+    // serves both library-group queries (AVAILABLE anti-join, owner
     // lookup).
     uniqueIndex('circuit_item_exercise_unique').on(table.exerciseId),
     index('circuit_item_circuit_position_idx').on(table.circuitId, table.position),

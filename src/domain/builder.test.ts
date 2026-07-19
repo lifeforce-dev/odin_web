@@ -14,7 +14,7 @@ import {
   createCircuit,
   findOrCreateExercise,
   getCircuitById,
-  getPool,
+  getLibrary,
   listActiveCircuits,
   listCircuitSlots,
   removeCircuitItem,
@@ -121,7 +121,7 @@ describe('builder', () => {
       expect(await archiveCircuit(db, 'no-such-id')).toBe(false);
     });
 
-    it('archiving a circuit releases its exercises back to the pool', async () => {
+    it('archiving a circuit releases its exercises back to the library', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
       const legs = await createCircuit(db, { kind: 'workout', name: 'Leg Day' });
@@ -130,11 +130,11 @@ describe('builder', () => {
 
       await archiveCircuit(db, push.id);
 
-      const pool = await getPool(db, legs.id);
-      expect(pool.available).toEqual([
+      const library = await getLibrary(db, legs.id);
+      expect(library.available).toEqual([
         { exerciseId: pushups.id, name: 'Pushups', sets: 3, restSeconds: 60 },
       ]);
-      expect(pool.heldElsewhere).toEqual([]);
+      expect(library.heldElsewhere).toEqual([]);
       // The released exercise is addable again - no orphaned pointer blocks it.
       await expect(addExerciseToCircuit(db, legs.id, pushups.id)).resolves.toMatchObject({
         circuitId: legs.id,
@@ -208,7 +208,7 @@ describe('builder', () => {
     });
   });
 
-  describe('workout pool find-or-create', () => {
+  describe('workout library find-or-create', () => {
     it('creates a new exercise with the trimmed name and user casing', async () => {
       const created = await findOrCreateExercise(testDb.db, 'workout', '  Pushups Heavy ');
 
@@ -352,7 +352,7 @@ describe('builder', () => {
 
       expect(await removeCircuitItem(db, item.id)).toBe(true);
       expect(await listCircuitSlots(db, push.id)).toEqual([]);
-      expect((await getPool(db, push.id)).available).toEqual([
+      expect((await getLibrary(db, push.id)).available).toEqual([
         { exerciseId: pushups.id, name: 'Pushups', sets: 3, restSeconds: 60 },
       ]);
       expect(await removeCircuitItem(db, item.id)).toBe(false);
@@ -386,13 +386,13 @@ describe('builder', () => {
       expect(await listCircuitSlots(db, push.id)).toMatchObject([{ sets: 5, restSeconds: 90 }]);
     });
 
-    it('edits an unheld (pool) workout the same way, refusing archived rows', async () => {
+    it('edits an unheld (library) workout the same way, refusing archived rows', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
       const dips = await findOrCreateExercise(db, 'workout', 'Dips');
 
       expect(await setPrescription(db, dips.id, { sets: 4, restSeconds: 45 })).toBe(true);
-      expect((await getPool(db, push.id)).available).toMatchObject([
+      expect((await getLibrary(db, push.id)).available).toMatchObject([
         { name: 'Dips', sets: 4, restSeconds: 45 },
       ]);
 
@@ -522,13 +522,13 @@ describe('builder', () => {
       // Neither half happened: pushups still belongs to Push Day.
       expect(await listCircuitSlots(db, push.id)).toMatchObject([{ exerciseName: 'Pushups' }]);
       expect(await listCircuitSlots(db, legs.id)).toMatchObject([{ exerciseName: 'Squats' }]);
-      expect((await getPool(db, legs.id)).heldElsewhere).toMatchObject([
+      expect((await getLibrary(db, legs.id)).heldElsewhere).toMatchObject([
         { exerciseId: pushups.id, ownerCircuitId: push.id },
       ]);
     });
   });
 
-  describe('pool groups', () => {
+  describe('library groups', () => {
     it('derives available and held-elsewhere with owner names, kind-scoped and ordered', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
@@ -545,14 +545,14 @@ describe('builder', () => {
       await addExerciseToCircuit(db, legs.id, squats.id);
       await addExerciseToCircuit(db, legs.id, burpees.id);
 
-      const pool = await getPool(db, push.id);
+      const library = await getLibrary(db, push.id);
 
-      // In this circuit -> a slot, not a pool row. Other kind and archived
+      // In this circuit -> a slot, not a library row. Other kind and archived
       // rows never appear. Both groups order by the same lower(name) fold.
-      expect(pool.available).toEqual([
+      expect(library.available).toEqual([
         { exerciseId: dips.id, name: 'Dips', sets: 3, restSeconds: 60 },
       ]);
-      expect(pool.heldElsewhere).toEqual([
+      expect(library.heldElsewhere).toEqual([
         {
           exerciseId: burpees.id,
           name: 'burpees',
@@ -566,16 +566,16 @@ describe('builder', () => {
           ownerCircuitName: 'Leg Day',
         },
       ]);
-      expect(pool.available.map((entry) => entry.exerciseId)).not.toContain(hamstring.id);
+      expect(library.available.map((entry) => entry.exerciseId)).not.toContain(hamstring.id);
     });
 
-    it('refuses a pool for a missing or archived circuit', async () => {
+    it('refuses a library for a missing or archived circuit', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
       await archiveCircuit(db, push.id);
 
-      await expectBuilderError(getPool(db, 'no-such-id'), 'circuit-not-found');
-      await expectBuilderError(getPool(db, push.id), 'circuit-not-found');
+      await expectBuilderError(getLibrary(db, 'no-such-id'), 'circuit-not-found');
+      await expectBuilderError(getLibrary(db, push.id), 'circuit-not-found');
     });
   });
 
@@ -601,13 +601,13 @@ describe('builder', () => {
       await expectRejectsWithCause(renameExercise(db, pushups.id, 'dips'), /UNIQUE constraint/);
     });
 
-    it('trashes an unheld workout out of the pool; repeats and misses report null', async () => {
+    it('trashes an unheld workout out of the library; repeats and misses report null', async () => {
       const db = testDb.db;
       const push = await createCircuit(db, { kind: 'workout', name: 'Push Day' });
       const dips = await findOrCreateExercise(db, 'workout', 'Dips');
 
       expect(await trashExercise(db, dips.id)).toEqual({ exerciseId: dips.id, held: null });
-      expect((await getPool(db, push.id)).available).toEqual([]);
+      expect((await getLibrary(db, push.id)).available).toEqual([]);
       expect(await trashExercise(db, dips.id)).toBeNull();
       expect(await trashExercise(db, 'no-such-exercise')).toBeNull();
       // The archived identity frees its name: a re-create is a NEW
@@ -626,10 +626,10 @@ describe('builder', () => {
         held: { circuitId: push.id, position: 0 },
       });
 
-      // No stranded pointer at an archived identity, no pool row left.
+      // No stranded pointer at an archived identity, no library row left.
       expect(await listCircuitSlots(db, push.id)).toEqual([]);
-      expect((await getPool(db, push.id)).available).toEqual([]);
-      expect((await getPool(db, push.id)).heldElsewhere).toEqual([]);
+      expect((await getLibrary(db, push.id)).available).toEqual([]);
+      expect((await getLibrary(db, push.id)).heldElsewhere).toEqual([]);
     });
 
     it('restores a trashed held workout into its old slot position', async () => {
@@ -655,7 +655,7 @@ describe('builder', () => {
       expect(await restoreExercise(db, trashed)).toBe(false);
     });
 
-    it('restores an unheld workout to the pool; a retaken name stays the constraint verdict', async () => {
+    it('restores an unheld workout to the library; a retaken name stays the constraint verdict', async () => {
       const db = testDb.db;
       const dips = await findOrCreateExercise(db, 'workout', 'Dips');
 
@@ -685,8 +685,8 @@ describe('builder', () => {
 
       expect(await restoreExercise(db, trashed)).toBe(true);
       // No slot resurrects into an archived circuit; the workout waits
-      // in the pool instead.
-      expect((await getPool(db, other.id)).available.map((entry) => entry.name)).toEqual([
+      // in the library instead.
+      expect((await getLibrary(db, other.id)).available.map((entry) => entry.name)).toEqual([
         'Pushups',
       ]);
     });

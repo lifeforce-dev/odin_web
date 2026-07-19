@@ -14,7 +14,7 @@ import {
   createCircuit,
   findOrCreateExercise,
   getCircuitById,
-  getPool,
+  getLibrary,
   listActiveCircuits,
   listCircuitSlots,
 } from '@/domain/builder';
@@ -417,8 +417,8 @@ describe('CircuitsView', () => {
     expect(circuitRows(wrapper).map((row) => row.props('name'))).not.toContain('Push');
     const archived = await getCircuitById(testDb.db, push.id);
     expect(archived?.archivedAt).not.toBeNull();
-    const pool = await getPool(testDb.db, other.id);
-    expect(pool.available.map((entry) => entry.name)).toContain('Bench Press');
+    const library = await getLibrary(testDb.db, other.id);
+    expect(library.available.map((entry) => entry.name)).toContain('Bench Press');
   });
 
   it('starting a drag closes an open strip before measuring geometry', async () => {

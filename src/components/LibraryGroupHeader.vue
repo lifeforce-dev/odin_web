@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The workbench pool's group labels. The two variants must separate
+// The workbench library's group labels. The two variants must separate
 // at a glance, not by reading: available wears the steel supply mark
 // with a supply-fade rule (red means membership, so supply spends
 // neither red nor glow); elsewhere is dim with a hollow square and a
@@ -14,15 +14,15 @@ defineProps<{
 </script>
 
 <template>
-  <div class="pool-group" :class="`pool-group--${variant}`">
-    <span class="pool-group__mark" aria-hidden="true"></span>
-    <span class="pool-group__label">{{ label }}</span>
-    <span class="pool-group__rule" aria-hidden="true"></span>
+  <div class="library-group" :class="`library-group--${variant}`">
+    <span class="library-group__mark" aria-hidden="true"></span>
+    <span class="library-group__label">{{ label }}</span>
+    <span class="library-group__rule" aria-hidden="true"></span>
   </div>
 </template>
 
 <style scoped>
-.pool-group {
+.library-group {
   /* The square status chip; a knob so the two variants and the glow
      always share one size. */
   --group-mark: 7px;
@@ -33,46 +33,46 @@ defineProps<{
   padding: var(--space-1) 0;
 }
 
-.pool-group__mark {
+.library-group__mark {
   flex: none;
   width: var(--group-mark);
   height: var(--group-mark);
 }
 
-.pool-group__label {
+.library-group__label {
   font-size: var(--type-label);
   font-weight: 800;
   letter-spacing: var(--tracking-2);
   text-transform: uppercase;
 }
 
-.pool-group__rule {
+.library-group__rule {
   flex: 1;
   height: var(--hairline);
 }
 
-.pool-group--available .pool-group__mark {
+.library-group--available .library-group__mark {
   background: var(--supply);
 }
 
-.pool-group--available .pool-group__label {
+.library-group--available .library-group__label {
   color: var(--text-soft);
 }
 
-.pool-group--available .pool-group__rule {
+.library-group--available .library-group__rule {
   background: linear-gradient(90deg, var(--supply-soft), transparent);
 }
 
-.pool-group--elsewhere .pool-group__mark {
+.library-group--elsewhere .library-group__mark {
   background: transparent;
   border: var(--hairline) solid var(--border-strong);
 }
 
-.pool-group--elsewhere .pool-group__label {
+.library-group--elsewhere .library-group__label {
   color: var(--text-dim);
 }
 
-.pool-group--elsewhere .pool-group__rule {
+.library-group--elsewhere .library-group__rule {
   background: var(--border);
 }
 </style>

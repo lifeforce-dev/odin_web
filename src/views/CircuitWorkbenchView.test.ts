@@ -86,9 +86,9 @@ async function seedCircuit(): Promise<string> {
   return circuit.id;
 }
 
-// The pool around the seeded circuit: one free workout and one held by
+// The library around the seeded circuit: one free workout and one held by
 // another circuit.
-async function seedPool(): Promise<{ freeId: string; heldId: string; otherCircuitId: string }> {
+async function seedLibrary(): Promise<{ freeId: string; heldId: string; otherCircuitId: string }> {
   const db = testDb.db;
   const free = await findOrCreateExercise(db, 'workout', 'Goblet Squat');
   const other = await createCircuit(db, { kind: 'workout', name: 'Upper Body' });
@@ -197,14 +197,14 @@ describe('CircuitWorkbenchView', () => {
 
   it('keeps the drop feedback transients out of the idle screen', async () => {
     const circuitId = await seedCircuit();
-    await seedPool();
+    await seedLibrary();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    // The berth, the seam tick, and the receded-region filters exist
-    // only while a card is lifted - at idle the pool is plain stock
+    // The landing gap, the seam tick, and the receded-region filters exist
+    // only while a card is lifted - at idle the library is plain rows
     // and nothing is dimmed.
-    expect(wrapper.find('.workbench__berth').exists()).toBe(false);
+    expect(wrapper.find('.workbench__library-gap').exists()).toBe(false);
     expect(wrapper.find('.workbench__seam-tick').exists()).toBe(false);
     expect(wrapper.find('.workbench__region--receded').exists()).toBe(false);
     // Bans the zone-ring classes by name (a blanket [class*="--armed"]
@@ -212,36 +212,36 @@ describe('CircuitWorkbenchView', () => {
     // modifier at idle): armed is stated by the lit region, and the
     // only --armed dress is the delete target face's, mid-drag.
     expect(wrapper.find('.workbench__circuit-zone--armed').exists()).toBe(false);
-    expect(wrapper.find('.workbench__pool--armed').exists()).toBe(false);
+    expect(wrapper.find('.workbench__library--armed').exists()).toBe(false);
     expect(wrapper.find('.delete-target__face--armed').exists()).toBe(false);
   });
 
-  it('dresses pool cards as stock and circuit cards as committed', async () => {
+  it('dresses library cards as available and circuit cards as committed', async () => {
     const circuitId = await seedCircuit();
-    await seedPool();
+    await seedLibrary();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    const poolCard = wrapper.get('.workbench__pool-list .workout-card');
-    expect(poolCard.classes()).toContain('workout-card--pool');
-    expect(poolCard.text()).toMatch(/3x/);
-    expect(poolCard.text()).toMatch(/60s/);
+    const libraryCard = wrapper.get('.workbench__library-list .workout-card');
+    expect(libraryCard.classes()).toContain('workout-card--library');
+    expect(libraryCard.text()).toMatch(/3x/);
+    expect(libraryCard.text()).toMatch(/60s/);
     for (const card of circuitCards(wrapper)) {
-      expect(card.classes()).not.toContain('workout-card--pool');
+      expect(card.classes()).not.toContain('workout-card--library');
     }
   });
 
-  it('renders the pool in its two groups with the create row between them', async () => {
+  it('renders the library in its two groups with the create row between them', async () => {
     const circuitId = await seedCircuit();
-    await seedPool();
+    await seedLibrary();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    const headers = wrapper.findAll('.pool-group__label');
+    const headers = wrapper.findAll('.library-group__label');
     expect(headers.map((header) => header.text())).toEqual(['Available', 'In Other Circuits']);
-    expect(wrapper.get('.workbench__pool-list .workout-card__name').text()).toBe('Goblet Squat');
-    expect(wrapper.get('.pool-elsewhere__name').text()).toBe('Pushups');
-    expect(wrapper.get('.pool-elsewhere__owner').text()).toBe('Upper Body');
+    expect(wrapper.get('.workbench__library-list .workout-card__name').text()).toBe('Goblet Squat');
+    expect(wrapper.get('.library-elsewhere__name').text()).toBe('Pushups');
+    expect(wrapper.get('.library-elsewhere__owner').text()).toBe('Upper Body');
     expect(wrapper.text()).toContain('+ New workout');
   });
 
@@ -250,13 +250,13 @@ describe('CircuitWorkbenchView', () => {
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    const headers = wrapper.findAll('.pool-group__label');
+    const headers = wrapper.findAll('.library-group__label');
     expect(headers.map((header) => header.text())).toEqual(['Available']);
   });
 
   it('adds an available workout from its editor: it arrives as configured', async () => {
     const circuitId = await seedCircuit();
-    const { freeId } = await seedPool();
+    const { freeId } = await seedLibrary();
     await setPrescription(testDb.db, freeId, { sets: 5, restSeconds: 45 });
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
@@ -273,23 +273,23 @@ describe('CircuitWorkbenchView', () => {
     // The workout brings its own prescription; nothing re-defaults.
     expect(cards[2].text()).toMatch(/5 sets/);
     expect(cards[2].text()).toMatch(/45s/);
-    expect(wrapper.find('.workbench__pool-list .workout-card').exists()).toBe(false);
+    expect(wrapper.find('.workbench__library-list .workout-card').exists()).toBe(false);
     const persisted = await listCircuitSlots(testDb.db, circuitId);
     expect(persisted.map((slot) => slot.exerciseName)).toContain('Goblet Squat');
   });
 
-  it('opens the SAME editor on a pool card, minus the circuit-only remove', async () => {
+  it('opens the SAME editor on a library card, minus the circuit-only remove', async () => {
     const circuitId = await seedCircuit();
-    const { freeId } = await seedPool();
+    const { freeId } = await seedLibrary();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
     await wrapper.get(`[data-card-id="${freeId}"] .workout-card__head`).trigger('click');
 
-    const poolCard = wrapper.get(`[data-card-id="${freeId}"]`);
-    expect(poolCard.find('.workout-card__editor').exists()).toBe(true);
-    expect(poolCard.findAll('.stepper-field__step')).toHaveLength(4);
-    expect(poolCard.find('.workout-card__remove').exists()).toBe(false);
+    const libraryCard = wrapper.get(`[data-card-id="${freeId}"]`);
+    expect(libraryCard.find('.workout-card__editor').exists()).toBe(true);
+    expect(libraryCard.findAll('.stepper-field__step')).toHaveLength(4);
+    expect(libraryCard.find('.workout-card__remove').exists()).toBe(false);
 
     // The circuit card's editor carries the remove; one control, one
     // placement-driven difference.
@@ -303,21 +303,21 @@ describe('CircuitWorkbenchView', () => {
 
   it('steals through the strip: warning first, then both circuits move', async () => {
     const circuitId = await seedCircuit();
-    const { heldId, otherCircuitId } = await seedPool();
+    const { heldId, otherCircuitId } = await seedLibrary();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
     // Clicking the row folds the warning open; nothing has moved yet.
-    await wrapper.get(`[data-card-id="${heldId}"] .pool-elsewhere__head`).trigger('click');
-    expect(wrapper.get('.pool-elsewhere__strip').text()).toContain('out of Upper Body');
+    await wrapper.get(`[data-card-id="${heldId}"] .library-elsewhere__head`).trigger('click');
+    expect(wrapper.get('.library-elsewhere__strip').text()).toContain('out of Upper Body');
     expect(await listCircuitSlots(testDb.db, otherCircuitId)).toHaveLength(1);
 
-    await wrapper.get('.pool-elsewhere__move').trigger('click');
+    await wrapper.get('.library-elsewhere__move').trigger('click');
     await flushPromises();
 
     const cards = circuitCards(wrapper);
     expect(cards.map((card) => card.text()).join(' ')).toContain('Pushups');
-    expect(wrapper.find('.pool-elsewhere__row').exists()).toBe(false);
+    expect(wrapper.find('.library-elsewhere__row').exists()).toBe(false);
     expect(await listCircuitSlots(testDb.db, otherCircuitId)).toHaveLength(0);
   });
 
@@ -326,24 +326,24 @@ describe('CircuitWorkbenchView', () => {
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    await wrapper.get('.pool-create__row').trigger('click');
+    await wrapper.get('.library-create__row').trigger('click');
     wrapper.get('.name-entry__entry').element.textContent = 'Dead Bug';
     await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
     await flushPromises();
 
-    // The created workout waits in the pool, fully editable there.
-    expect(wrapper.get('.workbench__pool-list .workout-card__name').text()).toBe('Dead Bug');
+    // The created workout waits in the library, fully editable there.
+    expect(wrapper.get('.workbench__library-list .workout-card__name').text()).toBe('Dead Bug');
     expect(circuitCards(wrapper)).toHaveLength(2);
     expect(await listCircuitSlots(testDb.db, circuitId)).toHaveLength(2);
   });
 
   it('routes a created name that lives elsewhere to that row, strip open', async () => {
     const circuitId = await seedCircuit();
-    const { heldId, otherCircuitId } = await seedPool();
+    const { heldId, otherCircuitId } = await seedLibrary();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
-    await wrapper.get('.pool-create__row').trigger('click');
+    await wrapper.get('.library-create__row').trigger('click');
     wrapper.get('.name-entry__entry').element.textContent = 'Pushups';
     await wrapper.get('.name-entry__entry').trigger('keydown', { key: 'Enter' });
     await flushPromises();
@@ -352,33 +352,33 @@ describe('CircuitWorkbenchView', () => {
     expect(await listCircuitSlots(testDb.db, otherCircuitId)).toHaveLength(1);
     expect(circuitCards(wrapper)).toHaveLength(2);
     const heldRow = wrapper.get(`[data-card-id="${heldId}"]`);
-    expect(heldRow.classes()).toContain('pool-elsewhere--open');
+    expect(heldRow.classes()).toContain('library-elsewhere--open');
   });
 
   it('applies a rename from either zone; a taken name notices on the card', async () => {
     const circuitId = await seedCircuit();
-    const { freeId } = await seedPool();
+    const { freeId } = await seedLibrary();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
     // The card detects the press-and-hold itself (WorkoutCard.test.ts);
     // here the wiring is under test, so the emit is driven directly.
-    const poolCard = wrapper
+    const libraryCard = wrapper
       .findAllComponents(WorkoutCard)
       .find((card) => card.props('addable') === true);
-    if (!poolCard) {
-      throw new Error('expected an addable pool card');
+    if (!libraryCard) {
+      throw new Error('expected an addable library card');
     }
 
-    poolCard.vm.$emit('rename', 'Cable Row');
+    libraryCard.vm.$emit('rename', 'Cable Row');
     await flushPromises();
     expect(wrapper.get(`[data-card-id="${freeId}"] .workout-card__notice`).text()).toContain(
       'already taken',
     );
 
-    poolCard.vm.$emit('rename', 'Goblet Squat Heavy');
+    libraryCard.vm.$emit('rename', 'Goblet Squat Heavy');
     await flushPromises();
-    expect(wrapper.get('.workbench__pool-list .workout-card__name').text()).toBe(
+    expect(wrapper.get('.workbench__library-list .workout-card__name').text()).toBe(
       'Goblet Squat Heavy',
     );
   });
@@ -522,7 +522,7 @@ describe('CircuitWorkbenchView / rename pencil', () => {
 // ids, and the drop callbacks translate between them. jsdom rects are
 // all zero, so every frozen boundary sits at y=0: negative clientY is
 // the circuit band, positive is the delete target (or, with the delete-target seam
-// stubbed lower, the pool). Pointer events are plain Events with
+// stubbed lower, the library). Pointer events are plain Events with
 // coordinate expandos - the established jsdom workaround.
 
 function dragPointer(
@@ -665,14 +665,14 @@ describe('CircuitWorkbenchView / drag seams', () => {
     wrapper.unmount();
   });
 
-  it('opens the pool berth at the TOP of the stock for a circuit card', async () => {
+  it('opens the library gap at the TOP of the list for a circuit card', async () => {
     const circuitId = await seedCircuit();
-    await seedPool();
+    await seedLibrary();
     const wrapper = mount(CircuitWorkbenchView, { props: { id: circuitId } });
     await flushPromises();
 
     // Push the delete-target seam down to y=100 so 0 <= y < 100 reads as the
-    // pool band (all other rects stay zero).
+    // library band (all other rects stay zero).
     const deleteEl = wrapper.get('.delete-target').element as HTMLElement;
     deleteEl.getBoundingClientRect = () =>
       ({ top: 100, left: 0, bottom: 148, right: 400, width: 400, height: 48 }) as DOMRect;
@@ -685,11 +685,11 @@ describe('CircuitWorkbenchView / drag seams', () => {
     dragPointer('pointermove', { clientX: 10, clientY: 40 });
     await flushPromises();
 
-    // The berth is deterministic - always the top row of AVAILABLE,
+    // The gap is deterministic - always the top row of AVAILABLE,
     // never the sorted spot mid-list (which could even open below the
     // scroll).
-    const items = wrapper.get('.workbench__pool-items').element;
-    expect(items.children[0].className).toContain('workbench__berth');
+    const items = wrapper.get('.workbench__library-items').element;
+    expect(items.children[0].className).toContain('workbench__library-gap');
 
     dragPointer('pointerup', { clientX: 10, clientY: -50 });
     await flushPromises();

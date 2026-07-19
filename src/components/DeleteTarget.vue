@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
-// The delete target: the create row docked below the pool doubles as the
+// The delete target: the create row docked below the library doubles as the
 // drop-to-delete slot. When a drag begins, a sweep line reveals the
 // "x DELETE" face top-to-bottom over the still-painted create row (the
 // half-revealed face mid-sweep is the cue). A card held over it arms the

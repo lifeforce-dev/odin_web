@@ -34,7 +34,7 @@ export type TransientCard =
       name: string;
       sets: number;
       restSeconds: number;
-      variant: 'circuit' | 'pool';
+      variant: 'circuit' | 'library';
     }
   | { kind: 'elsewhere'; name: string; owner: string };
 

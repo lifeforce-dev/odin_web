@@ -1,11 +1,11 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
-import PoolCreateRow from './PoolCreateRow.vue';
+import LibraryCreateRow from './LibraryCreateRow.vue';
 
-describe('PoolCreateRow', () => {
+describe('LibraryCreateRow', () => {
   it('idles as the ghost row and swaps to the name entry on tap', async () => {
-    const wrapper = mount(PoolCreateRow);
+    const wrapper = mount(LibraryCreateRow);
 
     expect(wrapper.text()).toContain('+ New workout');
     expect(wrapper.find('.name-entry__entry').exists()).toBe(false);
@@ -17,7 +17,7 @@ describe('PoolCreateRow', () => {
   });
 
   it('commits the trimmed name on Enter and folds back to idle', async () => {
-    const wrapper = mount(PoolCreateRow);
+    const wrapper = mount(LibraryCreateRow);
     await wrapper.get('button').trigger('click');
 
     const entry = wrapper.get('.name-entry__entry');
@@ -30,7 +30,7 @@ describe('PoolCreateRow', () => {
   });
 
   it('commits via the confirm check', async () => {
-    const wrapper = mount(PoolCreateRow);
+    const wrapper = mount(LibraryCreateRow);
     await wrapper.get('button').trigger('click');
 
     wrapper.get('.name-entry__entry').element.textContent = 'Kb Swing';
@@ -40,7 +40,7 @@ describe('PoolCreateRow', () => {
   });
 
   it('treats a blank commit as a cancel: no emit, back to idle', async () => {
-    const wrapper = mount(PoolCreateRow);
+    const wrapper = mount(LibraryCreateRow);
     await wrapper.get('button').trigger('click');
 
     wrapper.get('.name-entry__entry').element.textContent = '   ';
@@ -51,7 +51,7 @@ describe('PoolCreateRow', () => {
   });
 
   it('cancels on Escape without emitting', async () => {
-    const wrapper = mount(PoolCreateRow);
+    const wrapper = mount(LibraryCreateRow);
     await wrapper.get('button').trigger('click');
 
     wrapper.get('.name-entry__entry').element.textContent = 'Dead Bug';
@@ -62,7 +62,7 @@ describe('PoolCreateRow', () => {
   });
 
   it('abandons the entry when focus leaves the row (tap-off)', async () => {
-    const wrapper = mount(PoolCreateRow);
+    const wrapper = mount(LibraryCreateRow);
     await wrapper.get('button').trigger('click');
 
     wrapper.get('.name-entry__entry').element.textContent = 'Dead Bug';
@@ -74,7 +74,7 @@ describe('PoolCreateRow', () => {
   });
 
   it('keeps the entry open while focus moves within the row', async () => {
-    const wrapper = mount(PoolCreateRow);
+    const wrapper = mount(LibraryCreateRow);
     await wrapper.get('button').trigger('click');
 
     const confirm = wrapper.get('.name-entry__confirm').element;
@@ -86,10 +86,10 @@ describe('PoolCreateRow', () => {
   });
 
   it('renders the parent verdict when a name was rejected', () => {
-    const wrapper = mount(PoolCreateRow, {
+    const wrapper = mount(LibraryCreateRow, {
       props: { notice: "'Cat Cow' already exists as a stretch exercise" },
     });
 
-    expect(wrapper.get('.pool-create__notice').text()).toContain('already exists as a stretch');
+    expect(wrapper.get('.library-create__notice').text()).toContain('already exists as a stretch');
   });
 });

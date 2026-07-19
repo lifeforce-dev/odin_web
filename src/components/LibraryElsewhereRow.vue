@@ -10,7 +10,7 @@ import { useBodyHandle } from '@/composables/useBodyHandle';
 // body folds open the steal strip - it states the consequence and the
 // named-copy tip every time (no one-time modal), with LEAVE IT / MOVE
 // HERE. The grip is the drag surface, joined by the body when
-// `dragAnywhere` says the pool has no scroll to protect; dragging one
+// `dragAnywhere` says the library has no scroll to protect; dragging one
 // in also moves it. Render + emit only: the parent owns `open` and
 // executes the steal.
 
@@ -43,38 +43,42 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
 </script>
 
 <template>
-  <div class="pool-elsewhere" :class="{ 'pool-elsewhere--open': open }">
-    <div class="pool-elsewhere__row">
+  <div class="library-elsewhere" :class="{ 'library-elsewhere--open': open }">
+    <div class="library-elsewhere__row">
       <button
         type="button"
-        class="pool-elsewhere__head"
-        :class="{ 'pool-elsewhere__head--draggable': dragAnywhere }"
+        class="library-elsewhere__head"
+        :class="{ 'library-elsewhere__head--draggable': dragAnywhere }"
         @click="bodyHandle.onClick"
         @pointerdown="bodyHandle.onPointerDown"
       >
-        <span class="pool-elsewhere__name">{{ name }}</span>
-        <span class="pool-elsewhere__owner">{{ owner }}</span>
+        <span class="library-elsewhere__name">{{ name }}</span>
+        <span class="library-elsewhere__owner">{{ owner }}</span>
       </button>
       <GripHandle @drag-start="(event) => emit('drag-start', event)" />
     </div>
-    <div v-if="open" class="pool-elsewhere__strip">
-      <p class="pool-elsewhere__message">
+    <div v-if="open" class="library-elsewhere__strip">
+      <p class="library-elsewhere__message">
         Moving it here takes it <b>out of {{ owner }}</b
         >. History follows the name.
       </p>
-      <p class="pool-elsewhere__hint">
+      <p class="library-elsewhere__hint">
         Need it in both? Make a named copy: "{{ copySuggestion }}".
       </p>
-      <div class="pool-elsewhere__actions">
-        <button type="button" class="pool-elsewhere__keep" @click="emit('close')">Leave it</button>
-        <button type="button" class="pool-elsewhere__move" @click="emit('steal')">Move here</button>
+      <div class="library-elsewhere__actions">
+        <button type="button" class="library-elsewhere__keep" @click="emit('close')">
+          Leave it
+        </button>
+        <button type="button" class="library-elsewhere__move" @click="emit('steal')">
+          Move here
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.pool-elsewhere__row {
+.library-elsewhere__row {
   display: flex;
   align-items: stretch;
   min-height: var(--tap-min);
@@ -84,8 +88,8 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   border: var(--hairline) dashed var(--border-strong);
 }
 
-/* A plain tap target: swiping it pans the pool; only the grip drags. */
-.pool-elsewhere__head {
+/* A plain tap target: swiping it pans the library; only the grip drags. */
+.library-elsewhere__head {
   display: flex;
   flex: 1 1 auto;
   gap: var(--space-3);
@@ -100,20 +104,20 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   border: none;
 }
 
-/* Nothing to scroll in the pool, so the swipe is free to mean drag
+/* Nothing to scroll in the library, so the swipe is free to mean drag
    (same rule and reason as the workout card's draggable head). */
-.pool-elsewhere__head--draggable {
+.library-elsewhere__head--draggable {
   cursor: grab;
   touch-action: none;
 }
 
-.pool-elsewhere--open .pool-elsewhere__row {
+.library-elsewhere--open .library-elsewhere__row {
   background: var(--accent-soft);
   border-style: solid;
   border-color: var(--accent);
 }
 
-.pool-elsewhere__name {
+.library-elsewhere__name {
   flex: 1;
   overflow: hidden;
   color: var(--text-soft);
@@ -125,11 +129,11 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   text-transform: uppercase;
 }
 
-.pool-elsewhere--open .pool-elsewhere__name {
+.library-elsewhere--open .library-elsewhere__name {
   color: var(--text);
 }
 
-.pool-elsewhere__owner {
+.library-elsewhere__owner {
   flex: none;
   padding: var(--space-1) var(--space-2);
   color: var(--text-soft);
@@ -142,15 +146,15 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
 }
 
 /* The steal strip: consequence + named-copy tip, shown every time. */
-.pool-elsewhere__strip {
+.library-elsewhere__strip {
   padding: var(--space-3) var(--space-4);
   background: var(--accent-soft);
   border: var(--hairline) solid var(--accent);
   border-top: none;
-  animation: pool-strip-in var(--motion-press) ease-out;
+  animation: library-strip-in var(--motion-press) ease-out;
 }
 
-@keyframes pool-strip-in {
+@keyframes library-strip-in {
   from {
     opacity: 0;
   }
@@ -160,7 +164,7 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   }
 }
 
-.pool-elsewhere__message {
+.library-elsewhere__message {
   margin: 0;
   color: var(--text-soft);
   font-size: var(--type-micro);
@@ -169,12 +173,12 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   text-transform: uppercase;
 }
 
-.pool-elsewhere__message b {
+.library-elsewhere__message b {
   color: var(--accent);
   font-weight: 800;
 }
 
-.pool-elsewhere__hint {
+.library-elsewhere__hint {
   margin: var(--space-1) 0 0;
   color: var(--text-dim);
   font-size: var(--type-micro);
@@ -183,14 +187,14 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   text-transform: uppercase;
 }
 
-.pool-elsewhere__actions {
+.library-elsewhere__actions {
   display: flex;
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
 
-.pool-elsewhere__keep,
-.pool-elsewhere__move {
+.library-elsewhere__keep,
+.library-elsewhere__move {
   flex: 1;
   min-height: var(--tap-min);
   font-family: var(--font-mono);
@@ -201,24 +205,24 @@ const copySuggestion = computed(() => `${props.name} // ${props.owner.split(' ')
   cursor: pointer;
 }
 
-.pool-elsewhere__keep {
+.library-elsewhere__keep {
   color: var(--text-dim);
   background: transparent;
   border: var(--hairline) solid var(--border-strong);
 }
 
-.pool-elsewhere__move {
+.library-elsewhere__move {
   color: var(--text);
   background: var(--accent);
   border: var(--hairline) solid var(--accent);
 }
 
-.pool-elsewhere__move:active {
+.library-elsewhere__move:active {
   background: var(--accent-deep);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pool-elsewhere__strip {
+  .library-elsewhere__strip {
     animation: none;
   }
 }

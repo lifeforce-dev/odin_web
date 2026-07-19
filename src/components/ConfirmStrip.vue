@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The inline fold-open confirm, generalizing PoolElsewhereRow's steal
+// The inline fold-open confirm, generalizing LibraryElsewhereRow's steal
 // strip grammar (accent-soft plate, a consequence line, two actions) to
 // any state-changing action the circuits screen fires: shown every
 // time, never a modal. detailValue is composed AFTER detail here

@@ -53,7 +53,7 @@ export const CONTRACT_COLOR_TOKENS: readonly string[] = [
   // The floating alarm plate (the workbench's RELEASE TO REMOVE flag):
   // an opaque danger-tinted surface, not a translucent accent wash.
   '--surface-alarm',
-  // The inventory/supply channel: steel marks pool stock where the
+  // The inventory/supply channel: steel marks library rows where the
   // accent marks a committed circuit member. -soft is its faded
   // rule/edge ink.
   '--supply',

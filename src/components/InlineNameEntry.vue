@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 
-// The inline name-entry machine, shared by the pool's create row and
+// The inline name-entry machine, shared by the library's create row and
 // the card rename. A contenteditable seeded imperatively: Vue must
 // never patch a contenteditable's children, so nothing binds into it.
 // Enter or the check commits, Escape cancels, and focus leaving the

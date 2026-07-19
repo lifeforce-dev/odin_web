@@ -4,7 +4,7 @@ import { insertionIndex } from './useWorkbenchDrag';
 
 // The circuits screen's rotation-queue drag session: the workbench
 // drag's session discipline (pointerId capture, grab-point-clamped
-// ghost, the release-roll rule) with no zones, no forge, no pool - a
+// ghost, the release-roll rule) with no zones, no delete target, no library - a
 // single vertical list has nowhere else to drop. Reuses
 // useWorkbenchDrag's pure insertionIndex; orderAfterDrop is applied by
 // the caller (the view maps onDrop's gap into manager.reorder).
