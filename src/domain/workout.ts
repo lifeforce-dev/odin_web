@@ -8,16 +8,10 @@ import { nowIso } from '@/db/timestamps';
 
 import { getCircuitById, listCircuitSlots, nextRotationOrder } from './builder';
 
-// The workout-flow domain layer: which circuit is up next, how far the
-// in-flight session has gotten, the session-start writes (startWorkout
-// inserts the session row when the home CTA is tapped - tapping Start
-// Workout is the moment the workout starts, and the total-time readout
-// derives from the persisted startedAt so it survives app restarts;
-// startRest keeps a fallback insert for a stale route), and the
-// session-ending writes: both outcomes stamp endedAt + outcome and move
-// the circuit to the back of its kind's rotation queue. Everything
-// derives from persisted facts (session rows, set_log counts, rotation
-// order); nothing here trusts UI state.
+// The workout-flow domain layer: up-next selection, session start/end
+// writes, and the reads the workout screens render. Everything derives from
+// persisted facts (session rows, set_log counts, rotation order); nothing
+// here trusts UI state.
 
 export type ExerciseProgress = 'pending' | 'in-progress' | 'done';
 
@@ -31,20 +25,17 @@ export interface StartExercise {
   progress: ExerciseProgress;
 }
 
-// What the start page and the home CTA need: the up-next circuit, the
-// in-flight session when one exists (non-null means the CTA reads
-// Resume), and the grid with session-scoped progress.
+// What the start page and home CTA need. A non-null session means the CTA
+// reads Resume.
 export interface WorkoutStart {
   circuit: CircuitRow;
   session: SessionRow | null;
   exercises: StartExercise[];
 }
 
-// Newest-first. Sessions end only explicitly, and starting any session
-// abandons the other in-flight rows in the same transaction - but a
-// session orphaned by archiving or emptying its circuit stays in flight
-// until that next start abandons it, so a second in-flight row is a real
-// interim state, not a bug; the ordering picks the newest.
+// Newest-first: an orphaned session (its circuit archived/emptied) can
+// linger until the next session start abandons it, so a second in-flight
+// row is a real interim state, not a bug.
 export async function getInFlightSession(db: DbHandle): Promise<SessionRow | undefined> {
   return db
     .select()
@@ -55,9 +46,8 @@ export async function getInFlightSession(db: DbHandle): Promise<SessionRow | und
     .get();
 }
 
-// Startable = active, workout kind, holding at least one slot: an
-// empty circuit cannot be worked out, so it never blocks the queue.
-// Up next is the front of the rotation among startable circuits.
+// Up next is the front of the rotation among startable circuits (active,
+// workout kind, at least one slot; an empty circuit never blocks the queue).
 async function getFrontStartableCircuit(db: DbHandle): Promise<CircuitRow | undefined> {
   return db
     .select()
@@ -103,9 +93,8 @@ function toProgress(loggedSets: number, prescribedSets: number): ExerciseProgres
   return loggedSets >= prescribedSets ? 'done' : 'in-progress';
 }
 
-// The grid reads the circuit's CURRENT slots, not a session snapshot:
-// an in-flight session picks up prescription and membership edits on
-// resume by design.
+// Reads the circuit's CURRENT slots, not a session snapshot, so an
+// in-flight session picks up prescription/membership edits on resume.
 async function listStartExercises(
   db: DbHandle,
   circuitId: string,
@@ -128,13 +117,9 @@ async function listStartExercises(
   });
 }
 
-// The lift page's subject: an ACTIVE workout exercise held by a
-// circuit. The grid only navigates to slots, so a miss is a stale
-// route (an archive or removal since), answered with undefined rather
-// than an error. The kind filter keeps a manually-routed stretch
-// exercise off the lift page - and startRest's fallback insert off a
-// stretch circuit (exercise and circuit kinds match by construction;
-// addExerciseToCircuit rejects a mismatch).
+// The lift page's subject: an ACTIVE workout exercise held by a circuit. A
+// miss is a stale route (undefined, not an error); the kind filter keeps a
+// manually-routed stretch exercise off the lift page.
 interface OwnedExercise {
   exerciseId: string;
   name: string;
@@ -161,9 +146,8 @@ async function getOwnedExercise(
     .get();
 }
 
-// The lift page scopes its session to the exercise's OWN circuit: an
-// in-flight session on another circuit must not contribute its logged-set
-// counts here.
+// Scoped to the exercise's OWN circuit: another circuit's in-flight session
+// must not lend its logged-set counts here.
 async function getInFlightSessionForCircuit(
   db: DbHandle,
   circuitId: string,
@@ -183,13 +167,10 @@ export interface LastSessionSet {
   weightUnit: SetLogRow['weightUnit'];
 }
 
-// "Last Session" = the newest logged set from an ENDED session, so only
-// finished history shows. This excludes the set just done (the current
-// session is still in flight) and another circuit's in-flight logs after
-// an exercise was moved between circuits mid-workout. setIndex breaks
-// loggedAt ties within one visit. The selected bare column names stay
-// distinct across the join; the plugin's object rows collapse same-named
-// result columns (src/db/proxy-rows.ts).
+// "Last Session" = the newest logged set from an ENDED session (excludes the
+// in-flight set just done). setIndex breaks loggedAt ties. Bare column names
+// stay distinct across the join - the plugin collapses same-named result
+// columns (src/db/proxy-rows.ts).
 async function getLastSessionSet(
   db: DbHandle,
   exerciseId: string,
@@ -211,29 +192,23 @@ export interface WorkoutSet {
   exerciseName: string;
   prescribedSets: number;
   loggedSets: number;
-  // 1-based next unlogged set; null when the exercise is done this
-  // session (>= semantics, so a prescription lowered mid-session reads
-  // done instead of stranding the screen).
+  // 1-based next unlogged set; null when the exercise is done this session.
   currentSet: number | null;
   // True when this is the SESSION's final unlogged set anywhere in the
-  // circuit, so the action reads FINISH; the last set of a non-final
-  // exercise keeps START REST.
+  // circuit, so the action reads FINISH instead of START REST.
   isFinalSet: boolean;
   lastSession: LastSessionSet | null;
 }
 
-// The session's unlogged sets across a whole slot list, each slot clamped
-// at zero (a prescription lowered below the logged count must not push the
-// total negative). Zero means the workout is factually done, whether or
-// not FINISH was ever tapped.
+// The session's unlogged sets across a slot list, each clamped at zero (a
+// lowered prescription must not push the total negative). Zero means done,
+// FINISH tapped or not.
 function totalRemainingSets(slots: StartExercise[]): number {
   return slots.reduce((total, slot) => total + Math.max(0, slot.sets - slot.loggedSets), 0);
 }
 
-// Resolves a circuit's current slots down to one exercise's facts, shared
-// by getWorkoutSet (the lift page) and arriveAtRest (the rest page): both
-// need the same "how many sets are left, here and across the whole circuit"
-// math on top of listStartExercises.
+// One exercise's facts plus how many sets are left (here and across the
+// circuit); shared by getWorkoutSet and arriveAtRest.
 async function resolveSlotFacts(
   db: DbHandle,
   circuitId: string,
@@ -243,9 +218,8 @@ async function resolveSlotFacts(
   const slots = await listStartExercises(db, circuitId, sessionId);
   const mine = slots.find((slot) => slot.exerciseId === exerciseId);
   if (!mine) {
-    // The caller's own read joined on this circuit's items, so the slot
-    // list must contain the exercise; a miss means the DB changed
-    // mid-read.
+    // The caller joined on this circuit's items, so a miss means the DB
+    // changed mid-read.
     throw new Error(`exercise ${exerciseId} vanished from circuit ${circuitId} mid-read`);
   }
   const remainingForExercise = Math.max(0, mine.sets - mine.loggedSets);
@@ -284,10 +258,9 @@ export interface RestEntry {
   setIndex: number;
 }
 
-// The fallback prefill when neither history branch answers: a fresh
-// exercise with no prior visit and no earlier set this session. weightUnit
-// is a constant until a settings screen exists; it is still stored per row,
-// so a future default swaps in cleanly.
+// The fallback prefill when no history answers. weightUnit is constant until
+// a settings screen exists, but still stored per row so a future default
+// swaps in cleanly.
 export const DEFAULT_SET_VALUES: {
   reps: number;
   weight: number;
@@ -300,14 +273,13 @@ export const DEFAULT_SET_VALUES: {
 
 export type RestMode = 'countdown' | 'final';
 
-// The rest screen's arrival read: the auto-logged row's facts flattened
-// alongside what the screen needs to render and navigate - no separate
-// row/facts split, mirroring WorkoutSet's shape.
+// The rest screen's arrival read: the auto-logged row's facts plus what the
+// screen renders and navigates on.
 export interface RestArrival {
   setLogId: string;
   sessionId: string;
-  // The session's persisted start, for the docked TOTAL TIME readout
-  // (a separate clock from the rest countdown; see domain/rest-timer.ts).
+  // The session's persisted start, for the docked TOTAL TIME readout (a
+  // separate clock from the rest countdown).
   sessionStartedAt: string;
   exerciseId: string;
   reps: number;
@@ -316,9 +288,8 @@ export interface RestArrival {
   loggedAt: string;
   restSeconds: number;
   mode: RestMode;
-  // Unlogged sets left on THIS exercise after this one (clamped >= 0):
-  // NEXT SET routes back to the lift page while this is > 0, else the
-  // grid.
+  // Unlogged sets left on THIS exercise after this one: NEXT SET routes to
+  // the lift page while > 0, else the grid.
   remainingForExercise: number;
 }
 
@@ -343,15 +314,10 @@ async function findSetLog(
 
 type SetValues = Pick<SetLogRow, 'reps' | 'weight' | 'weightUnit'>;
 
-// The prefill chain (insert only, so re-arrival never re-derives it):
-// (a) the same exercise + setIndex from a COMPLETED prior session, newest
-// first - "what did I lift here last time"; else (b) the previous set
-// logged THIS session (carry-over within one visit); else (c) the app
-// default. Only COMPLETED sessions count as "last session": an abandoned
-// or still-in-flight session is not a workout to progress from, and letting
-// it seed the values would mask the within-session carry-over (b) whenever
-// prior attempts pile up. This is deliberately narrow: only completed
-// sessions ever seed the prefill.
+// The prefill chain (insert only): (a) same exercise + setIndex from a
+// COMPLETED prior session, newest first; else (b) the previous set logged
+// THIS session (carry-over within a visit); else (c) the app default. Only
+// COMPLETED sessions count - an abandoned or in-flight one would mask (b).
 async function prefillSetValues(
   tx: DbHandle,
   sessionId: string,
@@ -370,9 +336,8 @@ async function prefillSetValues(
         eq(session.outcome, 'completed'),
       ),
     )
-    // Every row here already shares setIndex (the where-clause pins it),
-    // so ordering by it too would be a no-op tiebreaker; loggedAt desc
-    // alone picks the newest.
+    // The where-clause already pins setIndex, so loggedAt desc alone picks
+    // the newest.
     .orderBy(desc(setLog.loggedAt))
     .limit(1)
     .get();
@@ -389,15 +354,11 @@ async function prefillSetValues(
   return previousThisSession ?? DEFAULT_SET_VALUES;
 }
 
-// The START REST / FINISH transition's landing: auto-logs the set that
-// just happened (find-then-insert inside one transaction stands in for
-// an upsert - there is no unique index on the (session, exercise,
-// setIndex) triple) and derives the screen's mode from session facts.
-// Idempotent by construction: re-arrival finds the existing row instead
-// of prefilling again. Null when the route is stale - no in-flight
-// session on this exercise's circuit (the lift page owns the fallback
-// insert) or the exercise is missing/archived/unheld/stretch - so no
-// write and no new session ever happens here.
+// The START REST / FINISH landing: auto-logs the set that just happened
+// (find-then-insert stands in for an upsert - no unique index on
+// session/exercise/setIndex) and is idempotent, so re-arrival finds the
+// existing row. Null on a stale route (no in-flight session here, or the
+// exercise missing/archived/unheld/stretch) - no write.
 export async function arriveAtRest(
   db: DbHandle,
   exerciseId: string,
@@ -415,12 +376,9 @@ export async function arriveAtRest(
     }
     let row = await findSetLog(tx, inFlight.id, exerciseId, setIndex);
     if (!row) {
-      // Only the insert path needs guarding against a route-carried
-      // setIndex the caller never validated: a legitimate re-arrival at
-      // an EXISTING row survives a since-lowered prescription (the find
-      // above already resolved it), but a stale or manual route inserting
-      // a spurious row here would corrupt the remaining-sets math below
-      // and could force final mode early.
+      // Guard only the insert path: a re-arrival at an existing row survives
+      // a since-lowered prescription, but a stale or manual route inserting a
+      // spurious row would corrupt the remaining-sets math below.
       if (!Number.isInteger(setIndex) || setIndex < 1 || setIndex > owned.sets) {
         return null;
       }
@@ -473,10 +431,9 @@ function requireValidRestLogEdit(changes: RestLogEdit): void {
   }
 }
 
-// The one legitimate mutation of a set_log row: a pre-advance correction to
-// what auto-logged. loggedAt (what the rest countdown derives from) is never
-// touched. Returns false when the row is gone (a stale edit racing a change
-// elsewhere), so the caller can re-derive rather than guess.
+// The one legitimate set_log mutation: a pre-advance correction to what
+// auto-logged. loggedAt (the rest countdown's anchor) is never touched.
+// False means the row is gone, so the caller re-derives.
 export async function updateRestLog(
   db: DbHandle,
   setLogId: string,
@@ -500,11 +457,9 @@ export async function updateRestLog(
   });
 }
 
-// The rest screen's back-as-rollback: undoes the arrival auto-log outright,
-// edits and all - discarding the set is the point. Touches ONLY this row:
-// no new session, no outcome stamp, no other row ever moves. False means the
-// row is already gone - the state already matches the intent, not an error
-// the caller needs to handle differently.
+// Back-as-rollback: deletes the arrival auto-log outright, edits and all -
+// discarding the set is the point. False means the row is already gone,
+// which already matches the intent, not an error.
 export async function rollBackRest(db: DbHandle, setLogId: string): Promise<boolean> {
   return db.transaction(async (tx) => {
     const existing = await tx
@@ -520,10 +475,8 @@ export async function rollBackRest(db: DbHandle, setLogId: string): Promise<bool
   });
 }
 
-// Appends the circuit to the back of its kind's rotation queue
-// (builder's nextRotationOrder owns the append rule). Rotating an
-// archived or emptied circuit is harmless - the startable predicate
-// keeps it out of the queue regardless.
+// Appends the circuit to the back of its kind's rotation queue. Rotating an
+// archived/emptied circuit is harmless - startable keeps it out anyway.
 async function rotateCircuitToBack(tx: DbHandle, circuitId: string): Promise<void> {
   const target = await tx
     .select({ kind: circuit.kind })
@@ -543,11 +496,9 @@ async function rotateCircuitToBack(tx: DbHandle, circuitId: string): Promise<voi
 
 export type SessionOutcome = NonNullable<SessionRow['outcome']>;
 
-// The one session-ending write, shared by every path that ends a session:
-// endedAt + outcome stamp together, and the circuit rotates to the back of
-// its kind's queue in the same transaction (either outcome - "did not
-// finish, want to move on" is the common abandon case). set_logs are never
-// touched: the sets happened.
+// The one session-ending write: stamp endedAt + outcome and rotate the
+// circuit to the back of its queue, same transaction. set_logs are never
+// touched - the sets happened.
 async function endSessionRow(
   tx: DbHandle,
   row: SessionRow,
@@ -559,15 +510,10 @@ async function endSessionRow(
   return { ...row, endedAt, outcome };
 }
 
-// Abandons every OTHER in-flight session, run whenever a session starts
-// (and on startWorkout's resume): any other in-flight session is a fact
-// that can no longer be true - its circuit was archived or emptied
-// mid-session, or a stale route inserted a session into another circuit -
-// so beginning new work abandons it. This one function is what keeps "at
-// most one in-flight session" true by construction, without builder.ts
-// ever knowing sessions exist and without an editing lock: an emptied
-// circuit's session stays resumable (by refilling the circuit) right up
-// until a new workout actually starts.
+// Abandons every OTHER in-flight session at each session start. This is the
+// sole enforcer of "at most one in-flight session" - no editing lock, so an
+// emptied circuit's session stays resumable-by-refill until a new workout
+// actually starts.
 async function abandonOtherInFlightSessions(
   tx: DbHandle,
   keepSessionId: string | null,
@@ -603,10 +549,8 @@ async function endSessionById(
   });
 }
 
-// The FINISH transition (and what the grid-arrival completion
-// reconcile writes): endedAt + 'completed' + rotation, refusing a
-// second call. After this, getWorkoutStart no longer resumes the
-// session and the home CTA reads Start Workout again.
+// The FINISH transition (also written by reconcileWorkoutCompletion):
+// 'completed' + rotation, refusing a second call.
 export async function finishSession(
   db: DbHandle,
   sessionId: string,
@@ -615,9 +559,8 @@ export async function finishSession(
   return endSessionById(db, sessionId, 'completed', endedAt);
 }
 
-// The circuits screen's explicit abandon: the same session-ending path with
-// outcome 'abandoned'. set_logs are kept - history follows the exercise, and
-// the sets happened.
+// The circuits screen's explicit abandon: the session-ending path with
+// outcome 'abandoned'. set_logs are kept - the sets happened.
 export async function abandonSession(
   db: DbHandle,
   sessionId: string,
@@ -642,13 +585,11 @@ export interface RotationView {
 }
 
 // The circuits screen's one read. workoutCount is a correlated scalar
-// subquery embedded via drizzle's own query builder: a bare sql template
-// interpolating both tables' columns loses its table qualification here -
-// drizzle-orm 0.45.2 only qualifies columns correctly when the correlated
-// reference is built through db.select().from().where(), not through raw
-// ${column} interpolation spanning two tables in one template. Single table
-// plus this nested builder is also safe against the same-named-bare-column
-// collision rule (src/db/proxy-rows.ts).
+// subquery built through drizzle's own query builder, not a raw sql
+// template: drizzle-orm 0.45.2 only qualifies a correlated column reference
+// correctly via db.select().from().where(), not ${column} interpolation
+// spanning two tables. Also safe against the same-named-bare-column
+// collision (src/db/proxy-rows.ts).
 export async function getRotationView(db: DbHandle): Promise<RotationView> {
   const workoutCountSubquery = db
     .select({ n: sql<number>`count(*)`.as('n') })
@@ -675,12 +616,10 @@ export async function getRotationView(db: DbHandle): Promise<RotationView> {
   return { queue, active };
 }
 
-// The active-circuit box's swap: ends the in-flight session (the same
-// session-ending path as abandonSession) and moves the chosen circuit to
-// the front of the rotation, in one transaction. Never starts a session -
-// Start Workout stays the single entry point. Every refusal path returns
-// null with zero writes: a stale screen resyncs from the DB rather than
-// trusting what it was shown.
+// The active-circuit box's swap: ends the in-flight session and moves the
+// chosen circuit to the front, one transaction. Never starts a session
+// (Start Workout is the only entry point); every refusal returns null with
+// zero writes.
 export async function swapActiveCircuit(
   db: DbHandle,
   sessionId: string,
@@ -727,17 +666,9 @@ export async function swapActiveCircuit(
   });
 }
 
-// The completion reconcile on grid arrival: mid-session workbench edits can
-// zero out the remaining sets with no final rest arrival - sets lowered
-// below the logged count, or the last unfinished workout deleted - leaving a
-// session that no FINISH affordance can reach. When the facts already say
-// done, arrival acknowledges it: an in-flight session on a still-startable
-// circuit with zero remaining sets ends here with the same session-ending
-// path as FINISH. Its own function on the grid's load path, never a side
-// effect inside getWorkoutStart, so reads stay pure. Returns the completed
-// row when the reconcile fired, else null. An orphaned session (archived or
-// emptied circuit) is deliberately NOT completed here - zero slots is not a
-// finished workout; abandoning it at the next session start owns that case.
+// Ends an in-flight session whose remaining sets already hit zero through
+// workbench edits, with no final rest to FINISH it - otherwise it can never
+// end.
 export async function reconcileWorkoutCompletion(
   db: DbHandle,
   endedAt = nowIso(),
@@ -754,13 +685,10 @@ export async function reconcileWorkoutCompletion(
   });
 }
 
-// The START REST / FINISH transition. The normal flow arrives with a session
-// already created by startWorkout; the insert below is a fallback for a
-// stale or manual route onto a lift page with no session, so a set that
-// physically happened is never unrecordable (its startedAt is then the rest
-// tap, the closest surviving fact). Null when the exercise is not liftable
-// (missing, archived, unheld) or has no unlogged set left - stale-screen
-// races, not errors.
+// The START REST / FINISH transition. Normally the session already exists
+// (startWorkout); the insert below is a fallback for a stale route with no
+// session, so a set that physically happened is never unrecordable. Null
+// when the exercise is not liftable or has no unlogged set left.
 export async function startRest(
   db: DbHandle,
   exerciseId: string,
@@ -779,9 +707,8 @@ export async function startRest(
       return null;
     }
     if (!inFlight) {
-      // The fallback insert starts a session like any other path: another
-      // circuit's in-flight session is abandoned in the same transaction,
-      // so starting a rest here converges the rows to one in-flight session.
+      // The fallback insert starts a session like any other path, abandoning
+      // any other in-flight session so the rows converge to one.
       await abandonOtherInFlightSessions(tx, null, startedAt);
       inFlight = {
         id: newId(),
@@ -796,13 +723,10 @@ export async function startRest(
   });
 }
 
-// The Start Workout transition: tapping the home CTA is the moment the
-// workout starts, so the session row is created here and its persisted
-// startedAt drives the total-time readout across restarts. A tap while a
-// session is in flight is a resume and rides the existing row. Either way,
-// every OTHER in-flight row is abandoned in the same transaction (see
-// abandonOtherInFlightSessions). Null when nothing is startable (the CTA was
-// stale). One transaction: a double-tap must not create two session rows.
+// The Start Workout transition: creates the session row (its persisted
+// startedAt drives the total-time readout across restarts), or rides the
+// existing one on a resume. One transaction, so a double-tap can't create
+// two rows; null when nothing is startable.
 export async function startWorkout(db: DbHandle, startedAt = nowIso()): Promise<SessionRow | null> {
   return db.transaction(async (tx) => {
     const start = await getWorkoutStart(tx);
@@ -825,9 +749,8 @@ export async function startWorkout(db: DbHandle, startedAt = nowIso()): Promise<
   });
 }
 
-// The up-next rule: an in-flight session wins and selects its circuit (its
-// facts win over the rotation); otherwise the front startable circuit. Null
-// means nothing is startable and the home CTA disables.
+// The up-next rule: an in-flight session selects its own circuit; otherwise
+// the front startable circuit. Null means nothing is startable.
 export async function getWorkoutStart(db: DbHandle): Promise<WorkoutStart | null> {
   const inFlight = await getInFlightSession(db);
   if (inFlight) {
@@ -837,13 +760,10 @@ export async function getWorkoutStart(db: DbHandle): Promise<WorkoutStart | null
       // is corrupt, not a state to render around.
       throw new Error(`in-flight session ${inFlight.id} references missing circuit`);
     }
-    // Resume only into a circuit that is still STARTABLE - the same
-    // conditions the rotation uses (active, workout kind, at least one
-    // slot). Archiving or emptying a circuit mid-session leaves nothing
-    // to resume into, so the rotation behaves as if the session had
-    // ended; this is derived per read, so re-adding a workout restores
-    // the resume. The orphaned row itself is abandoned at the next
-    // session start (abandonOtherInFlightSessions).
+    // Resume only into a still-STARTABLE circuit. Archiving/emptying it
+    // mid-session leaves nothing to resume into (derived per read, so
+    // re-adding a workout restores the resume); the orphaned row is
+    // abandoned at the next session start.
     if (owner.archivedAt === null && owner.kind === 'workout') {
       const exercises = await listStartExercises(db, owner.id, inFlight.id);
       if (exercises.length > 0) {
@@ -865,15 +785,11 @@ export async function getWorkoutStart(db: DbHandle): Promise<WorkoutStart | null
 export type ResumePoint =
   { screen: 'workout-start' } | { screen: 'rest'; exerciseId: string; setIndex: number };
 
-// The cold-open restore read: which screen the in-flight session's
-// facts imply. Null when nothing is resumable. Any logged set implies
-// the rest screen for the newest one - "resting" includes an expired
-// rest sitting at 0:00, because backgrounding mid-rest is the normal
-// case and no persisted fact records having left the screen; the rest
-// route is idempotent (arriveAtRest finds the existing row), so
-// re-landing there never re-logs. No sets yet, or the newest set's
-// exercise no longer held by the circuit (the rest route would not
-// resolve), restores the exercise grid instead.
+// The cold-open restore read: which screen the session's facts imply. Any
+// logged set restores the rest screen for the newest - "resting" includes an
+// expired rest at 0:00, since backgrounding mid-rest is normal and re-landing
+// is idempotent. No sets (or the newest set's exercise no longer held)
+// restores the exercise grid.
 export async function getResumePoint(db: DbHandle): Promise<ResumePoint | null> {
   const start = await getWorkoutStart(db);
   if (!start?.session) {
