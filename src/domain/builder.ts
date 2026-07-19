@@ -44,9 +44,8 @@ export interface Prescription {
   restSeconds: number;
 }
 
-// A fresh workout's starting prescription; the value lives in the
-// schema as the columns' storage default. Sets/rest belong to the
-// workout: moving it between circuits carries them.
+// A fresh workout's starting prescription (the schema's column default).
+// Sets/rest belong to the workout and move between circuits with it.
 export { DEFAULT_PRESCRIPTION } from '@/db/schema';
 
 function requireValidName(name: string): string {
@@ -105,11 +104,9 @@ async function nextPosition(db: DbHandle, circuitId: string): Promise<number> {
   return row?.next ?? 0;
 }
 
-// The back of a kind's rotation queue. The max is taken over all rows of
-// the kind, archived included: archived circuits keep their slot, so
-// appends stay monotonic with no collision to reason about. Shared by
-// createCircuit and the session-end rotation (domain/workout.ts) - the
-// queue's monotonic-append invariant has exactly one author.
+// The back of a kind's rotation queue: max over all rows of the kind,
+// archived included, so appends stay monotonic. The sole author of that
+// invariant (createCircuit and the session-end rotation both call it).
 export async function nextRotationOrder(db: DbHandle, kind: CircuitKind): Promise<number> {
   const row = await db
     .select({
@@ -183,10 +180,9 @@ export async function renameCircuit(db: DbHandle, id: string, name: string): Pro
   });
 }
 
-// Soft delete (sessions reference circuits for provenance) that also
-// hard-deletes the circuit's items in the same transaction: membership is
-// exclusive, so an item left behind would keep its exercise out of the library
-// and block adding it anywhere else.
+// Soft delete (sessions reference circuits for provenance), but hard-deletes
+// the circuit's items too, same transaction: membership is exclusive, so a
+// stranded item would lock its exercise out of the library.
 export async function archiveCircuit(
   db: DbHandle,
   id: string,
@@ -207,12 +203,10 @@ export async function archiveCircuit(
   });
 }
 
-// Rewrites rotationOrder densely (0..n-1, in list order) from the given
-// order. The id list must be exactly the ACTIVE circuits of the kind -
-// same exact-permutation contract as reorderCircuitItems. Archived
-// circuits keep their existing rotationOrder untouched: a collision with
-// an archived row is harmless (archived rows never appear in any queue
-// read) and nextRotationOrder's max-over-all-rows append stays monotonic.
+// Rewrites rotationOrder densely (0..n-1) from the given order, which must be
+// exactly the ACTIVE circuits of the kind (same exact-permutation contract as
+// reorderCircuitItems). Archived rows keep their order - a collision is
+// harmless since they never appear in a queue read.
 export async function reorderCircuits(
   db: DbHandle,
   kind: CircuitKind,
@@ -243,12 +237,10 @@ export async function reorderCircuits(
 
 // --- Workout library -----------------------------------------------------------
 
-// Find-or-create on the normalized name. Matching folds both sides
-// with SQLite's own lower() so the comparison is exactly the
-// ASCII-only fold the active-name unique index uses; JS toLowerCase()
-// disagrees on non-ASCII names. The index is global across kinds, so a
-// name held by the other kind is a kind-mismatch error, never a second
-// identity the index would then reject.
+// Find-or-create on the normalized name, folded with SQLite's own lower() to
+// match the active-name unique index exactly (JS toLowerCase() disagrees on
+// non-ASCII). The index is global across kinds, so a name held by the other
+// kind is a kind-mismatch.
 export async function findOrCreateExercise(
   db: DbHandle,
   kind: ExerciseKind,
@@ -274,10 +266,9 @@ export async function findOrCreateExercise(
   });
 }
 
-// Returns false when the row is missing or archived, mirroring
-// renameCircuit's contract. A collision with another active name is
-// not pre-checked: the active-name unique index is the rule, and the
-// violation stays a DrizzleQueryError with the reason on error.cause.
+// False when missing or archived (like renameCircuit). A name collision is
+// not pre-checked - the active-name unique index is the rule, surfacing as a
+// DrizzleQueryError with the reason on error.cause.
 export async function renameExercise(db: DbHandle, id: string, name: string): Promise<boolean> {
   const trimmed = requireValidName(name);
   return db.transaction(async (tx) => {
@@ -294,20 +285,17 @@ export async function renameExercise(db: DbHandle, id: string, name: string): Pr
   });
 }
 
-// What a trash gesture destroyed, in the shape its undo needs: the
-// identity, and the slot a circuit was holding it in (exclusivity
-// guarantees at most one).
+// What a delete destroyed, shaped for undo: the identity and the one slot a
+// circuit held it in.
 export interface TrashedWorkout {
   exerciseId: string;
   held: { circuitId: string; position: number } | null;
 }
 
-// The drag-to-trash delete: one transaction frees the slot a circuit
-// may hold and archives the identity - set_log history keeps
-// referencing it, and the active-name index frees the name for reuse.
-// Deliberately not guarded against held exercises: leaving the slot
-// behind would strand a pointer at an archived identity. Resolves to
-// the undo shape, or null when missing or already archived.
+// The drag-to-trash delete: frees the slot a circuit may hold and archives
+// the identity (history keeps referencing it; the name frees for reuse), one
+// transaction. Must delete the slot too - a stranded pointer would reference
+// an archived identity. Null when missing or already archived.
 export async function trashExercise(
   db: DbHandle,
   exerciseId: string,
@@ -329,14 +317,11 @@ export async function trashExercise(
   });
 }
 
-// The trash undo: restores the archived identity and, when a circuit
-// held it, a slot at the old position. The position may collide with a
-// row added since - ordering only needs monotonic values, and the next
-// reorder rewrites them densely. If the owner circuit was archived in
-// the meantime the identity restores into the library. A name retaken
-// while the undo sat violates the active-name index and surfaces as
-// the constraint's DrizzleQueryError with nothing written. Returns
-// false when the exercise is missing or already active.
+// The delete undo: restores the identity and, if a circuit held it, a slot at
+// the old position (a collision is fine - the next reorder redenses). If the
+// owner was archived meanwhile, it restores to the library. A name retaken
+// while undo sat surfaces as a constraint error, nothing written. False when
+// missing or already active.
 export async function restoreExercise(db: DbHandle, trashed: TrashedWorkout): Promise<boolean> {
   return db.transaction(async (tx) => {
     const row = await tx.select().from(exercise).where(eq(exercise.id, trashed.exerciseId)).get();
@@ -363,8 +348,8 @@ export async function restoreExercise(db: DbHandle, trashed: TrashedWorkout): Pr
   });
 }
 
-// Available entries carry their prescription: the library card is the
-// same editable control as the circuit's.
+// Available entries carry their prescription: the library card is the same
+// editable control as the circuit's.
 export interface LibraryAvailableEntry {
   exerciseId: string;
   name: string;
@@ -384,11 +369,9 @@ export interface LibraryGroups {
   heldElsewhere: LibraryElsewhereEntry[];
 }
 
-// Library group state is derived, never stored: AVAILABLE is an active
-// exercise of the circuit's kind with no circuit_item row anywhere;
-// IN OTHER CIRCUITS means its one item belongs to another circuit.
-// Exercises held by THIS circuit are its slots, not library rows, so they
-// appear in neither group.
+// Library groups are derived, never stored: AVAILABLE = an active exercise of
+// the kind with no circuit_item anywhere; ELSEWHERE = its one item belongs to
+// another circuit. This circuit's own exercises are slots, in neither group.
 export async function getLibrary(db: DbHandle, circuitId: string): Promise<LibraryGroups> {
   const viewing = await requireActiveCircuit(db, circuitId);
   const available = await db
@@ -412,10 +395,9 @@ export async function getLibrary(db: DbHandle, circuitId: string): Promise<Libra
       ),
     )
     .orderBy(sql`lower(${exercise.name})`);
-  // Owner circuits are always active: archiveCircuit deletes the circuit's
-  // items in the same transaction, so no item can point at an archived
-  // circuit. The circuit columns are aliased apart from the exercise's bare
-  // id/name - the plugin's object rows collapse same-named result columns
+  // Owner circuits are always active (archiveCircuit deletes their items in
+  // the same transaction). The circuit columns are aliased apart from the
+  // exercise's bare id/name - the plugin collapses same-named columns
   // (src/db/proxy-rows.ts).
   const heldElsewhere = await db
     .select({
@@ -449,10 +431,9 @@ export interface CircuitSlot {
   restSeconds: number;
 }
 
-// The circuit zone's slot list; sets/rest read from the exercise (the
-// slot is a pure association). The selected bare column names are all
-// distinct because the plugin's object rows collapse same-named result
-// columns (src/db/proxy-rows.ts).
+// The circuit zone's slot list; sets/rest come from the exercise (a slot is a
+// pure association). Bare column names stay distinct - the plugin collapses
+// same-named columns (src/db/proxy-rows.ts).
 export async function listCircuitSlots(db: DbHandle, circuitId: string): Promise<CircuitSlot[]> {
   return db
     .select({
@@ -469,12 +450,10 @@ export async function listCircuitSlots(db: DbHandle, circuitId: string): Promise
     .orderBy(circuitItem.position);
 }
 
-// Adds an AVAILABLE exercise to the end of the circuit: a pure
-// association - the workout brings its own prescription with it. There
-// is no held-elsewhere pre-check on purpose: the DB's UNIQUE(exercise_id)
-// IS the duplicate rule, and adding an exercise some circuit already
-// holds fails loudly as a constraint violation (reason on error.cause).
-// Moving a held exercise is stealExercise.
+// Adds an AVAILABLE exercise to the end of the circuit (a pure association -
+// the workout brings its prescription). No held-elsewhere pre-check:
+// UNIQUE(exercise_id) is the duplicate rule, so adding a held one fails
+// loudly. Moving a held one is stealExercise.
 export async function addExerciseToCircuit(
   db: DbHandle,
   circuitId: string,
@@ -496,9 +475,7 @@ export async function addExerciseToCircuit(
 }
 
 // Hard delete; nothing references items. The freed exercise derives back to
-// AVAILABLE with no further bookkeeping. Remaining positions keep their
-// values - ordering only needs them monotonic, and the next reorder rewrites
-// them densely anyway.
+// AVAILABLE. Remaining positions stay as-is - order only needs them monotonic.
 export async function removeCircuitItem(db: DbHandle, itemId: string): Promise<boolean> {
   return db.transaction(async (tx) => {
     const existing = await tx
@@ -514,11 +491,10 @@ export async function removeCircuitItem(db: DbHandle, itemId: string): Promise<b
   });
 }
 
-// The live-apply prescription edit, keyed to the workout so the same
-// edit works from the circuit slot and the library card. Partial on
-// purpose: the steppers change one number at a time. Validates the
-// merged result so a partial edit can never leave an invalid pair
-// behind. Returns false when missing or archived.
+// The live-apply prescription edit, keyed to the workout so it works from the
+// circuit slot or the library card. Partial (steppers change one number), but
+// validates the merged result so a partial edit can't leave an invalid pair.
+// False when missing or archived.
 export async function setPrescription(
   db: DbHandle,
   exerciseId: string,
@@ -547,9 +523,8 @@ export async function setPrescription(
   });
 }
 
-// Rewrites every position from the given order (0-based, dense). The id list
-// must be exactly the circuit's current items: a stale drag result (an item
-// added or removed since the gesture started) fails loudly instead of
+// Rewrites every position (0-based, dense) from the given order, which must be
+// exactly the circuit's current items - a stale drag fails loudly instead of
 // scrambling positions.
 export async function reorderCircuitItems(
   db: DbHandle,
@@ -579,11 +554,10 @@ export async function reorderCircuitItems(
   });
 }
 
-// The workbench steal: one transaction moves the exercise's single pointer
-// from its owner circuit to the target. UNIQUE(exercise_id) turns a
-// forgotten delete into a loud constraint failure instead of a silent
-// duplicate. The workout's prescription and history both ride along
-// automatically - they key to the exercise, not the slot.
+// The workbench steal: moves the exercise's single pointer from its owner to
+// the target, one transaction. UNIQUE(exercise_id) turns a forgotten delete
+// into a loud failure, not a silent duplicate. Prescription and history ride
+// along (they key to the exercise, not the slot).
 export async function stealExercise(
   db: DbHandle,
   exerciseId: string,
