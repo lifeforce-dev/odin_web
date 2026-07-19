@@ -70,7 +70,7 @@ function sanitizeNumericText(raw: string, allowDecimal: boolean): string {
   return result;
 }
 
-interface NumericWellConfig {
+interface NumericFieldConfig {
   el: Ref<HTMLElement | null>;
   initial: number;
   allowDecimal: boolean;
@@ -83,7 +83,7 @@ interface NumericWellConfig {
 // One shared implementation of sync/adjust/input/blur/paste/focus-guard
 // for a contenteditable numeric field; reps and weight differ only in
 // their config (integer vs 0.5-stepped decimal).
-function makeNumericWell(config: NumericWellConfig) {
+function makeNumericField(config: NumericFieldConfig) {
   const value = ref(config.initial);
 
   function isFocused(): boolean {
@@ -211,8 +211,8 @@ function scheduleCommit(): void {
 function flushCommit(): void {
   settle.cancel();
   const normalized = {
-    reps: normalizeReps(repsWell.value.value),
-    weight: normalizeWeight(weightWell.value.value),
+    reps: normalizeReps(repsField.value.value),
+    weight: normalizeWeight(weightField.value.value),
   };
   if (normalized.reps === lastCommitted.reps && normalized.weight === lastCommitted.weight) {
     return;
@@ -221,7 +221,7 @@ function flushCommit(): void {
   emit('commit', normalized);
 }
 
-const repsWell = makeNumericWell({
+const repsField = makeNumericField({
   el: repsEl,
   initial: props.reps,
   allowDecimal: false,
@@ -231,7 +231,7 @@ const repsWell = makeNumericWell({
   onBlurCommit: flushCommit,
 });
 
-const weightWell = makeNumericWell({
+const weightField = makeNumericField({
   el: weightEl,
   initial: props.weight,
   allowDecimal: true,
@@ -245,8 +245,8 @@ const weightWell = makeNumericWell({
 });
 
 onMounted(() => {
-  repsWell.render();
-  weightWell.render();
+  repsField.render();
+  weightField.render();
 });
 
 // A prop change is a fresh arrival or post-failure re-derive, never a
@@ -256,14 +256,14 @@ watch(
   () => props.reps,
   (value) => {
     lastCommitted = { ...lastCommitted, reps: value };
-    repsWell.resyncFromProp(value);
+    repsField.resyncFromProp(value);
   },
 );
 watch(
   () => props.weight,
   (value) => {
     lastCommitted = { ...lastCommitted, weight: value };
-    weightWell.resyncFromProp(value);
+    weightField.resyncFromProp(value);
   },
 );
 
@@ -282,7 +282,7 @@ onBeforeUnmount(flushCommit);
       :dec-label="'\u2212'"
       inc-label="+"
       :step="REPS_STEP"
-      @adjust="repsWell.adjust"
+      @adjust="repsField.adjust"
     >
       <template #value>
         <div
@@ -292,10 +292,10 @@ onBeforeUnmount(flushCommit);
           inputmode="numeric"
           role="textbox"
           aria-label="Reps"
-          @keydown="repsWell.onKeydown"
-          @input="repsWell.onInput"
-          @blur="repsWell.onBlur"
-          @paste="repsWell.onPaste"
+          @keydown="repsField.onKeydown"
+          @input="repsField.onInput"
+          @blur="repsField.onBlur"
+          @paste="repsField.onPaste"
         ></div>
         <span class="log-set-control__unit">reps</span>
       </template>
@@ -305,7 +305,7 @@ onBeforeUnmount(flushCommit);
       :dec-label="'\u2212'"
       inc-label="+"
       :step="WEIGHT_STEP"
-      @adjust="weightWell.adjust"
+      @adjust="weightField.adjust"
     >
       <template #value>
         <div
@@ -315,10 +315,10 @@ onBeforeUnmount(flushCommit);
           inputmode="decimal"
           role="textbox"
           aria-label="Weight"
-          @keydown="weightWell.onKeydown"
-          @input="weightWell.onInput"
-          @blur="weightWell.onBlur"
-          @paste="weightWell.onPaste"
+          @keydown="weightField.onKeydown"
+          @input="weightField.onInput"
+          @blur="weightField.onBlur"
+          @paste="weightField.onPaste"
         ></div>
         <span class="log-set-control__unit">{{ weightUnit }}</span>
       </template>
