@@ -34,7 +34,7 @@ const emit = defineEmits<{
 // The optional #value slot lets a caller swap the plain display span
 // for its own content (e.g. LogSetControl's contenteditable field) while
 // still riding this field's shared label, pads, and hold-to-ramp: one
-// shared hold-to-ramp control, swapped via this slot instead of minting
+// shared hold-to-ramp control, swapped via this slot instead of creating
 // another press-hold machine.
 defineSlots<{
   value?: () => unknown;

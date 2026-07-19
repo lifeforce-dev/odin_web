@@ -185,7 +185,7 @@ describe('workout start', () => {
 
       // Archiving deleted the circuit's items, so there is nothing to
       // resume into; the rotation rules as if the session had ended.
-      // A later session start ends and reaps the orphaned session row.
+      // A later session start ends and abandons the orphaned session row.
       expect(start?.circuit.id).toBe(survivor.circuit.id);
       expect(start?.session).toBeNull();
     });
@@ -213,20 +213,20 @@ describe('workout start', () => {
       return testDb.db.select().from(session);
     }
 
-    it('mints the session for the front startable circuit at the CTA tap', async () => {
+    it('creates the session for the front startable circuit at the CTA tap', async () => {
       const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
 
-      const minted = await startWorkout(testDb.db, '2026-07-16T09:58:00.000Z');
+      const created = await startWorkout(testDb.db, '2026-07-16T09:58:00.000Z');
 
-      expect(minted).toMatchObject({
+      expect(created).toMatchObject({
         circuitId: circuit.id,
         startedAt: '2026-07-16T09:58:00.000Z',
         endedAt: null,
       });
-      expect(await allSessions()).toEqual([minted]);
+      expect(await allSessions()).toEqual([created]);
     });
 
-    it('rides the in-flight session on resume instead of minting a twin', async () => {
+    it('rides the in-flight session on resume instead of creating a twin', async () => {
       const { circuit } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const inFlight = await insertSession(circuit.id);
 
@@ -236,57 +236,57 @@ describe('workout start', () => {
       expect(await allSessions()).toHaveLength(1);
     });
 
-    it('answers null and mints nothing when no circuit is startable', async () => {
+    it('answers null and creates nothing when no circuit is startable', async () => {
       await createCircuit(testDb.db, { kind: 'workout', name: 'Empty' });
 
       expect(await startWorkout(testDb.db)).toBeNull();
       expect(await allSessions()).toHaveLength(0);
     });
 
-    it('mints past a non-resumable orphan and reaps it as abandoned', async () => {
+    it('creates past a non-resumable orphan and abandons it as abandoned', async () => {
       const doomed = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const survivor = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
       const orphan = await insertSession(doomed.circuit.id);
       await archiveCircuit(testDb.db, doomed.circuit.id);
 
-      const minted = await startWorkout(testDb.db, '2026-07-16T12:00:00.000Z');
+      const created = await startWorkout(testDb.db, '2026-07-16T12:00:00.000Z');
 
       // The new workout starts on the circuit the rotation actually
       // offers, and beginning new work is the moment the orphaned row
-      // stops being true: the mint abandons it in the same transaction.
-      expect(minted?.circuitId).toBe(survivor.circuit.id);
-      const reaped = (await allSessions()).find((row) => row.id === orphan.id);
-      expect(reaped).toMatchObject({
+      // stops being true: starting a session abandons it in the same transaction.
+      expect(created?.circuitId).toBe(survivor.circuit.id);
+      const abandoned = (await allSessions()).find((row) => row.id === orphan.id);
+      expect(abandoned).toMatchObject({
         endedAt: '2026-07-16T12:00:00.000Z',
         outcome: 'abandoned',
       });
     });
 
-    it('reaps an orphan on an EMPTIED circuit at the next mint, not before', async () => {
+    it('abandons an orphan on an EMPTIED circuit at the next session start, not before', async () => {
       const emptied = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const survivor = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
       const orphan = await insertSession(emptied.circuit.id);
       for (const slot of await listCircuitSlots(testDb.db, emptied.circuit.id)) {
         await removeCircuitItem(testDb.db, slot.id);
       }
-      // Emptying alone reaps nothing: refilling the circuit would make
-      // the session resumable again, so its fate waits for a real mint.
+      // Emptying alone abandons nothing: refilling the circuit would make
+      // the session resumable again, so its fate waits for a real session start.
       expect((await getInFlightSession(testDb.db))?.id).toBe(orphan.id);
 
-      const minted = await startWorkout(testDb.db, '2026-07-16T12:00:00.000Z');
+      const created = await startWorkout(testDb.db, '2026-07-16T12:00:00.000Z');
 
-      expect(minted?.circuitId).toBe(survivor.circuit.id);
-      const reaped = (await allSessions()).find((row) => row.id === orphan.id);
-      expect(reaped).toMatchObject({ outcome: 'abandoned' });
+      expect(created?.circuitId).toBe(survivor.circuit.id);
+      const abandoned = (await allSessions()).find((row) => row.id === orphan.id);
+      expect(abandoned).toMatchObject({ outcome: 'abandoned' });
 
-      // The reap's rotation half is part of its contract, not a free
+      // The abandon's rotation half is part of its contract, not a free
       // ride on endSessionRow: the emptied circuit moves behind the
       // survivor, so a refill starts at the back of the queue.
       const order = await listActiveCircuits(testDb.db, 'workout');
       expect(order.map((row) => row.name)).toEqual(['Pull', 'Push']);
     });
 
-    it('resume reaps any OTHER in-flight row but never the resumed session', async () => {
+    it('resume abandons any OTHER in-flight row but never the resumed session', async () => {
       const doomed = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const live = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
       const orphan = await insertSession(doomed.circuit.id, {
@@ -586,7 +586,7 @@ describe('lift page', () => {
       return testDb.db.select().from(session);
     }
 
-    it("mints the session on the workout's first rest", async () => {
+    it("creates the session on the workout's first rest", async () => {
       const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
 
       const entry = await startRest(testDb.db, exercises[0].id, '2026-07-16T10:03:00.000Z');
@@ -620,7 +620,7 @@ describe('lift page', () => {
       expect(await allSessions()).toHaveLength(1);
     });
 
-    it('refuses a done exercise without minting anything', async () => {
+    it('refuses a done exercise without creating anything', async () => {
       const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       await setPrescription(testDb.db, exercises[0].id, { sets: 2 });
       const inFlight = await insertSession(circuit.id);
@@ -631,7 +631,7 @@ describe('lift page', () => {
       expect(await allSessions()).toHaveLength(1);
     });
 
-    it('refuses a missing or unheld exercise without minting anything', async () => {
+    it('refuses a missing or unheld exercise without creating anything', async () => {
       const pooled = await findOrCreateExercise(testDb.db, 'workout', 'Poolside Curl');
 
       expect(await startRest(testDb.db, newId())).toBeNull();
@@ -639,13 +639,13 @@ describe('lift page', () => {
       expect(await allSessions()).toHaveLength(0);
     });
 
-    it('refuses a stretch exercise: no lift page, no fallback mint', async () => {
+    it('refuses a stretch exercise: no lift page, no fallback insert', async () => {
       const stretch = await createCircuit(testDb.db, { kind: 'stretch', name: 'Mobility' });
       const hold = await findOrCreateExercise(testDb.db, 'stretch', 'Pigeon Hold');
       await addExerciseToCircuit(testDb.db, stretch.id, hold.id);
 
       // A stretch circuit's exercise is reachable only by manual URL;
-      // a session minted there would be invisible to resume and the
+      // a session created there would be invisible to resume and the
       // rotation (both are workout-kind scoped) - an orphan by
       // construction, so the subject query refuses the kind outright.
       expect(await getWorkoutSet(testDb.db, hold.id)).toBeNull();
@@ -653,7 +653,7 @@ describe('lift page', () => {
       expect(await allSessions()).toHaveLength(0);
     });
 
-    it("fallback mint abandons another circuit's in-flight session (the third door)", async () => {
+    it("fallback insert abandons another circuit's in-flight session", async () => {
       const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const other = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
       const foreign = await insertSession(other.circuit.id);
@@ -661,7 +661,7 @@ describe('lift page', () => {
       const entry = await startRest(testDb.db, exercises[0].id, '2026-07-16T12:00:00.000Z');
 
       // The only way in is a stale/manual route while another workout
-      // is live. Starting a rest here IS starting new work, so the mint
+      // is live. Starting a rest here IS starting new work, so the new session
       // converges the rows: the foreign session ends 'abandoned' and
       // exactly one session stays in flight.
       expect(entry?.setIndex).toBe(1);
@@ -683,7 +683,7 @@ describe('rest screen', () => {
   }
 
   describe('arriveAtRest', () => {
-    it('mints the row with the SAME exercise + setIndex from a COMPLETED session (branch a)', async () => {
+    it('creates the row with the SAME exercise + setIndex from a COMPLETED session (branch a)', async () => {
       const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       await setPrescription(testDb.db, exercises[0].id, { sets: 4 });
       const older = await insertSession(circuit.id, {
@@ -774,7 +774,7 @@ describe('rest screen', () => {
       expect(await allSetLogs()).toHaveLength(1);
     });
 
-    it('refuses with no in-flight session on this circuit: no write, no mint', async () => {
+    it('refuses with no in-flight session on this circuit: no write, no insert', async () => {
       const { exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
 
       expect(await arriveAtRest(testDb.db, exercises[0].id, 1)).toBeNull();
@@ -814,7 +814,7 @@ describe('rest screen', () => {
       expect(await allSetLogs()).toHaveLength(0);
     });
 
-    it('refuses an out-of-range setIndex on the insert path: a stale route mints no row', async () => {
+    it('refuses an out-of-range setIndex on the insert path: a stale route creates no row', async () => {
       const { circuit, exercises } = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       await setPrescription(testDb.db, exercises[0].id, { sets: 2 });
       await insertSession(circuit.id);
@@ -1169,7 +1169,7 @@ describe('circuit manager', () => {
   });
 
   describe('swapActiveCircuit', () => {
-    it('ends the session, rotates the old circuit back, fronts the target, mints nothing new', async () => {
+    it('ends the session, rotates the old circuit back, fronts the target, creates nothing new', async () => {
       const from = await makeCircuitWithWorkouts('Push', ['Bench Press']);
       const to = await makeCircuitWithWorkouts('Pull', ['Cable Row']);
       const third = await makeCircuitWithWorkouts('Legs', ['Squat']);
@@ -1183,7 +1183,7 @@ describe('circuit manager', () => {
         outcome: 'abandoned',
       });
       expect(ended?.endedAt).not.toBeNull();
-      // Swap never mints - Start Workout stays the single entry point.
+      // Swap never creates - Start Workout stays the single entry point.
       expect(await allSessions()).toHaveLength(1);
       const order = await listActiveCircuits(testDb.db, 'workout');
       expect(order.map((row) => row.id)).toEqual([

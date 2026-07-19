@@ -59,7 +59,7 @@ const selectedTheme = computed({
 
 // Every token board derives from a TS source: colors from the
 // contract, geometry from styles/geometry.ts (whose parity test diffs
-// it against structure.css), so a minted token appears here
+// it against structure.css), so a new token appears here
 // automatically or fails the suite. Fonts/textures/glows get bespoke
 // samples below (a glow is not a swatch); those are exempted by name
 // in geometry.ts.
@@ -98,7 +98,7 @@ const demoStealOpen = ref(false);
 const demoLibraryEvent = ref<string | null>(null);
 const demoCreatedName = ref<string | null>(null);
 
-// A live start for the total-time board row, minted at setup so the
+// A live start for the total-time board row, created at setup so the
 // readout visibly runs.
 const galleryWorkoutStartedAt = new Date(Date.now() - 65_000).toISOString();
 

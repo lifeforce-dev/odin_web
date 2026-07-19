@@ -111,8 +111,8 @@ export function useCircuitManager(db: DbClient | null) {
   }
 
   // Archives the circuit; the session is deliberately NOT touched here
-  // - an orphaned session (its circuit gone) is the mint-time reap's
-  // job, never a delete-time write.
+  // - an orphaned session (its circuit gone) is abandoned at the next
+  // session start, never by a delete-time write.
   function remove(circuitId: string): Promise<void> {
     if (!db) {
       return Promise.resolve();

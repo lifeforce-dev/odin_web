@@ -203,7 +203,7 @@ describe('WorkoutSetView', () => {
     expect(card.text()).toContain('110');
   });
 
-  it('mints the session and routes to the rest screen on START REST', async () => {
+  it('creates the session and routes to the rest screen on START REST', async () => {
     const { circuitId, exercises } = await seedCircuit();
 
     const wrapper = await mountView(exercises[1].id);
@@ -308,7 +308,7 @@ describe('WorkoutSetView', () => {
     expect(routerPush).not.toHaveBeenCalled();
     expect(wrapper.text()).toContain('All sets logged');
     expect(wrapper.find('.docked-action').exists()).toBe(false);
-    // The refusal minted nothing; only the seeded session exists.
+    // The refusal created nothing; only the seeded session exists.
     expect(await allSessions()).toHaveLength(1);
   });
 

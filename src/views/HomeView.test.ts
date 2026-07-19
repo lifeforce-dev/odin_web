@@ -75,7 +75,7 @@ describe('HomeView', () => {
     expect(cta.attributes('disabled')).toBeDefined();
   });
 
-  it('starts the workout on tap: session minted, then navigate', async () => {
+  it('starts the workout on tap: session created, then navigate', async () => {
     const circuitId = await seedStartableCircuit();
     const wrapper = mount(HomeView);
     await flushPromises();
@@ -170,7 +170,7 @@ describe('HomeView', () => {
     await cta.trigger('click');
     await flushPromises();
 
-    // Resume never mints a twin; the running clock is the old start.
+    // Resume never creates a twin; the running clock is the old start.
     expect(await testDb.db.select().from(session)).toHaveLength(1);
     expect(routerPush).toHaveBeenCalledWith({ name: 'workout-start' });
   });

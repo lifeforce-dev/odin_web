@@ -120,7 +120,7 @@ export const session = sqliteTable(
     endedAt: text('ended_at'),
     // How the session ended: FINISH (or the grid-arrival completion
     // reconcile) writes 'completed', the manager abandon and the
-    // orphan reap write 'abandoned'. Null while in flight; set_logs
+    // orphan cleanup write 'abandoned'. Null while in flight; set_logs
     // are kept on both paths.
     outcome: text('outcome', { enum: ['completed', 'abandoned'] }),
   },

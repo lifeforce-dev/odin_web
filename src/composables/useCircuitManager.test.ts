@@ -186,8 +186,8 @@ describe('useCircuitManager', () => {
     await manager.remove(pushId);
 
     expect(manager.queue.value.map((row) => row.id)).not.toContain(pushId);
-    // The reap at next mint owns an orphaned session - delete never
-    // touches it, ever.
+    // The abandon at the next session start owns an orphaned session -
+    // delete never touches it, ever.
     const rows = await db.select().from(session);
     expect(rows.find((row) => row.id === sessionId)).toMatchObject({
       endedAt: null,

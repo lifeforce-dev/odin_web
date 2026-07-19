@@ -2,7 +2,7 @@ import { onScopeDispose } from 'vue';
 
 // A single-slot one-shot timer: set() always cancels the pending shot
 // first, so the slot can never orphan a stale callback, and scope
-// disposal cancels whatever is left. One slot per concern - mint
+// disposal cancels whatever is left. One slot per concern - create
 // another instance rather than sharing one. Gesture state machines
 // (hold-to-ramp, press-and-hold) are NOT one-shots; they keep their
 // own timers.

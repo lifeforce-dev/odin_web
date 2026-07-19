@@ -384,7 +384,7 @@ describe('CircuitsView', () => {
     expect(routerPush).not.toHaveBeenCalled();
   });
 
-  it('ADD CIRCUIT double-tap joins the in-flight create, minting exactly one circuit', async () => {
+  it('ADD CIRCUIT double-tap joins the in-flight create, creating exactly one circuit', async () => {
     const wrapper = mount(CircuitsView);
     await flushPromises();
 

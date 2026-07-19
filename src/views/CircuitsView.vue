@@ -68,8 +68,8 @@ const tagByCircuitId = computed<Map<string, 'next' | 'active'>>(() => {
 });
 
 // The active box can vanish out from under swap mode (the session ends
-// behind the screen's back - abandon elsewhere, a reap, the circuit
-// deleted). Closing the strip alongside is load-bearing: a swap pick
+// behind the screen's back - abandon elsewhere, an orphan cleanup, the
+// circuit deleted). Closing the strip alongside is load-bearing: a swap pick
 // strip open on row X shares openStripId with row X's delete strip, so
 // leaving it set would morph one into the other the instant swapMode
 // drops.
@@ -152,8 +152,8 @@ async function confirmSwap(circuitId: string): Promise<void> {
 }
 
 // A re-tap while the create is in flight JOINS the pending write
-// instead of minting a second circuit (the standing never-hand-roll-a-
-// pending-guard decision).
+// instead of creating a second circuit: re-taps ride the in-flight write
+// rather than each starting a new one.
 const { run: handleAddCircuit } = useCoalescedWrite('add circuit', async () => {
   addNotice.value = null;
   const id = await manager.createAndOpen();
