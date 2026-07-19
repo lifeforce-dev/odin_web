@@ -21,7 +21,7 @@ import WorkoutSetView from './WorkoutSetView.vue';
 // Integration over the real DB double: the three-zone render states,
 // the START REST / FINISH label switch, and the transition write + rest
 // route push are view wiring the domain tests cannot see - and there is
-// no device walk of the logged states until 03-03 writes set logs.
+// no device walk of the logged states until set logs are written.
 
 const nativeState: { isNative: boolean; hasSystemBack: boolean; db: DbClient | null } = {
   isNative: true,

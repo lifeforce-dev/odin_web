@@ -52,7 +52,7 @@ const router = createRouter({
     {
       // setIndex is the one route-carried fact: which set this rest
       // logs, captured at the START REST transition - the arrival
-      // auto-log (03-03) changes what a re-derivation would answer.
+      // auto-log changes what a re-derivation would answer.
       // Final mode derives from session facts, never a route flag.
       path: '/workout/:exerciseId/rest/:setIndex(\\d+)',
       name: 'rest',

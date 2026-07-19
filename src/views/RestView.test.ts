@@ -732,7 +732,7 @@ describe('RestView', () => {
     });
 
     it('an expired rest leaves without rolling back: row kept, no notice, label reads Workout', async () => {
-      // The cold-open restore case (owner ruling 2026-07-17): the
+      // The cold-open restore case: the
       // seeded arrival is an hour past its 90s window, and re-arrival
       // keeps the original loggedAt, so the row's own age disarms the
       // rollback - back is a plain leave and the up row stops

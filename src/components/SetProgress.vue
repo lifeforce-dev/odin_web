@@ -43,8 +43,8 @@ const label = computed(() => `${props.loggedSets} of ${props.sets} sets logged`)
 
 <style scoped>
 .set-progress {
-  /* Box size: the ref draws 56px (a >=52px target); a local knob, the
-     --reg-mark idiom. The ref's 10px gap ships as the rhythm's 12. */
+  /* Box size: 56px, a >=52px tap target; a local knob, the --reg-mark
+     idiom. The row gap ships as the rhythm's 12px. */
   --set-box: 56px;
 
   display: flex;

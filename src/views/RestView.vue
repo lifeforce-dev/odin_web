@@ -28,7 +28,7 @@ import { resolveUpTo, useUpOverride } from '@/router/up';
 // or on-screen) undoes the arrival instead of leaving quietly. Past
 // the window (sitting at 0:00, or a cold-open restore hours later)
 // back is a plain leave - the set stays logged, and the row's label
-// stops promising destruction (owner ruling 2026-07-17).
+// stops promising destruction.
 
 const PULSE_AT_SECONDS = 10;
 

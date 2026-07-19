@@ -185,7 +185,7 @@ describe('workout start', () => {
 
       // Archiving deleted the circuit's items, so there is nothing to
       // resume into; the rotation rules as if the session had ended.
-      // 03-05 owns ending/reaping the orphaned session row.
+      // A later session start ends and reaps the orphaned session row.
       expect(start?.circuit.id).toBe(survivor.circuit.id);
       expect(start?.session).toBeNull();
     });
@@ -1094,7 +1094,7 @@ describe('session end', () => {
   });
 });
 
-describe('circuit manager (02-06)', () => {
+describe('circuit manager', () => {
   async function allSessions(): Promise<SessionRow[]> {
     return testDb.db.select().from(session);
   }

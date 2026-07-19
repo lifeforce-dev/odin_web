@@ -15,7 +15,7 @@ import { cancelNotifications, isNative, onAppStateChange, scheduleNotifications 
 // the alarm - but ONLY while foreground (isForeground gated). Minimized,
 // locked, or closed, that cancel never runs, so the OS alarm fires.
 //
-// 03-06 (skip/extend) is free: it only changes endsAt in the foreground,
+// Skip/extend support is free: it only changes endsAt in the foreground,
 // and the watch below reschedules + re-arms from the new value.
 //
 // endsAt is the countdown-mode end (null in final mode or before the
@@ -45,7 +45,7 @@ export const REST_PRIMER_COPY = {
 function scheduleRestAlarm(endsAtIso: string): void {
   const fireAt = new Date(endsAtIso);
   if (fireAt.getTime() <= Date.now()) {
-    // A past/near-past endsAt (a 03-06 skip/extend that shortened rest
+    // A past/near-past endsAt (a skip/extend that shortened rest
     // below the elapsed time) can't be a future alarm: clear any still-
     // pending one instead of leaving the old future alarm to fire late.
     cancelRestAlarm();

@@ -599,9 +599,9 @@ onMounted(() => {
         <DockedAction variant="ghost" :pulsing="true" label="Next Set" />
         <DockedAction variant="filled" label="Next Set" />
         <p class="board-note">
-          One geometry (03-02's docked CTA shape), three color variants: amber is the lift page's
-          rest channel, ghost is the rest screen's vermilion doorway back to the act-state (pulsing
-          past 0:10), filled is time-up - the loudest thing on the screen.
+          One geometry (the docked CTA shape), three color variants: amber is the lift page's rest
+          channel, ghost is the rest screen's vermilion doorway back to the act-state (pulsing past
+          0:10), filled is time-up - the loudest thing on the screen.
         </p>
       </section>
 

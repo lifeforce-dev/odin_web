@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // The permission primer: a first-time, once-ever dialog that makes the
-// value case in the app's own voice before the OS permission surface
-// (owner decision, 2026-07-13). Purely presentational - copy in, two
+// value case in the app's own voice before the OS permission surface.
+// Purely presentational - copy in, two
 // intents out - so the same dialog serves rest today and the stretch
 // flow later, and the gallery can board it against every theme. The
 // scrim never dismisses: a stray tap would permanently suppress the one

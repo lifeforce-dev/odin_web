@@ -5,7 +5,7 @@ import { applyMigrations } from './migrate';
 import { betterSqliteExecutor, bundleThrough } from './test-db';
 
 // Migration 0002 adds session.outcome and BACKFILLS 'completed' onto
-// sessions ended before outcomes existed (03-03's minimal finishSession
+// sessions ended before outcomes existed (the minimal finishSession
 // stamped endedAt only). Fresh test DBs apply the full bundle over
 // empty tables, so only this test executes the backfill against
 // populated v2 data. It also pins that the migration runs as plain

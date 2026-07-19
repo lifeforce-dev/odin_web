@@ -8,8 +8,8 @@ import { remainingSeconds } from '@/domain/rest-timer';
 // frozen background webview resumes onto the correct digits. Re-derives
 // on visibilitychange too, for the same reason on a tab/app switch that
 // never fully suspends the interval. No native App-resume seam exists
-// yet (src/native/lifecycle.ts has none) - 03-04 owns wiring one in;
-// visibilitychange alone is the correct signal here.
+// yet (src/native/lifecycle.ts has none); visibilitychange alone is the
+// correct signal here.
 export interface RestTimer {
   remaining: Ref<number>;
 }

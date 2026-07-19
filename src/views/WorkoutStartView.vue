@@ -21,7 +21,7 @@ import { getWorkoutStart, reconcileWorkoutCompletion } from '@/domain/workout';
 // completion reconcile point: an in-flight session whose remaining
 // sets hit zero through workbench edits has no FINISH affordance left
 // anywhere, so the grid acknowledges the facts - ends it and routes to
-// home (the congrats splash when 03-07 lands) - instead of rendering
+// home (a congrats splash later) - instead of rendering
 // an all-done grid that strands the session in flight.
 
 const router = useRouter();

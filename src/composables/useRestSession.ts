@@ -160,8 +160,8 @@ export function useRestSession(
       if (!target) {
         return;
       }
-      // Back on an EXPIRED rest is plain leave, never destruction
-      // (owner ruling 2026-07-17): rollback exists so no timer is
+      // Back on an EXPIRED rest is plain leave, never destruction:
+      // rollback exists so no timer is
       // wasted, and past 0:00 there is nothing left to save - without
       // this, a cold-open restore hours later would let hardware back
       // silently delete the restored set. The row's own age decides

@@ -213,7 +213,7 @@ describe('WorkoutStartView', () => {
     const [row] = await testDb.db.select().from(session);
     expect(row).toMatchObject({ id: sessionId, outcome: 'completed' });
     expect(row.endedAt).not.toBeNull();
-    // Routed to home (the congrats splash when 03-07 lands), grid never
+    // Routed to home (a congrats splash later), grid never
     // rendered.
     expect(routerReplace).toHaveBeenCalledExactlyOnceWith({ name: 'home' });
     expect(tiles(wrapper)).toHaveLength(0);

@@ -2,8 +2,8 @@
 // plugin is imported nowhere else). Deliberately feature-agnostic - it
 // knows how to ask for permission and how to schedule/cancel absolute-
 // time notifications, nothing about rest or stretch. The rest timer
-// (03-04) schedules one informational alert; the stretch chain (ODI-24)
-// schedules a whole sequence with Next/Skip action buttons through the
+// schedules one informational alert; the stretch chain schedules a whole
+// sequence with Next/Skip action buttons through the
 // SAME surface, which is why registerActionTypes/onNotificationAction
 // live here now even though rest's tap-to-open needs neither.
 import { LocalNotifications } from '@capacitor/local-notifications';

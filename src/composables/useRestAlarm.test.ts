@@ -154,7 +154,7 @@ describe('useRestAlarm', () => {
     const { endsAt } = await mountAlarm(FUTURE);
     mocks.scheduleNotifications.mockClear();
 
-    // A 03-06 skip/extend that shortens rest below the elapsed time.
+    // A skip/extend that shortens rest below the elapsed time.
     endsAt.value = '2026-07-17T23:59:00Z'; // NOW - 60s
     await nextTick();
 

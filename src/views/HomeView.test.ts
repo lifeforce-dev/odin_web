@@ -19,7 +19,7 @@ import { workoutCta } from './test-support';
 // Integration over the real DB double: the home CTA's mapping of
 // getWorkoutStart onto label/disabled and its start-the-clock write on
 // tap are view wiring the domain tests cannot see, and the RESUME path
-// has no device walk until 03-05.
+// has no device walk yet.
 
 const nativeState: { isNative: boolean; db: DbClient | null } = { isNative: true, db: null };
 

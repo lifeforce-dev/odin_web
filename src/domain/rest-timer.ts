@@ -12,8 +12,8 @@ export function restEndsAtIso(loggedAt: string, restSeconds: number): string {
   return new Date(loggedAtMs + restSeconds * 1000).toISOString();
 }
 
-// Clamps at zero: the ref never counts overtime, and the total-workout
-// readout is a separate timer that keeps running regardless.
+// Clamps at zero: the rest countdown never counts overtime, and the
+// total-workout readout is a separate timer that keeps running regardless.
 export function remainingSeconds(endsAtIso: string, nowMs: number): number {
   const endsAtMs = Date.parse(endsAtIso);
   if (Number.isNaN(endsAtMs)) {
